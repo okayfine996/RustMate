@@ -9,35 +9,50 @@ import Foundation
 
 class MockToolchainService: RustToolchainServiceProtocol {
 
+    // MARK: - Test Configuration
+
+    var mockToolchains: [ToolchainInfo] = [
+        ToolchainInfo(
+            id: UUID(),
+            name: "stable-aarch64-apple-darwin",
+            version: "1.75.0",
+            isDefault: true,
+            installDate: Date().addingTimeInterval(-86400 * 30),
+            host: "aarch64-apple-darwin"
+        ),
+        ToolchainInfo(
+            id: UUID(),
+            name: "nightly-aarch64-apple-darwin",
+            version: "1.77.0-nightly",
+            isDefault: false,
+            installDate: Date().addingTimeInterval(-86400 * 7),
+            host: "aarch64-apple-darwin"
+        ),
+        ToolchainInfo(
+            id: UUID(),
+            name: "beta-aarch64-apple-darwin",
+            version: "1.76.0-beta",
+            isDefault: false,
+            installDate: Date().addingTimeInterval(-86400 * 14),
+            host: "aarch64-apple-darwin"
+        )
+    ]
+
+    var switchDelay: TimeInterval = 0.5
+    var shouldFailSwitch: Bool = false
+    var shouldFailLoad: Bool = false
+
     // MARK: - Toolchain Operations
 
     func listToolchains() async throws -> [ToolchainInfo] {
-        return [
-            ToolchainInfo(
-                id: UUID(),
-                name: "stable-aarch64-apple-darwin",
-                version: "1.75.0",
-                isDefault: true,
-                installDate: Date().addingTimeInterval(-86400 * 30),
-                host: "aarch64-apple-darwin"
-            ),
-            ToolchainInfo(
-                id: UUID(),
-                name: "nightly-aarch64-apple-darwin",
-                version: "1.77.0-nightly",
-                isDefault: false,
-                installDate: Date().addingTimeInterval(-86400 * 7),
-                host: "aarch64-apple-darwin"
-            ),
-            ToolchainInfo(
-                id: UUID(),
-                name: "beta-aarch64-apple-darwin",
-                version: "1.76.0-beta",
-                isDefault: false,
-                installDate: Date().addingTimeInterval(-86400 * 14),
-                host: "aarch64-apple-darwin"
+        if shouldFailLoad {
+            throw NSError(
+                domain: "MockToolchainService",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Mock load failure"]
             )
-        ]
+        }
+        return mockToolchains
     }
 
     func installToolchain(name: String) async throws -> TaskResult {
@@ -73,13 +88,41 @@ class MockToolchainService: RustToolchainServiceProtocol {
     }
 
     func setDefaultToolchain(name: String) async throws -> TaskResult {
-        try await Task.sleep(nanoseconds: 500_000_000) // Simulate 0.5s operation
+        try await Task.sleep(nanoseconds: UInt64(switchDelay * 1_000_000_000))
+
+        if shouldFailSwitch {
+            return TaskResult(
+                taskId: UUID(),
+                toolchainName: name,
+                operation: "setDefault",
+                status: .failed,
+                startTime: Date().addingTimeInterval(-switchDelay),
+                endTime: Date(),
+                exitCode: 1,
+                stdoutSnippet: nil,
+                stderrSnippet: "error: failed to set default toolchain",
+                errorMessage: "Mock switch failure"
+            )
+        }
+
+        // Update mock toolchains to reflect new default
+        mockToolchains = mockToolchains.map { toolchain in
+            ToolchainInfo(
+                id: toolchain.id,
+                name: toolchain.name,
+                version: toolchain.version,
+                isDefault: toolchain.name == name,
+                installDate: toolchain.installDate,
+                host: toolchain.host
+            )
+        }
+
         return TaskResult(
             taskId: UUID(),
             toolchainName: name,
             operation: "setDefault",
             status: .success,
-            startTime: Date().addingTimeInterval(-0.5),
+            startTime: Date().addingTimeInterval(-switchDelay),
             endTime: Date(),
             exitCode: 0,
             stdoutSnippet: "info: default toolchain set to '\(name)'",
