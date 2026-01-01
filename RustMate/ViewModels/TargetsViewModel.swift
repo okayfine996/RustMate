@@ -20,7 +20,31 @@ class TargetsViewModel: ObservableObject {
     private let service: RustToolchainServiceProtocol
     private var cancellables = Set<AnyCancellable>()
 
-    init(service: RustToolchainServiceProtocol = XPCToolchainService()) {
+    // MARK: - Structured Error Surface (T040)
+
+    /// Error category for UI routing
+    var errorCategory: ErrorPresentation.ErrorCategory? {
+        guard let error = error else { return nil }
+        return ErrorPresentation.category(for: error)
+    }
+
+    /// User-facing error presentation
+    var errorPresentation: (title: String, message: String, suggestedFix: String?)? {
+        guard let error = error else { return nil }
+        return ErrorPresentation.present(error: error)
+    }
+
+    /// Whether the error requires authorization
+    var requiresAuthorization: Bool {
+        errorCategory == .requiresAuthorization
+    }
+
+    /// Whether the error is an authorization problem (stale/denied)
+    var hasAuthorizationProblem: Bool {
+        errorCategory == .authorizationProblem
+    }
+
+    init(service: RustToolchainServiceProtocol = LocalRustupToolchainService()) {
         self.service = service
     }
 

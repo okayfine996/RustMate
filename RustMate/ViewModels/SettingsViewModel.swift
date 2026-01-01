@@ -13,7 +13,6 @@ import Combine
 class SettingsViewModel: ObservableObject {
     @Published var settings: AppSettings
     @Published var rustupVersion: String?
-    @Published var xpcConnectionStatus: Bool?
     @Published var showResetConfirmation = false
 
     // Error handling
@@ -28,18 +27,71 @@ class SettingsViewModel: ObservableObject {
     @Published var rustupHome: String
     @Published var cargoHome: String
 
+    // T048: Authorization state for new purposes
+    @Published var authorizationStates: [AuthorizedDirectory.DirectoryPurpose: AuthorizationState] = [:]
+
     // Computed properties
     var hasCargoBookmark: Bool {
-        !settings.authorizedDirectories.filter { $0.purpose == .rustupAccess }.isEmpty
+        // Use new helper API - supports legacy rustupAccess entries
+        settings.hasAuthorization(for: .rustupExecutableDir)
     }
 
     var authorizedProjects: [AuthorizedDirectory] {
-        settings.authorizedDirectories.filter { $0.purpose == .projectAccess }
+        // Use new helper API
+        settings.authorizedDirectories(for: .projectAccess)
+    }
+
+    var hasRustupExecutableDir: Bool {
+        settings.hasAuthorization(for: .rustupExecutableDir)
+    }
+
+    var hasCargoHome: Bool {
+        settings.hasAuthorization(for: .cargoHome)
+    }
+
+    var hasRustupHome: Bool {
+        settings.hasAuthorization(for: .rustupHome)
     }
 
     private let validator = EnvironmentValidator()
     private let bookmarkManager = BookmarkManager()
-    private let xpcClient = XPCClient.shared
+    private let authService = AuthorizationService()
+
+    // MARK: - Authorization State
+
+    enum AuthorizationState {
+        case authorized
+        case missing
+        case stale
+        case invalid
+
+        var displayText: String {
+            switch self {
+            case .authorized: return "Authorized"
+            case .missing: return "Not Authorized"
+            case .stale: return "Expired"
+            case .invalid: return "Invalid"
+            }
+        }
+
+        var iconName: String {
+            switch self {
+            case .authorized: return "checkmark.circle.fill"
+            case .missing: return "xmark.circle.fill"
+            case .stale: return "exclamationmark.triangle.fill"
+            case .invalid: return "exclamationmark.triangle.fill"
+            }
+        }
+
+        var iconColor: String {
+            switch self {
+            case .authorized: return "green"
+            case .missing: return "gray"
+            case .stale: return "orange"
+            case .invalid: return "red"
+            }
+        }
+    }
 
     init(settings: AppSettings = AppSettings()) {
         self.settings = settings
@@ -52,6 +104,7 @@ class SettingsViewModel: ObservableObject {
 
         Task {
             await validateEnvironment()
+            await validateAuthorizationStates() // T053
         }
     }
 
@@ -91,21 +144,20 @@ class SettingsViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Bookmarks
+    // MARK: - Bookmarks (T046 - Enhanced re-authorization flow)
 
     func authorizeDirectory(purpose: AuthorizedDirectory.DirectoryPurpose) {
         let panel = NSOpenPanel()
-        panel.message = purpose == .rustupAccess
-            ? "Select your .cargo/bin directory"
-            : "Select a Rust project directory"
+        panel.message = messageForPurpose(purpose)
         panel.prompt = "Authorize"
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
 
-        if purpose == .rustupAccess {
-            panel.directoryURL = URL(fileURLWithPath: NSString(string: "~/.cargo/bin").expandingTildeInPath)
+        // Set default directory based on purpose
+        if let defaultURL = defaultDirectoryURL(for: purpose) {
+            panel.directoryURL = defaultURL
         }
 
         panel.begin { [weak self] response in
@@ -113,6 +165,9 @@ class SettingsViewModel: ObservableObject {
 
             if response == .OK, let url = panel.url {
                 do {
+                    // Remove existing authorization for this purpose (for re-authorization scenarios)
+                    self.removeExistingBookmark(for: purpose)
+
                     let bookmarkData = try self.bookmarkManager.createBookmark(for: url)
                     let directory = AuthorizedDirectory(
                         id: UUID(),
@@ -124,10 +179,14 @@ class SettingsViewModel: ObservableObject {
                     self.settings.authorizedDirectories.append(directory)
                     self.objectWillChange.send()
 
-                    // Notify XPC service if this is cargo bookmark
-                    if purpose == .rustupAccess {
-                        self.xpcClient.updateCargoBookmark()
-                    }
+                    print("✅ SettingsViewModel: Authorized \(purpose.displayText) at \(url.path)")
+
+                    // Notify that authorization completed
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("AuthorizationCompleted"),
+                        object: nil,
+                        userInfo: ["purpose": purpose]
+                    )
                 } catch let error as BookmarkManager.BookmarkError {
                     self.handleBookmarkError(error, path: url.path)
                 } catch {
@@ -138,8 +197,57 @@ class SettingsViewModel: ObservableObject {
         }
     }
 
-    func removeBookmark(purpose: AuthorizedDirectory.DirectoryPurpose) {
+    private func messageForPurpose(_ purpose: AuthorizedDirectory.DirectoryPurpose) -> String {
+        switch purpose {
+        case .rustupAccess:
+            return "Select your .cargo/bin directory (legacy)"
+        case .rustupExecutableDir:
+            return "Select the directory containing rustup and cargo executables\n\nUsually: ~/.cargo/bin"
+        case .cargoHome:
+            return "Select your Cargo home directory\n\nUsually: ~/.cargo"
+        case .rustupHome:
+            return "Select your Rustup home directory\n\nUsually: ~/.rustup"
+        case .projectAccess:
+            return "Select your Rust project directory"
+        case .customToolchainPath:
+            return "Select custom toolchain directory"
+        }
+    }
+
+    private func defaultDirectoryURL(for purpose: AuthorizedDirectory.DirectoryPurpose) -> URL? {
+        let homePath = NSString(string: "~").expandingTildeInPath
+
+        switch purpose {
+        case .rustupAccess, .rustupExecutableDir:
+            return URL(fileURLWithPath: "\(homePath)/.cargo/bin")
+        case .cargoHome:
+            return URL(fileURLWithPath: "\(homePath)/.cargo")
+        case .rustupHome:
+            return URL(fileURLWithPath: "\(homePath)/.rustup")
+        case .projectAccess, .customToolchainPath:
+            return nil
+        }
+    }
+
+    private func removeExistingBookmark(for purpose: AuthorizedDirectory.DirectoryPurpose) {
+        // Get existing directories with this purpose
+        let existing = settings.authorizedDirectories.filter { $0.purpose == purpose }
+
+        // Delete from Keychain
+        for directory in existing {
+            do {
+                try bookmarkManager.deleteBookmark(for: directory.path)
+            } catch {
+                print("⚠️ Failed to delete bookmark for \(directory.path): \(error)")
+            }
+        }
+
+        // Remove from settings
         settings.authorizedDirectories.removeAll { $0.purpose == purpose }
+    }
+
+    func removeBookmark(purpose: AuthorizedDirectory.DirectoryPurpose) {
+        removeExistingBookmark(for: purpose)
         objectWillChange.send()
     }
 
@@ -148,21 +256,49 @@ class SettingsViewModel: ObservableObject {
         objectWillChange.send()
     }
 
-    // MARK: - XPC Connection
+    // MARK: - Authorization Validation (T053)
 
-    func testXPCConnection() async {
-        guard let proxy = xpcClient.getProxy() else {
-            xpcConnectionStatus = false
-            return
+    /// Validates all authorization bookmarks and updates their states
+    func validateAuthorizationStates() async {
+        let purposesToValidate: [AuthorizedDirectory.DirectoryPurpose] = [
+            .rustupExecutableDir,
+            .cargoHome,
+            .rustupHome,
+            .projectAccess
+        ]
+
+        for purpose in purposesToValidate {
+            authorizationStates[purpose] = await validateAuthorization(for: purpose)
         }
 
-        await withCheckedContinuation { continuation in
-            proxy.ping { success in
-                Task { @MainActor in
-                    self.xpcConnectionStatus = success
-                    continuation.resume()
-                }
+        print("🔍 SettingsViewModel: Validated authorization states: \(authorizationStates)")
+    }
+
+    private func validateAuthorization(for purpose: AuthorizedDirectory.DirectoryPurpose) async -> AuthorizationState {
+        // Check if we have any authorization for this purpose
+        guard let directory = settings.authorizedDirectory(for: purpose) else {
+            return .missing
+        }
+
+        // Try to resolve the authorization
+        do {
+            let resource = try authService.resolveAuthorization(for: purpose, settings: settings)
+            // Successfully accessed - clean up and mark as authorized
+            authService.stopAccessing([resource])
+            return .authorized
+        } catch let error as AuthorizationError {
+            // Map authorization error to state
+            switch error.category {
+            case .missing:
+                return .missing
+            case .stale:
+                return .stale
+            case .denied, .invalid:
+                return .invalid
             }
+        } catch {
+            print("⚠️ SettingsViewModel: Unexpected error validating \(purpose): \(error)")
+            return .invalid
         }
     }
 
@@ -256,6 +392,6 @@ class SettingsViewModel: ObservableObject {
         rustupHome = ""
         cargoHome = ""
         rustupVersion = nil
-        xpcConnectionStatus = nil
+        authorizationStates = [:]
     }
 }

@@ -82,6 +82,18 @@
   Fill them out with the right functional requirements.
 -->
 
+### Constitution Constraints (mandatory)
+
+<!--
+  ACTION REQUIRED: Fill this from `.specify/memory/constitution.md`.
+  - If you believe a constraint does not apply, write "N/A" and explain why.
+  - If you violate a constraint, you MUST justify it in the plan's "Complexity Tracking".
+-->
+
+- **No-default-XPC**: This feature MUST NOT require XPC by default. If XPC is used, justify why.
+- **Sandbox & Security**: Input/path/args MUST be validated; permissions MUST be least-privilege.
+- **Structured Results**: Outputs MUST be structured status/errors; avoid relying on raw multi-line output.
+
 ### Functional Requirements
 
 - **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]

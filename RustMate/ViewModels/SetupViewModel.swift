@@ -14,19 +14,31 @@ class SetupViewModel: ObservableObject {
     @Published var isValidating = false
     @Published var validationResult: ValidationResult?
     @Published var customRustupPath = ""
-    @Published var hasCargoBookmark = false
+    @Published var settings: AppSettings
     @Published var setupCompleted = false
 
     private let validator: EnvironmentValidator
     private let bookmarkManager = BookmarkManager()
 
     var hasRequiredBookmarks: Bool {
-        hasCargoBookmark
+        settings.hasAllRequiredAuthorizations
     }
 
-    init(validator: EnvironmentValidator = EnvironmentValidator()) {
+    var hasRustupExecutableDir: Bool {
+        settings.hasAuthorization(for: .rustupExecutableDir)
+    }
+
+    var hasCargoHome: Bool {
+        settings.hasAuthorization(for: .cargoHome)
+    }
+
+    var hasRustupHome: Bool {
+        settings.hasAuthorization(for: .rustupHome)
+    }
+
+    init(validator: EnvironmentValidator = EnvironmentValidator(), settings: AppSettings = .default) {
         self.validator = validator
-        checkExistingBookmarks()
+        self.settings = settings
     }
 
     // MARK: - Validation
@@ -47,33 +59,69 @@ class SetupViewModel: ObservableObject {
 
     // MARK: - Bookmarks
 
-    private func checkExistingBookmarks() {
-        let cargoPath = NSString(string: "~/.cargo/bin").expandingTildeInPath
-        hasCargoBookmark = bookmarkManager.hasBookmark(for: cargoPath)
+    // Callback to notify when settings change
+    var onSettingsChanged: (() -> Void)?
+
+    func authorizeRustupExecutableDir() {
+        authorizeDirectory(
+            purpose: .rustupExecutableDir,
+            message: "Select the directory containing the rustup executable",
+            defaultPath: "~/.cargo/bin"
+        )
     }
 
-    func authorizeCargoAccess() {
+    func authorizeCargoHome() {
+        authorizeDirectory(
+            purpose: .cargoHome,
+            message: "Select your .cargo directory",
+            defaultPath: "~/.cargo"
+        )
+    }
+
+    func authorizeRustupHome() {
+        authorizeDirectory(
+            purpose: .rustupHome,
+            message: "Select your .rustup directory",
+            defaultPath: "~/.rustup"
+        )
+    }
+
+    private func authorizeDirectory(
+        purpose: AuthorizedDirectory.DirectoryPurpose,
+        message: String,
+        defaultPath: String
+    ) {
         let panel = NSOpenPanel()
-        panel.message = "Select your .cargo/bin directory"
+        panel.message = message
         panel.prompt = "Authorize"
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
-        panel.directoryURL = URL(fileURLWithPath: NSString(string: "~/.cargo/bin").expandingTildeInPath)
+        panel.directoryURL = URL(fileURLWithPath: NSString(string: defaultPath).expandingTildeInPath)
 
         panel.begin { [weak self] response in
             guard let self = self else { return }
 
             if response == .OK, let url = panel.url {
                 do {
-                    _ = try self.bookmarkManager.createBookmark(for: url)
-                    self.hasCargoBookmark = true
+                    let bookmarkData = try self.bookmarkManager.createBookmark(for: url)
+                    let directory = AuthorizedDirectory(
+                        id: UUID(),
+                        path: url.path,
+                        bookmarkData: bookmarkData,
+                        purpose: purpose,
+                        authorizedDate: Date()
+                    )
+                    self.settings.authorizedDirectories.append(directory)
+                    self.objectWillChange.send()
 
-                    // Notify XPC service about the new bookmark
-                    XPCClient.shared.updateCargoBookmark()
+                    // Notify that settings changed (after authorization completes)
+                    self.onSettingsChanged?()
+
+                    print("✅ SetupViewModel: Authorized \(purpose.displayText) at \(url.path)")
                 } catch {
-                    print("Failed to create bookmark: \(error)")
+                    print("❌ SetupViewModel: Failed to create bookmark for \(purpose.displayText): \(error)")
                 }
             }
         }

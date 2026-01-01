@@ -10,7 +10,7 @@ import Combine
 
 @MainActor
 class ProjectsViewModel: ObservableObject {
-    private let service = XPCProjectContextService()
+    private var service: LocalProjectContextService  // T054: Replaced XPC with local execution
     private let taskManager = TaskManager.shared
 
     // State
@@ -31,7 +31,16 @@ class ProjectsViewModel: ObservableObject {
     }
 
     init() {
+        self.service = LocalProjectContextService()
         loadBookmarks()
+    }
+
+    // MARK: - Settings Management
+
+    /// Refresh the service with latest settings (call after authorization)
+    func refreshSettings() {
+        self.service = LocalProjectContextService()
+        print("🔄 ProjectsViewModel: Refreshed service with latest settings")
     }
 
     // MARK: - Bookmark Management

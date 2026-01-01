@@ -1,194 +1,79 @@
 <!--
-Sync Impact Report:
-Version Change: (none) → 1.0.0
-New Constitution Created: 2025-12-31
-
-Principles Defined:
-1. Sandbox-First Design - App must operate within macOS App Sandbox constraints
-2. Protocol-Driven Architecture - Protocol abstractions for testability and mocking
-3. Structured Results Over Logs - Focus on structured data, not terminal output
-4. Security-Scoped Access - All file system access via user-authorized bookmarks
-5. Serial Execution - Rustup operations must be serialized to prevent conflicts
-
-Templates Status:
-✅ plan-template.md - Constitution Check section verified compatible
-✅ spec-template.md - User scenarios align with testable requirements
-✅ tasks-template.md - Task organization supports phased implementation
-✅ agent-file-template.md - No agent-specific references to update
-✅ checklist-template.md - Compatible with constitution principles
-
-Follow-up TODOs: None
+Sync Impact Report
+- Version change: TEMPLATE → 1.0.0
+- Modified principles: N/A (initial ratification)
+- Added sections: Core Principles; Architecture Constraints; Development Workflow; Governance
+- Removed sections: N/A (template placeholders removed)
+- Templates requiring updates:
+  - ✅ `.specify/templates/plan-template.md`
+  - ✅ `.specify/templates/spec-template.md`
+  - ✅ `.specify/templates/tasks-template.md`
+  - ✅ `.specify/templates/checklist-template.md`
+- Follow-up TODOs:
+  - TODO(RATIFICATION_DATE): 首次通过宪章的日期未知，需要补齐
 -->
 
 # RustMate Constitution
 
 ## Core Principles
 
-### I. Sandbox-First Design (NON-NEGOTIABLE)
+### I. 以用户价值为先（迭代可交付）
 
-All features MUST operate within macOS App Sandbox constraints for App Store distribution:
+- 每个功能必须以可演示的用户旅程定义（P1/P2/P3），并能独立验收。
+- 任何“为架构而架构”的改动必须有明确的用户价值或风险缓解（安全/可靠性/合规）。
 
-- NO direct access to user home directory without authorization
-- NO system-wide daemon or helper installation
-- NO arbitrary command execution - only whitelisted rustup/cargo operations
-- XPC Services remain sandboxed and cannot escape permission boundaries
-- File system access ONLY through Security-Scoped Bookmarks
+### II. 简化优先（当前不默认使用 XPC）
 
-**Rationale**: App Store requirement. Any feature requiring unsandboxed access must be
-rejected or redesigned for sandbox compatibility.
+- 当前阶段**不把 XPC 作为默认方案**：新功能不得以“需要 XPC”作为前提。
+- 只有在出现明确、可验证的收益时才允许引入/扩展 XPC（例如：强隔离、崩溃隔离、并发模型更清晰）。
+- 如果确实需要 XPC，必须在计划文档中给出：
+  - 不能用单进程/进程内服务满足的原因
+  - 替代方案对比与拒绝理由
+  - 额外复杂度与测试/发布成本评估
 
-### II. Protocol-Driven Architecture
+### III. 安全与沙盒边界不可妥协
 
-All services MUST be protocol-based with concrete implementations separated from
-consumers:
+- 对外部命令/路径/参数必须进行白名单校验或严格约束，禁止拼接未验证输入形成命令执行。
+- 涉及文件系统权限的功能必须通过用户授权的目录（例如 security-scoped bookmark），且最小权限原则。
+- 不引入“试图逃逸沙盒”的实现或文案；任何权限提升相关需求必须先形成书面评审结论。
 
-- Define `*ServiceProtocol` interfaces for all service layers
-- ViewModels depend ONLY on protocols, never concrete implementations
-- Provide both real (`XPC*Service`) and mock (`Mock*Service`) implementations
-- Mock implementations MUST support SwiftUI Previews and unit tests without XPC
+### IV. 可测试与可回归（优先小而确定的测试）
 
-**Rationale**: Enables dependency injection, comprehensive testing, and SwiftUI Preview
-support. Essential for TDD and maintaining development velocity.
+- 解析器/格式转换等纯逻辑必须有单元测试覆盖（使用 fixtures）。
+- 对跨模块边界（例如 service 层、执行层、序列化协议）的变化，必须有至少一种可回归验证方式：
+  - 单元测试、契约测试、或可重复的手工验收步骤（写入 quickstart）。
+- 长耗时/易失败操作必须有清晰错误建模（用户可理解、可行动），而不是仅输出原始文本。
 
-### III. Structured Results Over Logs
+### V. 可观测但不过度（结构化结果优先）
 
-All execution layer operations MUST return structured data models, not raw output:
+- 对外暴露的结果以结构化状态/错误为主（例如：成功/失败、错误码、建议修复），避免把多行输出当 UI。
+- 日志用于调试与定位问题，但不得作为核心业务协议（避免对日志文本耦合）。
 
-- Define typed result models: `ToolchainInfo`, `ComponentInfo`, `TargetInfo`,
-  `ProjectContextInfo`, `TaskResult`
-- Tasks display status (running/success/failed/cancelled) and error summaries only
-- Preserve stderr snippets (max 32KB) for error reporting, not continuous streaming
-- NO terminal emulation, NO real-time log rendering
-- Parse rustup/cargo output into structured data; fallback to snippet on parse failure
+## Architecture Constraints
 
-**Rationale**: Maintains UI responsiveness, reduces complexity, and provides better UX
-than terminal output. Parsing failures are contained and recoverable.
-
-### IV. Security-Scoped Access
-
-All file system access MUST use Security-Scoped Bookmarks with explicit user
-authorization:
-
-- User MUST authorize `~/.cargo/bin` directory for rustup/cargo executable access
-- User MUST authorize each project directory for project context features
-- Bookmarks MUST be persisted securely (Keychain or encrypted storage)
-- Access MUST use `startAccessingSecurityScopedResource()` / `stopAccessing...()` pairs
-- NO assumptions about file system access without bookmark
-
-**Rationale**: Sandbox requirement. Provides audit trail and user control over app
-permissions.
-
-### V. Serial Execution
-
-All rustup write operations MUST be serialized within the execution layer:
-
-- Use Swift Concurrency `actor RustupExecutor` (preferred) OR single serial
-  `DispatchQueue`
-- Read operations (list/show) MAY run in parallel but default to serial for simplicity
-- Prevent rustup lock conflicts and state inconsistencies
-- Ensure task ordering matches user expectations
-
-**Rationale**: Rustup's internal state management is not designed for concurrent writes.
-Serialization prevents race conditions and corrupted state.
-
-## Security & Validation
-
-### Command Whitelist
-
-The XPC execution layer MUST enforce strict command and parameter validation:
-
-- **Allowed commands**: `rustup toolchain`, `rustup component`, `rustup target`,
-  `rustup show`, `rustc --version`, `cargo --version`
-- **Toolchain name validation**: Regex `[A-Za-z0-9._-]+`, max length 128 chars
-- **Target triple validation**: Regex `[A-Za-z0-9._-]+`, max length 128 chars
-- **Project path validation**: Must be within authorized bookmark scope
-- **NO arbitrary command strings** from UI layer
-
-**Rationale**: Prevents command injection and ensures predictable behavior. XPC Service
-is an attack surface and must validate all inputs.
-
-### XPC Connection Validation
-
-XPC Service MUST validate connection source:
-
-- Verify client signature matches main app (TeamID/BundleID check)
-- Protocol version handshake (reject mismatched versions)
-- Reject connections from unknown clients
-
-**Rationale**: Prevents unauthorized processes from invoking XPC service operations.
-
-## Testing & Quality
-
-### Test Requirements
-
-- **Unit tests**: All service protocol implementations MUST have unit tests
-- **Integration tests**: XPC communication and rustup parsing MUST have integration tests
-- **Mock services**: MUST be maintained in sync with protocol changes
-- **Output sample library**: Maintain samples of rustup output variations for parser tests
-
-### Error Handling
-
-All errors MUST be categorized as:
-
-- **User-actionable** (provide fix instructions): rustup not found, permission denied,
-  network failure
-- **System/unknown** (preserve stderr snippet): parsing failure, unexpected exit codes
-
-UI MUST provide clear next steps for user-actionable errors.
+- **默认架构**：SwiftUI + MVVM + 协议化 Service（可替换 mock），以进程内实现为主。
+- **并发与响应**：任何可能阻塞的操作不得在 UI 主线程执行；需要明确取消/超时策略。
+- **外部命令执行（若存在）**：
+  - 必须明确可执行文件定位策略（避免依赖不稳定的环境）
+  - 必须对输出做上限控制与摘要化（防止内存/卡顿）
+  - 必须对错误进行分类与用户提示（含建议修复）
 
 ## Development Workflow
 
-### State Management
-
-ViewModels MUST refresh state at these points:
-
-- App launch
-- App return to foreground
-- After any write operation completes
-- (Future) File system monitoring of `~/.rustup/toolchains` when authorized
-
-### Phased Implementation
-
-Follow milestones defined in DESIGN.md:
-
-- **M0**: MVVM skeleton + XPC Service + environment validation
-- **M1**: Toolchain management (list/install/uninstall/setDefault/updateAll) + task UI
-- **M2**: Component & target management + error handling polish
-- **M3**: Project context view + bookmark management + override operations
-
-Each milestone MUST be independently shippable with working features.
-
-### Output Parsing Resilience
-
-All rustup/cargo output parsing MUST:
-
-- Use regex or line-by-line parsing with clear patterns
-- Handle missing/unexpected fields gracefully (return `unknown` + snippet)
-- Maintain test cases for known output variations
-- Document assumptions about output format
-
-**Rationale**: Rustup output is not a stable API. Parsing will break over time; plan for
-it.
+- 以规格驱动：`spec.md` → `plan.md` → `tasks.md`，且在关键节点做宪章检查（见模板）。
+- 变更范围控制：优先小 PR；一次 PR 只解决一个核心问题，减少跨层大改。
+- 文档同步：对外行为/接口/权限模型变化必须同步到 quickstart/合同或相应说明文档。
 
 ## Governance
 
-This constitution supersedes all other development practices and preferences. Any
-violation MUST be:
+- 宪章是最高优先级规则：当与其它文档冲突时，以宪章为准，并在相应文档中修正。
+- 修订流程：
+  - 提出变更动机与影响范围（含与现有实现/文档的冲突点）
+  - 评审通过后更新版本号与日期，并同步更新相关模板
+- 版本策略（SemVer）：
+  - MAJOR：原则被移除/重新定义（破坏性治理变更）
+  - MINOR：新增原则或新增强制性章节
+  - PATCH：澄清、措辞调整、非语义改动
+- 审查要求：每次计划/规格/任务生成必须进行“Constitution Check”，若有违反必须显式记录与论证。
 
-1. Identified in PR/code review
-2. Either fixed immediately OR
-3. Documented in implementation plan with explicit justification
-
-**Amendment Process**:
-
-- Amendments require documentation in Sync Impact Report (version bump + reasoning)
-- Update all dependent templates (plan, spec, tasks) before finalizing
-- Version changes follow semantic versioning:
-  - MAJOR: Backward-incompatible principle removal or redefinition
-  - MINOR: New principle or material guidance expansion
-  - PATCH: Clarifications, wording, typo fixes
-
-**Compliance**: All feature specifications, implementation plans, and tasks MUST include
-a "Constitution Check" section validating compliance with these principles.
-
-**Version**: 1.0.0 | **Ratified**: 2025-12-31 | **Last Amended**: 2025-12-31
+**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): 首次通过宪章的日期未知 | **Last Amended**: 2026-01-01

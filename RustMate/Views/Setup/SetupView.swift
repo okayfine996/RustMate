@@ -9,9 +9,16 @@ import SwiftUI
 
 struct SetupView: View {
     @StateObject private var viewModel: SetupViewModel
+    @EnvironmentObject var appState: AppState
 
     init(validator: EnvironmentValidator = EnvironmentValidator()) {
         _viewModel = StateObject(wrappedValue: SetupViewModel(validator: validator))
+    }
+
+    // Sync viewModel settings to appState whenever they change
+    private func syncSettings() {
+        appState.settings = viewModel.settings
+        print("🔄 SetupView: Synced settings to AppState, authorized directories count: \(appState.settings.authorizedDirectories.count)")
     }
 
     var body: some View {
@@ -88,6 +95,10 @@ struct SetupView: View {
             .padding(16)
         }
         .frame(minWidth: 600, minHeight: 500)
+        .onAppear {
+            // Setup callback to sync settings when authorization completes
+            viewModel.onSettingsChanged = syncSettings
+        }
         .task {
             await viewModel.validateEnvironment()
         }
@@ -211,17 +222,37 @@ struct SetupView: View {
             Text("File Access Permissions")
                 .font(.title3.bold())
 
-            Text("RustMate needs access to the following directories to function properly:")
+            Text("RustMate needs access to the following directories to run rustup in sandbox mode:")
                 .font(.body)
                 .foregroundStyle(.secondary)
 
-            // Cargo bin access
+            // Rustup executable directory
             bookmarkRow(
-                title: "Cargo Bin Directory",
-                description: "Required to run rustup and cargo commands",
-                isAuthorized: viewModel.hasCargoBookmark,
+                title: "Rustup Executable Directory",
+                description: "Directory containing rustup command (usually ~/.cargo/bin)",
+                isAuthorized: viewModel.hasRustupExecutableDir,
                 action: {
-                    viewModel.authorizeCargoAccess()
+                    viewModel.authorizeRustupExecutableDir()
+                }
+            )
+
+            // Cargo home
+            bookmarkRow(
+                title: "Cargo Home",
+                description: "Cargo data directory (usually ~/.cargo)",
+                isAuthorized: viewModel.hasCargoHome,
+                action: {
+                    viewModel.authorizeCargoHome()
+                }
+            )
+
+            // Rustup home
+            bookmarkRow(
+                title: "Rustup Home",
+                description: "Rustup toolchain directory (usually ~/.rustup)",
+                isAuthorized: viewModel.hasRustupHome,
+                action: {
+                    viewModel.authorizeRustupHome()
                 }
             )
 

@@ -94,7 +94,7 @@ struct SettingsView: View {
         .padding()
     }
 
-    // MARK: - Permissions Tab
+    // MARK: - Permissions Tab (T049)
 
     @ViewBuilder
     private var permissionsTab: some View {
@@ -107,18 +107,55 @@ struct SettingsView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
 
-            // Cargo bin directory
+            Text("Required Authorizations")
+                .font(.headline)
+                .padding(.top, 8)
+
+            // Rustup Executable Directory
             permissionRow(
-                title: "Cargo Bin Directory",
-                description: "Required to run rustup and cargo commands",
+                title: "Rustup Executable Directory",
+                description: "Required to run rustup and cargo executables",
                 path: "~/.cargo/bin",
-                isAuthorized: viewModel.hasCargoBookmark,
-                purpose: .rustupAccess,
+                isAuthorized: viewModel.hasRustupExecutableDir,
+                state: viewModel.authorizationStates[.rustupExecutableDir] ?? .missing,
+                purpose: .rustupExecutableDir,
                 authorizeAction: {
-                    viewModel.authorizeDirectory(purpose: .rustupAccess)
+                    viewModel.authorizeDirectory(purpose: .rustupExecutableDir)
                 },
                 removeAction: {
-                    viewModel.removeBookmark(purpose: .rustupAccess)
+                    viewModel.removeBookmark(purpose: .rustupExecutableDir)
+                }
+            )
+
+            // Cargo Home
+            permissionRow(
+                title: "Cargo Home Directory",
+                description: "Required for Cargo configuration and cache",
+                path: "~/.cargo",
+                isAuthorized: viewModel.hasCargoHome,
+                state: viewModel.authorizationStates[.cargoHome] ?? .missing,
+                purpose: .cargoHome,
+                authorizeAction: {
+                    viewModel.authorizeDirectory(purpose: .cargoHome)
+                },
+                removeAction: {
+                    viewModel.removeBookmark(purpose: .cargoHome)
+                }
+            )
+
+            // Rustup Home
+            permissionRow(
+                title: "Rustup Home Directory",
+                description: "Required to access installed toolchains",
+                path: "~/.rustup",
+                isAuthorized: viewModel.hasRustupHome,
+                state: viewModel.authorizationStates[.rustupHome] ?? .missing,
+                purpose: .rustupHome,
+                authorizeAction: {
+                    viewModel.authorizeDirectory(purpose: .rustupHome)
+                },
+                removeAction: {
+                    viewModel.removeBookmark(purpose: .rustupHome)
                 }
             )
 
@@ -186,19 +223,31 @@ struct SettingsView: View {
         description: String,
         path: String,
         isAuthorized: Bool,
+        state: SettingsViewModel.AuthorizationState,
         purpose: AuthorizedDirectory.DirectoryPurpose,
         authorizeAction: @escaping () -> Void,
         removeAction: @escaping () -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: isAuthorized ? "checkmark.circle.fill" : "xmark.circle.fill")
+                Image(systemName: state.iconName)
                     .font(.title2)
-                    .foregroundStyle(isAuthorized ? .green : .red)
+                    .foregroundStyle(colorForState(state))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.headline)
+                    HStack(spacing: 6) {
+                        Text(title)
+                            .font(.headline)
+
+                        // Status badge
+                        Text(state.displayText)
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(backgroundForState(state))
+                            .foregroundStyle(colorForState(state))
+                            .cornerRadius(4)
+                    }
 
                     Text(description)
                         .font(.caption)
@@ -208,10 +257,18 @@ struct SettingsView: View {
                 Spacer()
 
                 if isAuthorized {
-                    Button("Remove") {
-                        removeAction()
+                    if state == .stale || state == .invalid {
+                        // Show re-authorize button for stale/invalid states
+                        Button("Re-authorize...") {
+                            authorizeAction()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("Remove") {
+                            removeAction()
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
                 } else {
                     Button("Authorize...") {
                         authorizeAction()
@@ -230,7 +287,25 @@ struct SettingsView: View {
         .cornerRadius(8)
     }
 
-    // MARK: - Advanced Tab
+    private func colorForState(_ state: SettingsViewModel.AuthorizationState) -> Color {
+        switch state {
+        case .authorized: return .green
+        case .missing: return .gray
+        case .stale: return .orange
+        case .invalid: return .red
+        }
+    }
+
+    private func backgroundForState(_ state: SettingsViewModel.AuthorizationState) -> Color {
+        switch state {
+        case .authorized: return .green.opacity(0.2)
+        case .missing: return .gray.opacity(0.2)
+        case .stale: return .orange.opacity(0.2)
+        case .invalid: return .red.opacity(0.2)
+        }
+    }
+
+    // MARK: - Advanced Tab (T050 - XPC section removed)
 
     @ViewBuilder
     private var advancedTab: some View {
@@ -251,29 +326,15 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("XPC Service") {
-                LabeledContent("Service Name:") {
-                    Text("com.finefine.RustMate.XPC")
-                        .font(.system(.body, design: .monospaced))
+            Section("Execution Mode") {
+                LabeledContent("Mode:") {
+                    Text("In-App (Sandboxed)")
                         .foregroundStyle(.secondary)
                 }
 
-                Button("Test Connection") {
-                    Task {
-                        await viewModel.testXPCConnection()
-                    }
-                }
-                .buttonStyle(.bordered)
-
-                if let xpcStatus = viewModel.xpcConnectionStatus {
-                    HStack {
-                        Image(systemName: xpcStatus ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundStyle(xpcStatus ? .green : .red)
-
-                        Text(xpcStatus ? "Connected" : "Connection Failed")
-                            .font(.caption)
-                    }
-                }
+                Text("RustMate now executes rustup directly within the sandboxed app using security-scoped bookmarks. XPC service is no longer used.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Danger Zone") {

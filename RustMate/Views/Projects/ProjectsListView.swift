@@ -14,6 +14,8 @@ struct ProjectsListView: View {
     @State private var isLoadingToolchains = false
     @State private var showingFilePicker = false
     @State private var showingOverridePicker = false
+    @State private var showingAuthorizationAlert = false
+    @State private var showingErrorAlert = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,7 +30,7 @@ struct ProjectsListView: View {
                 HSplitView {
                     // Left: Project list
                     projectsList
-                        .frame(minWidth: 200, idealWidth: 250)
+                        .frame(minWidth: 180, idealWidth: 200, maxWidth: 300)
 
                     // Right: Project context view
                     if viewModel.selectedProject == nil {
@@ -57,6 +59,14 @@ struct ProjectsListView: View {
             }
         }
         .navigationTitle("Projects")
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AllAuthorizationsCompleted"))) { _ in
+            // When all authorizations complete, refresh settings and retry loading project
+            print("📢 ProjectsListView: Received AllAuthorizationsCompleted, refreshing settings and retrying")
+            viewModel.refreshSettings()
+            Task {
+                await viewModel.loadProjectContext()
+            }
+        }
         .fileImporter(
             isPresented: $showingFilePicker,
             allowedContentTypes: [.folder],
@@ -80,13 +90,47 @@ struct ProjectsListView: View {
                 await viewModel.loadProjectContext()
             }
         }
-        .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+        .onChange(of: viewModel.error?.localizedDescription) { _, _ in
+            // When error changes, determine which alert to show
+            if let error = viewModel.error {
+                if isAuthorizationError(error) {
+                    showingAuthorizationAlert = true
+                    showingErrorAlert = false
+                } else {
+                    showingErrorAlert = true
+                    showingAuthorizationAlert = false
+                }
+            } else {
+                showingAuthorizationAlert = false
+                showingErrorAlert = false
+            }
+        }
+        .alert("Error", isPresented: $showingErrorAlert) {
             Button("OK") {
                 viewModel.error = nil
             }
         } message: {
             if let error = viewModel.error {
                 Text(error.localizedDescription)
+            }
+        }
+        .alert("Authorization Required", isPresented: $showingAuthorizationAlert) {
+            Button("Authorize") {
+                handleAuthorizationError()
+            }
+            Button("Open Settings") {
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("OpenSettings"),
+                    object: nil
+                )
+                viewModel.error = nil
+            }
+            Button("Cancel", role: .cancel) {
+                viewModel.error = nil
+            }
+        } message: {
+            if let error = viewModel.error, let authError = error as? AuthorizationError {
+                Text(authError.userFacingMessage)
             }
         }
     }
@@ -288,13 +332,67 @@ struct ProjectsListView: View {
     private func loadAvailableToolchains() async {
         isLoadingToolchains = true
         do {
-            let service = XPCToolchainService()
+            let service = LocalRustupToolchainService()
             availableToolchains = try await service.listToolchains()
         } catch {
             print("Failed to load toolchains: \(error)")
             availableToolchains = []
         }
         isLoadingToolchains = false
+    }
+
+    // MARK: - Authorization Error Handling
+
+    private func isAuthorizationError(_ error: Error?) -> Bool {
+        guard let error = error else { return false }
+
+        if error is AuthorizationError {
+            return true
+        }
+
+        if let execError = error as? RustupExecutionError {
+            switch execError {
+            case .missingAuthorization:
+                return true
+            default:
+                return false
+            }
+        }
+
+        return false
+    }
+
+    private func handleAuthorizationError() {
+        guard let error = viewModel.error else { return }
+
+        let purposes = extractMissingPurposes(from: error)
+        if !purposes.isEmpty {
+            // Request authorization via coordinator
+            AuthorizationCoordinator.requestAuthorization(for: purposes)
+        }
+
+        // Clear error
+        viewModel.error = nil
+    }
+
+    private func extractMissingPurposes(from error: Error) -> [AuthorizedDirectory.DirectoryPurpose] {
+        if let authError = error as? AuthorizationError {
+            switch authError {
+            case .missingScope(let purpose):
+                return [purpose]
+            case .staleBookmark(_, let purpose), .accessDenied(_, let purpose), .invalidSelection(_, let purpose, _):
+                return [purpose]
+            }
+        } else if let execError = error as? RustupExecutionError {
+            switch execError {
+            case .missingAuthorization(let purpose, _, _):
+                return [purpose]
+            default:
+                return []
+            }
+        }
+
+        return []
     }
 }
 

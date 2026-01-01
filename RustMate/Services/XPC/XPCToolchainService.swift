@@ -4,9 +4,14 @@
 //
 //  XPC client wrapper for toolchain operations
 //
+//  ⚠️ LEGACY: This implementation is deprecated as of 002-process-rustup.
+//  RustMate now uses LocalRustupToolchainService for in-app sandboxed execution.
+//  This file is kept for reference only.
+//
 
 import Foundation
 
+@available(*, deprecated, message: "Use LocalRustupToolchainService instead")
 class XPCToolchainService: RustToolchainServiceProtocol {
     private let xpcClient = XPCClient.shared
     private let decoder = JSONDecoder()

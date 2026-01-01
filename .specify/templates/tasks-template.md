@@ -12,6 +12,8 @@ description: "Task list template for feature implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
+**Constitution**: Tasks MUST respect `.specify/memory/constitution.md` (especially: no-default-XPC, sandbox/security, structured results). If a task introduces XPC, it MUST include justification and follow-up test/ops cost.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)

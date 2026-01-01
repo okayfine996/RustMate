@@ -4,9 +4,15 @@
 //
 //  Manages NSXPCConnection to RustMateXPC service
 //
+//  ⚠️ LEGACY: This implementation is deprecated as of 002-process-rustup.
+//  RustMate now uses LocalRustupToolchainService and LocalProjectContextService
+//  for in-app sandboxed execution via ProcessRunner.
+//  This file is kept for reference only.
+//
 
 import Foundation
 
+@available(*, deprecated, message: "Use LocalRustupToolchainService or LocalProjectContextService instead")
 class XPCClient {
     static let shared = XPCClient()
 

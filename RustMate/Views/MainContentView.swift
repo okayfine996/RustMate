@@ -14,11 +14,6 @@ struct MainContentView: View {
     @StateObject private var toolchainViewModel = ToolchainViewModel()
     @StateObject private var tasksViewModel = TasksViewModel()
 
-    init() {
-        // Ensure bookmark is sent to XPC service when main view appears
-        XPCClient.shared.sendCargoBookmark()
-    }
-
     enum Tab: String, CaseIterable {
         case toolchains = "Toolchains"
         case components = "Components"

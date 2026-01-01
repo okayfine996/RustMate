@@ -280,7 +280,7 @@ struct TargetsListView: View {
     private func loadAvailableToolchains() async {
         isLoadingToolchains = true
         do {
-            let service = XPCToolchainService()
+            let service = LocalRustupToolchainService()
             availableToolchains = try await service.listToolchains()
         } catch {
             print("Failed to load toolchains: \(error)")

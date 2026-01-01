@@ -4,9 +4,14 @@
 //
 //  XPC client wrapper for project context operations
 //
+//  ⚠️ LEGACY: This implementation is deprecated as of 002-process-rustup.
+//  RustMate now uses LocalProjectContextService for in-app sandboxed execution.
+//  This file is kept for reference only.
+//
 
 import Foundation
 
+@available(*, deprecated, message: "Use LocalProjectContextService instead")
 class XPCProjectContextService: ProjectContextServiceProtocol {
     private let xpcClient = XPCClient.shared
     private let decoder = JSONDecoder()

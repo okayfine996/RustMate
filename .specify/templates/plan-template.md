@@ -31,7 +31,13 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+用项目宪章（`.specify/memory/constitution.md`）生成并填写以下检查项（不通过则必须在“Complexity Tracking”里说明）：
+
+- **用户价值**：本功能的 P1 用户旅程是否可独立验收与演示？
+- **简化优先 / XPC**：是否引入或扩展 XPC？若是，是否给出替代方案对比与复杂度成本？
+- **安全/沙盒**：是否涉及目录授权、外部命令、参数校验、权限最小化？
+- **可测试**：是否明确哪些逻辑需要 fixtures/单测，哪些边界需要回归验证？
+- **结构化结果**：对外是否以结构化状态/错误为主，避免把多行输出当 UI 协议？
 
 ## Project Structure
 

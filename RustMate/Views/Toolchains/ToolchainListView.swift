@@ -18,7 +18,7 @@ struct ToolchainListView: View {
     }
 
     // Convenience init for previews
-    init(service: RustToolchainServiceProtocol = XPCToolchainService()) {
+    init(service: RustToolchainServiceProtocol = LocalRustupToolchainService()) {
         self.viewModel = ToolchainViewModel(service: service)
     }
 
@@ -27,16 +27,12 @@ struct ToolchainListView: View {
             if viewModel.isLoading && viewModel.toolchains.isEmpty {
                 LoadingView(message: "Loading toolchains...")
             } else if let error = viewModel.error, viewModel.toolchains.isEmpty {
-                ErrorView(
-                    message: error.localizedDescription,
-                    hints: ["Check XPC service connection", "Verify rustup is accessible"],
-                    actionTitle: "Retry",
-                    action: {
-                        Task {
-                            await viewModel.loadToolchains()
-                        }
-                    }
-                )
+                // T044: Show authorization-specific UI when needed
+                if viewModel.requiresAuthorization {
+                    authorizationRequiredView
+                } else {
+                    standardErrorView(error)
+                }
             } else if viewModel.toolchains.isEmpty {
                 emptyState
             } else {
@@ -114,6 +110,88 @@ struct ToolchainListView: View {
         .refreshable {
             await viewModel.loadToolchains()
         }
+    }
+
+    // MARK: - Authorization Required View (T044)
+
+    @ViewBuilder
+    private var authorizationRequiredView: some View {
+        if let presentation = viewModel.errorPresentation {
+            AuthorizationRequiredView(
+                title: presentation.title,
+                message: presentation.message,
+                missingPurposes: extractMissingPurposes(from: viewModel.error),
+                onAuthorize: {
+                    // Post authorization request notification
+                    let purposes = extractMissingPurposes(from: viewModel.error)
+                    AuthorizationCoordinator.requestAuthorization(for: purposes)
+                },
+                onOpenSettings: {
+                    // Open Settings window
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("OpenSettings"),
+                        object: nil
+                    )
+                }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func standardErrorView(_ error: Error) -> some View {
+        if let presentation = viewModel.errorPresentation {
+            ErrorView(
+                title: presentation.title,
+                message: presentation.message,
+                hints: presentation.suggestedFix.map { [$0] } ?? [
+                    "Ensure all required directories are authorized in Settings",
+                    "Verify rustup is installed and accessible",
+                    "Check that ~/.cargo/bin, ~/.cargo, and ~/.rustup are authorized"
+                ],
+                actionTitle: "Retry",
+                action: {
+                    Task {
+                        await viewModel.loadToolchains()
+                    }
+                }
+            )
+        } else {
+            ErrorView(
+                message: error.localizedDescription,
+                hints: [
+                    "Ensure all required directories are authorized in Settings",
+                    "Verify rustup is installed and accessible"
+                ],
+                actionTitle: "Retry",
+                action: {
+                    Task {
+                        await viewModel.loadToolchains()
+                    }
+                }
+            )
+        }
+    }
+
+    private func extractMissingPurposes(from error: Error?) -> [AuthorizedDirectory.DirectoryPurpose] {
+        guard let error = error else { return [] }
+
+        if let authError = error as? AuthorizationError {
+            switch authError {
+            case .missingScope(let purpose):
+                return [purpose]
+            case .staleBookmark(_, let purpose), .accessDenied(_, let purpose), .invalidSelection(_, let purpose, _):
+                return [purpose]
+            }
+        } else if let execError = error as? RustupExecutionError {
+            switch execError {
+            case .missingAuthorization(let purpose, _, _):
+                return [purpose]
+            default:
+                return []
+            }
+        }
+
+        return []
     }
 
     // MARK: - Empty State
