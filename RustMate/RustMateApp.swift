@@ -8,15 +8,109 @@
 import SwiftUI
 import Combine
 
+// MARK: - Global Window Activation Function
+
+func activateMainWindow() {
+    print("🔔 Global: Received OpenMainWindow notification")
+    print("📊 Global: Total windows: \(NSApp.windows.count)")
+
+    // Activate the app
+    NSApp.activate(ignoringOtherApps: true)
+    print("✅ Global: Application activated")
+
+    // Find and activate the main window
+    DispatchQueue.main.async {
+        // Log all windows for debugging
+        for (index, window) in NSApp.windows.enumerated() {
+            let className = String(describing: type(of: window))
+            print("  Window \(index): title='\(window.title)', class=\(className), styleMask=\(window.styleMask.rawValue), isVisible=\(window.isVisible), canBecomeKey=\(window.canBecomeKey), level=\(window.level.rawValue)")
+        }
+
+        // Strategy 1: Try to find window by class name (exclude MenuBarExtra windows)
+        for window in NSApp.windows {
+            let className = String(describing: type(of: window))
+            if !className.contains("MenuBar") && !className.contains("StatusBar") && !className.contains("NSStatusBar") {
+                print("🎯 Global: Found content window by class: '\(window.title)', class=\(className)")
+                window.makeKeyAndOrderFront(nil)
+                window.orderFrontRegardless()
+                // Also try to deminiaturize if minimized
+                if window.isMiniaturized {
+                    window.deminiaturize(nil)
+                }
+                return
+            }
+        }
+
+        // Strategy 2: Try to find any window that can become key
+        for window in NSApp.windows where window.canBecomeKey {
+            print("🎯 Global: Found key window: '\(window.title)'")
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+            return
+        }
+
+        // Strategy 3: No window found - trigger window creation
+        print("⚠️ Global: No main window found, attempting to open new window")
+
+        // Use NSApp to open a new window
+        if #available(macOS 13.0, *) {
+            // Try using the new window opening API
+            NSApp.sendAction(Selector(("newDocument:")), to: nil, from: nil)
+        }
+
+        // Wait a bit for window creation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            print("📊 Global: After window creation, total windows: \(NSApp.windows.count)")
+
+            // Try to find and activate the newly created window
+            for window in NSApp.windows {
+                let className = String(describing: type(of: window))
+                if !className.contains("StatusBar") && window.canBecomeKey {
+                    print("🎯 Global: Found newly created window: '\(window.title)'")
+                    window.makeKeyAndOrderFront(nil)
+                    window.orderFrontRegardless()
+                    return
+                }
+            }
+
+            print("⚠️ Global: Still no suitable window found after creation attempt")
+        }
+    }
+}
+
 @main
 struct RustMateApp: App {
     @StateObject private var appState = AppState()
+    @StateObject private var menuBarViewModel = MenuBarToolchainViewModel()
+
+    init() {
+        // Set up notification observer for opening main window
+        // This needs to be at app level to ensure it's always active
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("OpenMainWindow"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            activateMainWindow()
+        }
+    }
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             RootView()
                 .environmentObject(appState)
+                .task {
+                    // Initialize menu bar state on app launch
+                    print("📊 App: Initializing menu bar state")
+                    await menuBarViewModel.loadState()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenMainWindow"))) { _ in
+                    print("🔔 RootView: Received OpenMainWindow in SwiftUI context")
+                    // Window already exists if this code runs, just bring it to front
+                    activateMainWindow()
+                }
         }
+        .defaultSize(width: 800, height: 600)
         .commands {
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
@@ -30,7 +124,45 @@ struct RustMateApp: App {
         Settings {
             SettingsView(settings: appState.settings)
         }
+
+        // Menu bar entry with display space fallback
+        MenuBarExtra {
+            MenuBarToolchainMenu(viewModel: menuBarViewModel)
+        } label: {
+            if let defaultToolchain = menuBarViewModel.currentDefaultToolchainId {
+                // Fallback strategy: show shortened version if too long
+                let displayName = shortenToolchainName(defaultToolchain)
+                Text(displayName)
+                    .font(.system(.caption, design: .monospaced))
+            } else if menuBarViewModel.status == .loading {
+                Image(systemName: "arrow.clockwise")
+            } else {
+                Image(systemName: "gearshape")
+            }
+        }
         #endif
+    }
+
+    // MARK: - Helper Functions
+
+    /// Shorten toolchain name for menu bar display
+    /// - Parameter name: Full toolchain name
+    /// - Returns: Shortened name if too long
+    private func shortenToolchainName(_ name: String) -> String {
+        // If name is short enough, return as-is
+        if name.count <= 20 {
+            return name
+        }
+
+        // Try to extract the channel (stable, beta, nightly)
+        let components = name.split(separator: "-")
+        if let channel = components.first {
+            return String(channel)
+        }
+
+        // Fallback: truncate with ellipsis
+        let prefix = name.prefix(17)
+        return "\(prefix)..."
     }
 }
 

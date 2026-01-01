@@ -5,6 +5,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-31
 ## Active Technologies
 - Swift 5.x (project setting: `SWIFT_VERSION = 5.0`) + SwiftUI, AppKit (`NSOpenPanel`), Foundation (`Process`), Security (Keychain + bookmarks) (002-process-rustup)
 - Keychain（保存 bookmarkData）+ UserDefaults（设置/项目列表等） (002-process-rustup)
+- Swift（Xcode 工程；Swift 语言版本在工程内为 5.0） + SwiftUI、Combine、AppKit（用于 macOS 生命周期/窗口激活） (003-menu-bar-toolchain)
+- UserDefaults（AppSettings 已持久化）；本功能自身无新增持久化需求（N/A） (003-menu-bar-toolchain)
 
 - Swift (project setting `SWIFT_VERSION = 5.0`;实际由 Xcode 工具链决定；已使用 SwiftData) + SwiftUI, SwiftData, Swift Concurrency, Foundation (Process/Pipe), NSXPCConnection (001-rustup-visual-manager)
 
@@ -24,10 +26,10 @@ tests/
 Swift (project setting `SWIFT_VERSION = 5.0`;实际由 Xcode 工具链决定；已使用 SwiftData): Follow standard conventions
 
 ## Recent Changes
+- 003-menu-bar-toolchain: Added Swift（Xcode 工程；Swift 语言版本在工程内为 5.0） + SwiftUI、Combine、AppKit（用于 macOS 生命周期/窗口激活）
 - 002-process-rustup: Added Swift 5.x (project setting: `SWIFT_VERSION = 5.0`) + SwiftUI, AppKit (`NSOpenPanel`), Foundation (`Process`), Security (Keychain + bookmarks)
 - 002-process-rustup: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
-- 001-rustup-visual-manager: Added Swift (project setting `SWIFT_VERSION = 5.0`;实际由 Xcode 工具链决定；已使用 SwiftData) + SwiftUI, SwiftData, Swift Concurrency, Foundation (Process/Pipe), NSXPCConnection
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
