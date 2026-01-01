@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 基础沙盒配置 -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- XPC 连接 -->
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>com.finefine.RustMateXPC</string>
+	</array>
+
+	<!-- ⚠️ 开发专用：直接访问 cargo/rustup 目录 -->
+	<!-- 注意：这些例外会导致 App Store 拒绝上架 -->
+	<key>com.apple.security.temporary-exception.files.absolute-path.read-write</key>
+	<array>
+		<!-- Cargo bin 目录 -->
+		<string>/Users/</string>
+		<string>$(HOME)/.cargo/bin/</string>
+		<string>$(HOME)/.cargo/</string>
+		<string>$(HOME)/.rustup/</string>
+		<!-- Homebrew 可能的位置 -->
+		<string>/usr/local/bin/</string>
+		<string>/opt/homebrew/bin/</string>
+	</array>
+</dict>
+</plist>

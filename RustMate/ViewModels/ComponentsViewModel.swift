@@ -1,0 +1,155 @@
+//
+//  ComponentsViewModel.swift
+//  RustMate
+//
+//  ViewModel for component management
+//
+
+import Foundation
+import Combine
+
+@MainActor
+class ComponentsViewModel: ObservableObject {
+    @Published var components: [ComponentInfo] = []
+    @Published var isLoading = false
+    @Published var error: Error?
+    @Published var selectedComponent: ComponentInfo?
+    @Published var selectedToolchain: ToolchainInfo?
+    @Published var runningTasks: [UUID: TaskRecord] = [:]
+
+    private let service: RustToolchainServiceProtocol
+    private var cancellables = Set<AnyCancellable>()
+
+    init(service: RustToolchainServiceProtocol = XPCToolchainService()) {
+        self.service = service
+    }
+
+    // MARK: - Data Loading
+
+    /// Load components for the selected toolchain
+    func loadComponents() async {
+        guard let toolchain = selectedToolchain else {
+            components = []
+            return
+        }
+
+        isLoading = true
+        error = nil
+
+        do {
+            let loadedComponents = try await service.listComponents(toolchainName: toolchain.name)
+
+            // Update with toolchain name
+            components = loadedComponents.map { component in
+                ComponentInfo(
+                    id: component.id,
+                    name: component.name,
+                    displayName: component.displayName,
+                    toolchainName: toolchain.name,
+                    isInstalled: component.isInstalled,
+                    componentType: component.componentType,
+                    description: component.description
+                )
+            }
+        } catch {
+            self.error = error
+            print("Failed to load components: \(error)")
+        }
+
+        isLoading = false
+    }
+
+    /// Refresh components list for current toolchain
+    func refreshComponents() async {
+        await loadComponents()
+    }
+
+    // MARK: - Component Operations
+
+    func installComponent(_ component: ComponentInfo) async {
+        guard let toolchain = selectedToolchain else { return }
+
+        do {
+            let result = try await service.addComponent(
+                componentName: component.name,
+                toolchainName: toolchain.name
+            )
+            trackTask(result)
+
+            // Refresh list after completion
+            if result.status == .success {
+                await loadComponents()
+            }
+        } catch {
+            self.error = error
+            print("Failed to install component: \(error)")
+        }
+    }
+
+    func uninstallComponent(_ component: ComponentInfo) async {
+        guard let toolchain = selectedToolchain else { return }
+
+        do {
+            let result = try await service.removeComponent(
+                componentName: component.name,
+                toolchainName: toolchain.name
+            )
+            trackTask(result)
+
+            // Refresh list after completion
+            if result.status == .success {
+                await loadComponents()
+            }
+        } catch {
+            self.error = error
+            print("Failed to uninstall component: \(error)")
+        }
+    }
+
+    // MARK: - Task Management
+
+    private func trackTask(_ result: TaskResult) {
+        if let record = result.taskRecord {
+            // Track locally for UI badges
+            runningTasks[record.id] = record
+
+            // Broadcast to TaskManager for global task list
+            TaskManager.shared.addTask(record)
+
+            // Remove completed tasks after a delay
+            if record.status != .running {
+                Task {
+                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                    runningTasks.removeValue(forKey: record.id)
+                }
+            }
+        }
+    }
+
+    // MARK: - Suggestions
+
+    /// Get suggested components that are not yet installed
+    var suggestedComponents: [ComponentInfo] {
+        let installedNames = Set(components.filter { $0.isInstalled }.map { $0.displayName })
+        let allSuggestions = ComponentInfo.commonComponents
+
+        return components.filter { component in
+            allSuggestions.contains(component.displayName) && !installedNames.contains(component.displayName)
+        }
+    }
+
+    /// Check if there are any common components not installed
+    var hasSuggestions: Bool {
+        !suggestedComponents.isEmpty
+    }
+
+    // MARK: - Computed Properties
+
+    var installedCount: Int {
+        components.filter { $0.isInstalled }.count
+    }
+
+    var availableCount: Int {
+        components.filter { !$0.isInstalled }.count
+    }
+}

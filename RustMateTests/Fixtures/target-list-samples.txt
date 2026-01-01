@@ -1,0 +1,75 @@
+=== Sample 1: Basic macOS targets ===
+aarch64-apple-darwin (installed)
+aarch64-apple-ios
+aarch64-apple-ios-sim
+aarch64-unknown-linux-gnu
+wasm32-unknown-unknown
+x86_64-apple-darwin
+
+=== Sample 2: Multiple installed targets ===
+aarch64-apple-darwin (installed)
+aarch64-unknown-linux-gnu (installed)
+wasm32-unknown-unknown (installed)
+x86_64-apple-darwin
+x86_64-unknown-linux-gnu
+
+=== Sample 3: Single default target ===
+aarch64-apple-darwin (installed)
+
+=== Sample 4: All common targets ===
+aarch64-apple-darwin (installed)
+aarch64-apple-ios
+aarch64-unknown-linux-gnu
+wasm32-unknown-unknown
+x86_64-apple-darwin
+x86_64-pc-windows-msvc
+x86_64-unknown-linux-gnu
+
+=== Sample 5: Linux targets ===
+x86_64-unknown-linux-gnu (installed)
+aarch64-unknown-linux-gnu
+i686-unknown-linux-gnu
+x86_64-unknown-linux-musl
+
+=== Sample 6: Windows targets ===
+x86_64-pc-windows-msvc (installed)
+aarch64-pc-windows-msvc
+i686-pc-windows-gnu
+i686-pc-windows-msvc
+
+=== Sample 7: Mobile and embedded targets ===
+aarch64-apple-darwin (installed)
+aarch64-apple-ios
+aarch64-apple-ios-sim
+aarch64-linux-android
+armv7-linux-androideabi
+thumbv7em-none-eabihf
+
+=== Sample 8: WebAssembly targets ===
+aarch64-apple-darwin (installed)
+wasm32-unknown-emscripten
+wasm32-unknown-unknown
+wasm32-wasi
+
+=== Sample 9: All installed ===
+aarch64-apple-darwin (installed)
+wasm32-unknown-unknown (installed)
+x86_64-apple-darwin (installed)
+x86_64-unknown-linux-gnu (installed)
+
+=== Sample 10: Empty output ===
+
+=== Sample 11: RISC-V and specialty targets ===
+aarch64-apple-darwin (installed)
+riscv32i-unknown-none-elf
+riscv64gc-unknown-linux-gnu
+thumbv7m-none-eabi
+
+=== Sample 12: Tier 2 and 3 targets mixed ===
+aarch64-apple-darwin (installed)
+aarch64-unknown-freebsd
+aarch64-unknown-netbsd
+powerpc64le-unknown-linux-gnu
+s390x-unknown-linux-gnu
+x86_64-apple-darwin
+
