@@ -1,0 +1,74 @@
+=== Sample 1: Basic components output ===
+cargo-aarch64-apple-darwin (installed)
+clippy-aarch64-apple-darwin
+llvm-tools-preview-aarch64-apple-darwin
+rust-docs-aarch64-apple-darwin (installed)
+rust-std-aarch64-apple-darwin (installed)
+rustc-aarch64-apple-darwin (installed)
+rustfmt-preview-aarch64-apple-darwin
+
+=== Sample 2: All installed ===
+cargo-aarch64-apple-darwin (installed)
+clippy-aarch64-apple-darwin (installed)
+llvm-tools-preview-aarch64-apple-darwin (installed)
+rust-docs-aarch64-apple-darwin (installed)
+rust-std-aarch64-apple-darwin (installed)
+rustc-aarch64-apple-darwin (installed)
+rustfmt-preview-aarch64-apple-darwin (installed)
+rust-src (installed)
+
+=== Sample 3: None installed ===
+cargo-aarch64-apple-darwin
+clippy-aarch64-apple-darwin
+llvm-tools-preview-aarch64-apple-darwin
+rust-docs-aarch64-apple-darwin
+rust-std-aarch64-apple-darwin
+rustc-aarch64-apple-darwin
+rustfmt-preview-aarch64-apple-darwin
+rust-src
+
+=== Sample 4: Mixed with targets (rust-std) ===
+cargo-aarch64-apple-darwin (installed)
+clippy-aarch64-apple-darwin (installed)
+rust-std-aarch64-apple-darwin (installed)
+rust-std-wasm32-unknown-unknown (installed)
+rust-std-x86_64-apple-darwin
+rustfmt-preview-aarch64-apple-darwin
+
+=== Sample 5: Linux components ===
+cargo-x86_64-unknown-linux-gnu (installed)
+clippy-x86_64-unknown-linux-gnu (installed)
+llvm-tools-preview-x86_64-unknown-linux-gnu
+rust-docs-x86_64-unknown-linux-gnu (installed)
+rust-std-x86_64-unknown-linux-gnu (installed)
+rustc-x86_64-unknown-linux-gnu (installed)
+rustfmt-preview-x86_64-unknown-linux-gnu
+
+=== Sample 6: Windows components ===
+cargo-x86_64-pc-windows-msvc (installed)
+clippy-x86_64-pc-windows-msvc
+llvm-tools-preview-x86_64-pc-windows-msvc
+rust-docs-x86_64-pc-windows-msvc (installed)
+rust-std-x86_64-pc-windows-msvc (installed)
+rustc-x86_64-pc-windows-msvc (installed)
+rustfmt-preview-x86_64-pc-windows-msvc (installed)
+
+=== Sample 7: With rust-analyzer and miri (nightly only) ===
+cargo-aarch64-apple-darwin (installed)
+clippy-aarch64-apple-darwin (installed)
+miri-aarch64-apple-darwin (installed)
+rust-analyzer-aarch64-apple-darwin (installed)
+rust-docs-aarch64-apple-darwin (installed)
+rust-src (installed)
+rust-std-aarch64-apple-darwin (installed)
+rustc-aarch64-apple-darwin (installed)
+rustc-dev-aarch64-apple-darwin
+rustfmt-preview-aarch64-apple-darwin (installed)
+
+=== Sample 8: Empty output ===
+
+=== Sample 9: Trailing whitespace ===
+cargo-aarch64-apple-darwin (installed)
+clippy-aarch64-apple-darwin
+rust-std-aarch64-apple-darwin (installed)
+

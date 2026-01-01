@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9A70D3E22F06017A000D8C52 /* RustMateXPC.xpc in Embed XPC Services */ = {isa = PBXBuildFile; fileRef = 9A70D3D72F06017A000D8C52 /* RustMateXPC.xpc */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		9A70D32E2F0519B2000D8C52 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,17 +25,73 @@
 			remoteGlobalIDString = 9A70D31D2F0519B1000D8C52;
 			remoteInfo = RustMate;
 		};
+		9A70D3E02F06017A000D8C52 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9A70D3162F0519B1000D8C52 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9A70D3D62F06017A000D8C52;
+			remoteInfo = RustMateXPC;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9A70D3E32F06017A000D8C52 /* Embed XPC Services */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/XPCServices";
+			dstSubfolderSpec = 16;
+			files = (
+				9A70D3E22F06017A000D8C52 /* RustMateXPC.xpc in Embed XPC Services */,
+			);
+			name = "Embed XPC Services";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		9A70D31E2F0519B1000D8C52 /* RustMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RustMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A70D32D2F0519B2000D8C52 /* RustMateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RustMateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A70D3372F0519B2000D8C52 /* RustMateUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RustMateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A70D3D72F06017A000D8C52 /* RustMateXPC.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = RustMateXPC.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9A70D3E62F06017A000D8C52 /* Exceptions for "RustMateXPC" folder in "RustMateXPC" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9A70D3D62F06017A000D8C52 /* RustMateXPC */;
+		};
+		9A70D43B2F0606B0000D8C52 /* Exceptions for "RustMate" folder in "RustMateXPC" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/AppSettings.swift,
+				Models/AuthorizedDirectory.swift,
+				Shared/Models/ComponentInfo.swift,
+				Shared/Models/ProjectContextInfo.swift,
+				Shared/Models/TargetInfo.swift,
+				Shared/Models/TaskResult.swift,
+				Shared/Models/ToolchainInfo.swift,
+				Shared/Models/ValidationResult.swift,
+			);
+			target = 9A70D3D62F06017A000D8C52 /* RustMateXPC */;
+		};
+		9A70D4512F0642D8000D8C52 /* Exceptions for "RustMateXPC" folder in "RustMate" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				RustMateXPCProtocol.swift,
+			);
+			target = 9A70D31D2F0519B1000D8C52 /* RustMate */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9A70D3202F0519B1000D8C52 /* RustMate */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9A70D43B2F0606B0000D8C52 /* Exceptions for "RustMate" folder in "RustMateXPC" target */,
+			);
 			path = RustMate;
 			sourceTree = "<group>";
 		};
@@ -43,6 +103,15 @@
 		9A70D33A2F0519B2000D8C52 /* RustMateUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = RustMateUITests;
+			sourceTree = "<group>";
+		};
+		9A70D3D82F06017A000D8C52 /* RustMateXPC */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9A70D4512F0642D8000D8C52 /* Exceptions for "RustMateXPC" folder in "RustMate" target */,
+				9A70D3E62F06017A000D8C52 /* Exceptions for "RustMateXPC" folder in "RustMateXPC" target */,
+			);
+			path = RustMateXPC;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,6 +138,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9A70D3D42F06017A000D8C52 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -78,6 +154,7 @@
 				9A70D3202F0519B1000D8C52 /* RustMate */,
 				9A70D3302F0519B2000D8C52 /* RustMateTests */,
 				9A70D33A2F0519B2000D8C52 /* RustMateUITests */,
+				9A70D3D82F06017A000D8C52 /* RustMateXPC */,
 				9A70D31F2F0519B1000D8C52 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +165,7 @@
 				9A70D31E2F0519B1000D8C52 /* RustMate.app */,
 				9A70D32D2F0519B2000D8C52 /* RustMateTests.xctest */,
 				9A70D3372F0519B2000D8C52 /* RustMateUITests.xctest */,
+				9A70D3D72F06017A000D8C52 /* RustMateXPC.xpc */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,10 +180,12 @@
 				9A70D31A2F0519B1000D8C52 /* Sources */,
 				9A70D31B2F0519B1000D8C52 /* Frameworks */,
 				9A70D31C2F0519B1000D8C52 /* Resources */,
+				9A70D3E32F06017A000D8C52 /* Embed XPC Services */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				9A70D3E12F06017A000D8C52 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				9A70D3202F0519B1000D8C52 /* RustMate */,
@@ -163,6 +243,28 @@
 			productReference = 9A70D3372F0519B2000D8C52 /* RustMateUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		9A70D3D62F06017A000D8C52 /* RustMateXPC */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9A70D3E72F06017A000D8C52 /* Build configuration list for PBXNativeTarget "RustMateXPC" */;
+			buildPhases = (
+				9A70D3D32F06017A000D8C52 /* Sources */,
+				9A70D3D42F06017A000D8C52 /* Frameworks */,
+				9A70D3D52F06017A000D8C52 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				9A70D3D82F06017A000D8C52 /* RustMateXPC */,
+			);
+			name = RustMateXPC;
+			packageProductDependencies = (
+			);
+			productName = RustMateXPC;
+			productReference = 9A70D3D72F06017A000D8C52 /* RustMateXPC.xpc */;
+			productType = "com.apple.product-type.xpc-service";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -184,6 +286,9 @@
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = 9A70D31D2F0519B1000D8C52;
 					};
+					9A70D3D62F06017A000D8C52 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 				};
 			};
 			buildConfigurationList = 9A70D3192F0519B1000D8C52 /* Build configuration list for PBXProject "RustMate" */;
@@ -203,6 +308,7 @@
 				9A70D31D2F0519B1000D8C52 /* RustMate */,
 				9A70D32C2F0519B2000D8C52 /* RustMateTests */,
 				9A70D3362F0519B2000D8C52 /* RustMateUITests */,
+				9A70D3D62F06017A000D8C52 /* RustMateXPC */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +329,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9A70D3352F0519B2000D8C52 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9A70D3D52F06017A000D8C52 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +366,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9A70D3D32F06017A000D8C52 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +385,11 @@
 			isa = PBXTargetDependency;
 			target = 9A70D31D2F0519B1000D8C52 /* RustMate */;
 			targetProxy = 9A70D3382F0519B2000D8C52 /* PBXContainerItemProxy */;
+		};
+		9A70D3E12F06017A000D8C52 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9A70D3D62F06017A000D8C52 /* RustMateXPC */;
+			targetProxy = 9A70D3E02F06017A000D8C52 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -398,7 +523,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QFNEHUV3DG;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -430,7 +555,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QFNEHUV3DG;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -533,6 +658,58 @@
 			};
 			name = Release;
 		};
+		9A70D3E42F06017A000D8C52 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QFNEHUV3DG;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RustMateXPC/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RustMateXPC;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.finefine.RustMateXPC;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9A70D3E52F06017A000D8C52 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QFNEHUV3DG;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RustMateXPC/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RustMateXPC;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.finefine.RustMateXPC;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -568,6 +745,15 @@
 			buildConfigurations = (
 				9A70D3482F0519B2000D8C52 /* Debug */,
 				9A70D3492F0519B2000D8C52 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9A70D3E72F06017A000D8C52 /* Build configuration list for PBXNativeTarget "RustMateXPC" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9A70D3E42F06017A000D8C52 /* Debug */,
+				9A70D3E52F06017A000D8C52 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

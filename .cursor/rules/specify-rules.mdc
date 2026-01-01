@@ -1,0 +1,29 @@
+# RustMate Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-12-31
+
+## Active Technologies
+
+- Swift (project setting `SWIFT_VERSION = 5.0`;实际由 Xcode 工具链决定；已使用 SwiftData) + SwiftUI, SwiftData, Swift Concurrency, Foundation (Process/Pipe), NSXPCConnection (001-rustup-visual-manager)
+
+## Project Structure
+
+```text
+src/
+tests/
+```
+
+## Commands
+
+# Add commands for Swift (project setting `SWIFT_VERSION = 5.0`;实际由 Xcode 工具链决定；已使用 SwiftData)
+
+## Code Style
+
+Swift (project setting `SWIFT_VERSION = 5.0`;实际由 Xcode 工具链决定；已使用 SwiftData): Follow standard conventions
+
+## Recent Changes
+
+- 001-rustup-visual-manager: Added Swift (project setting `SWIFT_VERSION = 5.0`;实际由 Xcode 工具链决定；已使用 SwiftData) + SwiftUI, SwiftData, Swift Concurrency, Foundation (Process/Pipe), NSXPCConnection
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

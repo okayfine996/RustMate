@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 沙盒已禁用 - 用于非 App Store 分发 -->
+	<!--
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	-->
+
+	<!-- 网络访问（公证需要） -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+</dict>
+</plist>

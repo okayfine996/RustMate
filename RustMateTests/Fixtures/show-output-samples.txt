@@ -1,0 +1,90 @@
+=== Sample 1: Default toolchain (no override) ===
+Default host: aarch64-apple-darwin
+rustup home:  /Users/user/.rustup
+
+stable-aarch64-apple-darwin (default)
+rustc 1.75.0 (82e1608df 2023-12-21)
+
+=== Sample 2: Override by rust-toolchain.toml ===
+Default host: aarch64-apple-darwin
+rustup home:  /Users/user/.rustup
+
+nightly-aarch64-apple-darwin (overridden by '/Users/user/project/rust-toolchain.toml')
+rustc 1.77.0-nightly (3cdd004e5 2024-01-13)
+
+=== Sample 3: Override by rust-toolchain file (legacy) ===
+Default host: x86_64-apple-darwin
+rustup home:  /Users/user/.rustup
+
+beta-x86_64-apple-darwin (overridden by '/Users/user/myproject/rust-toolchain')
+rustc 1.76.0-beta.4 (5ae3da9a0 2024-01-10)
+
+=== Sample 4: Directory override (rustup override set) ===
+Default host: aarch64-apple-darwin
+rustup home:  /Users/user/.rustup
+
+stable-aarch64-apple-darwin (directory override for '/Users/user/project')
+rustc 1.75.0 (82e1608df 2023-12-21)
+
+=== Sample 5: Nightly with toolchain file ===
+Default host: aarch64-apple-darwin
+rustup home:  /Users/user/.rustup
+
+nightly-2024-01-01-aarch64-apple-darwin (overridden by '/home/project/rust-toolchain.toml')
+rustc 1.77.0-nightly (abc123456 2024-01-01)
+
+=== Sample 6: Specific version override ===
+Default host: x86_64-unknown-linux-gnu
+rustup home:  /home/user/.rustup
+
+1.74.0-x86_64-unknown-linux-gnu (overridden by '/home/workspace/rust-toolchain.toml')
+rustc 1.74.0 (79e9716c9 2023-11-13)
+
+=== Sample 7: Default with multiple toolchains installed ===
+Default host: aarch64-apple-darwin
+rustup home:  /Users/user/.rustup
+
+installed toolchains
+--------------------
+
+stable-aarch64-apple-darwin (default)
+beta-aarch64-apple-darwin
+nightly-aarch64-apple-darwin
+
+active toolchain
+----------------
+
+stable-aarch64-apple-darwin (default)
+rustc 1.75.0 (82e1608df 2023-12-21)
+
+=== Sample 8: Custom toolchain with directory override ===
+Default host: aarch64-apple-darwin
+rustup home:  /Users/user/.rustup
+
+my-custom-toolchain (directory override for '/Users/user/project')
+rustc 1.75.0 (custom build)
+
+=== Sample 9: Override with nested project path ===
+Default host: aarch64-apple-darwin
+rustup home:  /Users/user/.rustup
+
+nightly-aarch64-apple-darwin (overridden by '/Users/user/workspace/my-app/backend/rust-toolchain.toml')
+rustc 1.77.0-nightly (3cdd004e5 2024-01-13)
+
+=== Sample 10: Minimal output ===
+stable-aarch64-apple-darwin (default)
+rustc 1.75.0 (82e1608df 2023-12-21)
+
+=== Sample 11: Beta with toolchain file ===
+Default host: aarch64-apple-darwin
+rustup home:  /Users/user/.rustup
+
+beta-aarch64-apple-darwin (overridden by '/Users/developer/project/rust-toolchain')
+rustc 1.76.0-beta.5 (a2f5c3b01 2024-01-15)
+
+=== Sample 12: Cross-platform Linux ===
+Default host: x86_64-unknown-linux-gnu
+rustup home:  /home/user/.rustup
+
+stable-x86_64-unknown-linux-gnu (default)
+rustc 1.75.0 (82e1608df 2023-12-21)
