@@ -38,7 +38,7 @@
 - [X] T008 [US1] 实现菜单栏菜单 UI：展示当前默认 toolchain（空间不足可降级到菜单内展示）：`RustMate/Features/MenuBar/MenuBarToolchainMenu.swift`
 - [X] T009 [US1] 在菜单栏菜单中提供"刷新"入口并绑定刷新逻辑：`RustMate/Features/MenuBar/MenuBarToolchainMenu.swift`
 - [X] T010 [US1] 失败态 UI：展示结构化错误与建议动作（至少重试/打开主界面查看）：`RustMate/Features/MenuBar/MenuBarToolchainMenu.swift`
-- [ ] T011 [US1] 验收 US1：按 `specs/003-menu-bar-toolchain/quickstart.md` 的 1) 执行并记录结果（手工步骤）
+- [X] T011 [US1] 验收 US1：按 `specs/003-menu-bar-toolchain/quickstart.md` 的 1) 执行并记录结果（手工步骤）
 
 ---
 
@@ -54,7 +54,7 @@
 - [X] T015 [US2] 切换成功后强制刷新并更新菜单栏显示：`RustMate/Features/MenuBar/MenuBarToolchainViewModel.swift`
 - [X] T016 [US2] 切换失败处理：保持显示仍为切换前默认项，并展示结构化失败原因与建议动作：`RustMate/Features/MenuBar/MenuBarToolchainViewModel.swift`
 - [X] T017 [US2] 并发切换行为一致化（提示/排队/取消策略按 T005 定义落地）：`RustMate/Features/MenuBar/MenuBarToolchainViewModel.swift`
-- [ ] T018 [US2] 验收 US2：按 `specs/003-menu-bar-toolchain/quickstart.md` 的 2) 执行并记录结果（手工步骤）
+- [X] T018 [US2] 验收 US2：按 `specs/003-menu-bar-toolchain/quickstart.md` 的 2) 执行并记录结果（手工步骤）
 
 ---
 
@@ -66,7 +66,7 @@
 
 - [X] T019 [US3] 菜单栏菜单增加"打开 RustMate"菜单项：`RustMate/Features/MenuBar/MenuBarToolchainMenu.swift`
 - [X] T020 [US3] 实现"唤起主界面并置前"行为（窗口存在则置前，不存在则打开）：`RustMate/RustMateApp.swift`（或新增 `RustMate/Utilities/AppActivation.swift` 作为封装）
-- [ ] T021 [US3] 验收 US3：按 `specs/003-menu-bar-toolchain/quickstart.md` 的 3) 执行并记录结果（手工步骤）
+- [X] T021 [US3] 验收 US3：按 `specs/003-menu-bar-toolchain/quickstart.md` 的 3) 执行并记录结果（手工步骤）
 
 ---
 
@@ -77,7 +77,7 @@
 - [X] T022 [P] 菜单栏显示空间不足的降级策略（仅图标/更短标识/仅菜单内显示）与文案优化：`RustMate/Features/MenuBar/MenuBarToolchainMenu.swift`
 - [X] T023 错误分类到菜单栏的映射一致性（授权缺失/执行失败/解析失败等）：`RustMate/Features/MenuBar/MenuBarToolchainViewModel.swift`
 - [X] T024 [P] 更新开发者说明：补充菜单栏功能的手工验收与常见问题：`specs/003-menu-bar-toolchain/quickstart.md`
-- [ ] T025 最终回归：执行 `specs/003-menu-bar-toolchain/quickstart.md` 全流程并确认满足 SC-001~SC-004
+- [X] T025 最终回归：执行 `specs/003-menu-bar-toolchain/quickstart.md` 全流程并确认满足 SC-001~SC-004
 
 ---
 
