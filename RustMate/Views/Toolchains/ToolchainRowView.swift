@@ -16,52 +16,50 @@ struct ToolchainRowView: View {
     @State private var isHovering = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Icon
+        HStack(spacing: GlassTokens.Spacing.md) {
+            // Status Icon
             ZStack {
                 Circle()
-                    .fill(toolchain.isDefault ? Color.blue.opacity(0.2) : Color.secondary.opacity(0.1))
+                    .fill(
+                        StatusSemantics.toolchainColor(isDefault: toolchain.isDefault, hasUpdate: false)
+                            .opacity(0.15)
+                    )
                     .frame(width: 40, height: 40)
 
-                Image(systemName: toolchain.isDefault ? "checkmark.circle.fill" : "hammer.fill")
-                    .font(.title3)
-                    .foregroundStyle(toolchain.isDefault ? .blue : .secondary)
+                Image(systemName: StatusSemantics.toolchainIcon(isDefault: toolchain.isDefault))
+                    .font(.system(size: GlassTokens.Typography.headlineSize))
+                    .foregroundColor(StatusSemantics.toolchainColor(isDefault: toolchain.isDefault, hasUpdate: false))
             }
 
             // Content
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                HStack(spacing: GlassTokens.Spacing.sm) {
                     Text(toolchain.name)
-                        .font(.body.bold())
+                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                    if toolchain.isDefault {
-                        Text("DEFAULT")
-                            .font(.caption2.bold())
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.blue)
-                            .cornerRadius(3)
+                    if let badge = StatusSemantics.toolchainBadge(isDefault: toolchain.isDefault, hasUpdate: false) {
+                        StatusBadgeView(status: badge.status, text: badge.text)
                     }
                 }
 
-                HStack(spacing: 12) {
+                HStack(spacing: GlassTokens.Spacing.md) {
                     if let version = toolchain.version {
                         Label(version, systemImage: "tag")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
 
                     if let host = toolchain.host {
                         Label(host, systemImage: "cpu")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
 
                     if let date = toolchain.installDate {
                         Label(formatDate(date), systemImage: "calendar")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
                 }
             }
@@ -70,15 +68,15 @@ struct ToolchainRowView: View {
 
             // Actions (show on hover)
             if isHovering {
-                HStack(spacing: 8) {
+                HStack(spacing: GlassTokens.Spacing.sm) {
                     if !toolchain.isDefault {
                         Button {
                             onSetDefault()
                         } label: {
                             Label("Set Default", systemImage: "star.fill")
-                                .font(.caption)
+                                .font(.system(size: GlassTokens.Typography.captionSize))
                         }
-                        .buttonStyle(.bordered)
+                        .secondaryGlassButtonStyle()
                         .controlSize(.small)
                     }
 
@@ -86,9 +84,9 @@ struct ToolchainRowView: View {
                         onUpdate()
                     } label: {
                         Label("Update", systemImage: "arrow.clockwise")
-                            .font(.caption)
+                            .font(.system(size: GlassTokens.Typography.captionSize))
                     }
-                    .buttonStyle(.bordered)
+                    .secondaryGlassButtonStyle()
                     .controlSize(.small)
 
                     if !toolchain.isDefault {
@@ -96,22 +94,21 @@ struct ToolchainRowView: View {
                             onDelete()
                         } label: {
                             Image(systemName: "trash")
-                                .font(.caption)
+                                .font(.system(size: GlassTokens.Typography.captionSize))
                         }
-                        .buttonStyle(.bordered)
+                        .destructiveGlassButtonStyle()
                         .controlSize(.small)
-                        .foregroundStyle(.red)
                     }
                 }
                 .transition(.opacity)
             }
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
-        .background(isHovering ? Color.secondary.opacity(0.05) : Color.clear)
-        .cornerRadius(8)
+        .padding(.vertical, GlassTokens.Spacing.sm)
+        .padding(.horizontal, GlassTokens.Spacing.md)
+        .background(isHovering ? GlassTokens.Colors.cardBackground : Color.clear)
+        .cornerRadius(GlassTokens.Radius.md)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(GlassTokens.Animation.fast) {
                 isHovering = hovering
             }
         }

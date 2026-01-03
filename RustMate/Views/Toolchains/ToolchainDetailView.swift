@@ -15,169 +15,172 @@ struct ToolchainDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
                 // Header
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
+                GlassCard {
+                    HStack(spacing: GlassTokens.Spacing.lg) {
                         ZStack {
                             Circle()
-                                .fill(toolchain.isDefault ? Color.blue.opacity(0.2) : Color.secondary.opacity(0.1))
+                                .fill(
+                                    StatusSemantics.toolchainColor(isDefault: toolchain.isDefault, hasUpdate: false)
+                                        .opacity(0.15)
+                                )
                                 .frame(width: 60, height: 60)
 
-                            Image(systemName: toolchain.isDefault ? "checkmark.circle.fill" : "hammer.fill")
-                                .font(.largeTitle)
-                                .foregroundStyle(toolchain.isDefault ? .blue : .secondary)
+                            Image(systemName: StatusSemantics.toolchainIcon(isDefault: toolchain.isDefault))
+                                .font(.system(size: 32))
+                                .foregroundColor(StatusSemantics.toolchainColor(isDefault: toolchain.isDefault, hasUpdate: false))
                         }
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                            HStack(spacing: GlassTokens.Spacing.sm) {
                                 Text(toolchain.name)
-                                    .font(.title.bold())
+                                    .font(.system(size: GlassTokens.Typography.titleSize, weight: GlassTokens.Typography.titleWeight))
+                                    .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                                if toolchain.isDefault {
-                                    Text("DEFAULT")
-                                        .font(.caption.bold())
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 3)
-                                        .background(Color.blue)
-                                        .cornerRadius(4)
+                                if let badge = StatusSemantics.toolchainBadge(isDefault: toolchain.isDefault, hasUpdate: false) {
+                                    StatusBadgeView(status: badge.status, text: badge.text)
                                 }
                             }
 
                             if let version = toolchain.version {
                                 Text("Version \(version)")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: GlassTokens.Typography.calloutSize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
                             }
                         }
                     }
                 }
-
-                Divider()
 
                 // Metadata
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Toolchain Information")
-                        .font(.headline)
+                GlassCard {
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                        Text("Toolchain Information")
+                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                    if let host = toolchain.host {
-                        metadataRow(label: "Host Triple", value: host, icon: "cpu")
-                    }
+                        if let host = toolchain.host {
+                            metadataRow(label: "Host Triple", value: host, icon: "cpu")
+                        }
 
-                    if let date = toolchain.installDate {
+                        if let date = toolchain.installDate {
+                            metadataRow(
+                                label: "Installed",
+                                value: formatDate(date),
+                                icon: "calendar"
+                            )
+                        }
+
                         metadataRow(
-                            label: "Installed",
-                            value: formatDate(date),
-                            icon: "calendar"
+                            label: "Status",
+                            value: toolchain.isDefault ? "Active (Default)" : "Installed",
+                            icon: "info.circle"
                         )
                     }
-
-                    metadataRow(
-                        label: "Status",
-                        value: toolchain.isDefault ? "Active (Default)" : "Installed",
-                        icon: "info.circle"
-                    )
                 }
-
-                Divider()
 
                 // Operations
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Operations")
-                        .font(.headline)
+                GlassCard {
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                        Text("Operations")
+                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                    if !toolchain.isDefault {
+                        if !toolchain.isDefault {
+                            Button {
+                                onSetDefault()
+                            } label: {
+                                HStack {
+                                    Label("Set as Default", systemImage: "star.fill")
+                                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: GlassTokens.Typography.captionSize))
+                                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                                }
+                                .padding(GlassTokens.Spacing.md)
+                                .background(GlassTokens.Colors.accentSubtle)
+                                .cornerRadius(GlassTokens.Radius.md)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
                         Button {
-                            onSetDefault()
+                            onUpdate()
                         } label: {
                             HStack {
-                                Label("Set as Default", systemImage: "star.fill")
-                                    .font(.body.bold())
+                                Label("Update Toolchain", systemImage: "arrow.clockwise")
+                                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
                                 Spacer()
                                 Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: GlassTokens.Typography.captionSize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
                             }
-                            .padding()
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
+                            .padding(GlassTokens.Spacing.md)
+                            .background(GlassTokens.Colors.successSubtle)
+                            .cornerRadius(GlassTokens.Radius.md)
                         }
                         .buttonStyle(.plain)
-                    }
 
-                    Button {
-                        onUpdate()
-                    } label: {
-                        HStack {
-                            Label("Update Toolchain", systemImage: "arrow.clockwise")
-                                .font(.body.bold())
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding()
-                        .background(Color.green.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-
-                    if !toolchain.isDefault {
-                        Button {
-                            onDelete()
-                        } label: {
-                            HStack {
-                                Label("Uninstall Toolchain", systemImage: "trash")
-                                    .font(.body.bold())
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                        if !toolchain.isDefault {
+                            Button {
+                                onDelete()
+                            } label: {
+                                HStack {
+                                    Label("Uninstall Toolchain", systemImage: "trash")
+                                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: GlassTokens.Typography.captionSize))
+                                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                                }
+                                .padding(GlassTokens.Spacing.md)
+                                .background(GlassTokens.Colors.errorSubtle)
+                                .cornerRadius(GlassTokens.Radius.md)
                             }
-                            .padding()
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(8)
+                            .buttonStyle(.plain)
+                            .foregroundColor(GlassTokens.Colors.error)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.red)
                     }
                 }
 
-                Divider()
-
                 // Usage Info
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Usage")
-                        .font(.headline)
+                GlassCard {
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                        Text("Usage")
+                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Set as project override:")
-                            .font(.subheadline.bold())
+                        VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                            Text("Set as project override:")
+                                .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+                                .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                        Text("rustup override set \(toolchain.name)")
-                            .font(.system(.caption, design: .monospaced))
-                            .padding(8)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.secondary.opacity(0.1))
-                            .cornerRadius(4)
+                            Text("rustup override set \(toolchain.name)")
+                                .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
+                                .padding(GlassTokens.Spacing.sm)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(GlassTokens.Colors.cardBackground)
+                                .cornerRadius(GlassTokens.Radius.sm)
 
-                        Text("Or add to rust-toolchain.toml:")
-                            .font(.subheadline.bold())
-                            .padding(.top, 4)
+                            Text("Or add to rust-toolchain.toml:")
+                                .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+                                .foregroundColor(GlassTokens.Colors.textPrimary)
+                                .padding(.top, GlassTokens.Spacing.xs)
 
-                        Text("[toolchain]\nchannel = \"\(toolchain.name)\"")
-                            .font(.system(.caption, design: .monospaced))
-                            .padding(8)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.secondary.opacity(0.1))
-                            .cornerRadius(4)
+                            Text("[toolchain]\nchannel = \"\(toolchain.name)\"")
+                                .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
+                                .padding(GlassTokens.Spacing.sm)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(GlassTokens.Colors.cardBackground)
+                                .cornerRadius(GlassTokens.Radius.sm)
+                        }
                     }
                 }
 
                 Spacer()
             }
-            .padding(24)
+            .padding(GlassTokens.Spacing.xl)
         }
         .navigationTitle(toolchain.name)
         .navigationSubtitle(toolchain.isDefault ? "Default Toolchain" : "Installed Toolchain")
@@ -187,26 +190,27 @@ struct ToolchainDetailView: View {
 
     @ViewBuilder
     private func metadataRow(label: String, value: String, icon: String) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: GlassTokens.Spacing.md) {
             Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(.blue)
+                .font(.system(size: GlassTokens.Typography.headlineSize))
+                .foregroundColor(GlassTokens.Colors.accent)
                 .frame(width: 24)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
                 Text(label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: GlassTokens.Typography.captionSize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
 
                 Text(value)
-                    .font(.body)
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
             }
 
             Spacer()
         }
-        .padding(12)
-        .background(Color.secondary.opacity(0.05))
-        .cornerRadius(6)
+        .padding(GlassTokens.Spacing.md)
+        .background(GlassTokens.Colors.cardBackground.opacity(0.5))
+        .cornerRadius(GlassTokens.Radius.sm)
     }
 
     private func formatDate(_ date: Date) -> String {

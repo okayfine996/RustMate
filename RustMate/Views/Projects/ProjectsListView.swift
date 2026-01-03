@@ -16,14 +16,10 @@ struct ProjectsListView: View {
     @State private var showingOverridePicker = false
     @State private var showingAuthorizationAlert = false
     @State private var showingErrorAlert = false
+    @State private var searchText = ""
 
     var body: some View {
         VStack(spacing: 0) {
-            // Toolbar/status bar
-            statusBar
-
-            Divider()
-
             if viewModel.projects.isEmpty {
                 emptyState
             } else {
@@ -135,102 +131,78 @@ struct ProjectsListView: View {
         }
     }
 
-    // MARK: - Status Bar
-
-    @ViewBuilder
-    private var statusBar: some View {
-        HStack(spacing: 12) {
-            Text("Project Context")
-                .font(.subheadline.bold())
-
-            Spacer()
-
-            // Override mode setting
-            Menu {
-                Button {
-                    viewModel.overrideMode = "toolchainFile"
-                } label: {
-                    HStack {
-                        Text("rust-toolchain.toml")
-                        if viewModel.overrideMode == "toolchainFile" {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-
-                Button {
-                    viewModel.overrideMode = "override"
-                } label: {
-                    HStack {
-                        Text("rustup override")
-                        if viewModel.overrideMode == "override" {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "gearshape")
-                    Text(viewModel.overrideMode == "toolchainFile" ? "File" : "Override")
-                        .font(.caption)
-                }
-            }
-            .help("Override strategy")
-
-            Button {
-                Task {
-                    await viewModel.refreshProjectContext()
-                }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
-            .disabled(viewModel.selectedProject == nil || viewModel.isLoading)
-            .help("Refresh project context")
-
-            Button {
-                showingFilePicker = true
-            } label: {
-                Image(systemName: "plus")
-            }
-            .help("Add project")
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .controlBackgroundColor))
-    }
-
     // MARK: - Projects List
 
     @ViewBuilder
     private var projectsList: some View {
         VStack(spacing: 0) {
-            List(viewModel.projects, selection: $viewModel.selectedProject) { project in
-                HStack(spacing: 12) {
-                    Image(systemName: "folder.fill")
-                        .foregroundStyle(.blue)
+            // Header with search
+            VStack(spacing: GlassTokens.Spacing.md) {
+                HStack {
+                    Text("PROJECTS")
+                        .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                        .tracking(0.5)
+
+                    Spacer()
+
+                    Button {
+                        showingFilePicker = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: GlassTokens.Typography.headlineSize))
+                            .foregroundColor(GlassTokens.Colors.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Add project")
+                }
+
+                // Search field
+                HStack(spacing: GlassTokens.Spacing.xs) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: GlassTokens.Typography.bodySize))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
+
+                    TextField("Search projects...", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: GlassTokens.Typography.bodySize))
+                }
+                .padding(GlassTokens.Spacing.sm)
+                .background(GlassTokens.Colors.cardBackground)
+                .cornerRadius(GlassTokens.Radius.sm)
+            }
+            .padding(GlassTokens.Spacing.md)
+
+            Divider()
+
+            // Project list
+            List(filteredProjects, selection: $viewModel.selectedProject) { project in
+                HStack(spacing: GlassTokens.Spacing.md) {
+                    // Project type icon
+                    Image(systemName: projectIcon(for: project))
+                        .font(.system(size: GlassTokens.Typography.titleSize))
+                        .foregroundColor(GlassTokens.Colors.accent)
+                        .frame(width: 32)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(project.displayName)
-                            .font(.body.bold())
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                        Text(project.path)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text(shortenPath(project.path))
+                            .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                             .lineLimit(1)
                     }
 
                     Spacer()
 
-                    Button {
-                        viewModel.removeBookmark(project)
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Remove project")
+                    // Favorite star
+                    Image(systemName: viewModel.selectedProject == project ? "star.fill" : "star")
+                        .font(.system(size: GlassTokens.Typography.bodySize))
+                        .foregroundColor(viewModel.selectedProject == project ? GlassTokens.Colors.warning : GlassTokens.Colors.textSecondary.opacity(0.3))
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, GlassTokens.Spacing.xs)
                 .tag(project)
                 .contextMenu {
                     Button("Remove") {
@@ -242,89 +214,74 @@ struct ProjectsListView: View {
         }
     }
 
+    private var filteredProjects: [ProjectBookmark] {
+        if searchText.isEmpty {
+            return viewModel.projects
+        }
+        return viewModel.projects.filter { project in
+            project.displayName.localizedCaseInsensitiveContains(searchText) ||
+            project.path.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    private func projectIcon(for project: ProjectBookmark) -> String {
+        // Detect project type based on files in the directory
+        // For now, return different icons for variety
+        let icons = ["cube", "shippingbox.fill", "terminal.fill", "gearshape.2.fill"]
+        let index = abs(project.path.hash) % icons.count
+        return icons[index]
+    }
+
+    private func shortenPath(_ path: String) -> String {
+        // Convert /Users/fineke/dev/rust/project to ~/dev/rust/project
+        if let homeDir = FileManager.default.homeDirectoryForCurrentUser.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+           let homeDirDecoded = homeDir.removingPercentEncoding,
+           path.hasPrefix(homeDirDecoded) {
+            return path.replacingOccurrences(of: homeDirDecoded, with: "~")
+        }
+        return path
+    }
+
     // MARK: - Empty & Loading States
 
     @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "folder.badge.plus")
-                .font(.system(size: 64))
-                .foregroundStyle(.secondary)
-
-            Text("No Projects")
-                .font(.title.bold())
-
-            Text("Add a project directory to view its toolchain context.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button {
-                showingFilePicker = true
-            } label: {
-                Label("Add Project", systemImage: "plus")
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EmptyStateView(
+            icon: "folder.badge.plus",
+            title: "No Projects",
+            description: "Add a project directory to view its toolchain context.",
+            actionTitle: "Add Project",
+            action: { showingFilePicker = true }
+        )
     }
 
     @ViewBuilder
     private var selectProjectPrompt: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "arrow.left")
-                .font(.system(size: 64))
-                .foregroundStyle(.secondary)
-
-            Text("Select a Project")
-                .font(.title.bold())
-
-            Text("Choose a project from the list to view its toolchain context.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EmptyStateView(
+            icon: "arrow.left",
+            title: "Select a Project",
+            description: "Choose a project from the list to view its toolchain context."
+        )
     }
 
     @ViewBuilder
     private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.5)
-
-            Text("Loading project context...")
-                .font(.body)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        LoadingView(message: "Loading project context...")
     }
 
     @ViewBuilder
     private var noContextView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 64))
-                .foregroundStyle(.orange)
-
-            Text("Unable to Load Context")
-                .font(.title.bold())
-
-            Text("Failed to retrieve toolchain information for this project.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button {
+        EmptyStateView(
+            icon: "exclamationmark.triangle",
+            title: "Unable to Load Context",
+            description: "Failed to retrieve toolchain information for this project.",
+            actionTitle: "Retry",
+            action: {
                 Task {
                     await viewModel.refreshProjectContext()
                 }
-            } label: {
-                Label("Retry", systemImage: "arrow.clockwise")
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        )
     }
 
     // MARK: - Helper Methods

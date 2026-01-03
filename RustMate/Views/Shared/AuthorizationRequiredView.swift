@@ -30,112 +30,109 @@ struct AuthorizationRequiredView: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: GlassTokens.Spacing.xl) {
             // Icon
             Image(systemName: "lock.fill")
                 .font(.system(size: 56))
-                .foregroundStyle(.orange)
+                .foregroundColor(GlassTokens.Colors.warning)
 
             // Title and Message
-            VStack(spacing: 8) {
+            VStack(spacing: GlassTokens.Spacing.sm) {
                 Text(title)
-                    .font(.title2.bold())
-                    .foregroundStyle(.primary)
+                    .font(.system(size: GlassTokens.Typography.titleSize, weight: GlassTokens.Typography.titleWeight))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
 
                 Text(message)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             // Missing Purposes List
             if !missingPurposes.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
                     Text("Required Authorizations:")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.primary)
+                        .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
 
                     ForEach(missingPurposes, id: \.self) { purpose in
-                        HStack(spacing: 12) {
+                        HStack(spacing: GlassTokens.Spacing.md) {
                             Image(systemName: "folder.fill")
-                                .foregroundStyle(.orange)
+                                .foregroundColor(GlassTokens.Colors.warning)
                                 .font(.system(size: 20))
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
                                 Text(purpose.displayText)
-                                    .font(.subheadline.bold())
+                                    .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
                                 Text(purpose.description)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: GlassTokens.Typography.captionSize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
                             }
                         }
-                        .padding(12)
+                        .padding(GlassTokens.Spacing.md)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(8)
+                        .background(GlassTokens.Colors.warningSubtle)
+                        .cornerRadius(GlassTokens.Radius.md)
                     }
                 }
                 .padding(.horizontal)
             }
 
-            // Instructions
-            VStack(alignment: .leading, spacing: 8) {
-                Text("What to do:")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.primary)
+            // Instructions Card
+            GlassCard {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                    Text("What to do:")
+                        .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    instructionRow(
-                        number: "1",
-                        text: "Click 'Authorize Now' to grant required permissions"
-                    )
-                    instructionRow(
-                        number: "2",
-                        text: "Select the correct directory when prompted"
-                    )
-                    instructionRow(
-                        number: "3",
-                        text: "RustMate will then be able to access your Rust toolchains"
-                    )
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                        instructionRow(
+                            number: "1",
+                            text: "Click 'Authorize Now' to grant required permissions"
+                        )
+                        instructionRow(
+                            number: "2",
+                            text: "Select the correct directory when prompted"
+                        )
+                        instructionRow(
+                            number: "3",
+                            text: "RustMate will then be able to access your Rust toolchains"
+                        )
+                    }
                 }
             }
-            .padding()
-            .background(Color.secondary.opacity(0.1))
-            .cornerRadius(8)
 
             // Actions
-            HStack(spacing: 12) {
+            HStack(spacing: GlassTokens.Spacing.md) {
                 Button(action: onOpenSettings) {
                     Label("Open Settings", systemImage: "gearshape")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
+                .secondaryGlassButtonStyle()
 
                 Button(action: onAuthorize) {
                     Label("Authorize Now", systemImage: "lock.open")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .primaryGlassButtonStyle()
             }
         }
-        .padding(32)
+        .padding(GlassTokens.Spacing.xxl)
         .frame(maxWidth: 500)
     }
 
     private func instructionRow(number: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: GlassTokens.Spacing.sm) {
             Text(number)
-                .font(.caption.bold())
-                .foregroundStyle(.white)
+                .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
+                .foregroundColor(.white)
                 .frame(width: 20, height: 20)
-                .background(Circle().fill(Color.orange))
+                .background(Circle().fill(GlassTokens.Colors.warning))
 
             Text(text)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: GlassTokens.Typography.captionSize))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
         }
     }
 }

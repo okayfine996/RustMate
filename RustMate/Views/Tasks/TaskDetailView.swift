@@ -12,39 +12,26 @@ struct TaskDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
                 // Header
                 taskHeader
-
-                Divider()
 
                 // Metadata
                 taskMetadata
 
                 if task.status == .failed {
-                    Divider()
-
                     // Error information
                     errorSection
-
-                    if task.suggestedFix != nil {
-                        Divider()
-
-                        // Suggested fix
-                        suggestedFixSection
-                    }
                 }
 
                 if task.stdoutSnippet != nil || task.stderrSnippet != nil {
-                    Divider()
-
                     // Output
                     outputSection
                 }
 
                 Spacer()
             }
-            .padding(24)
+            .padding(GlassTokens.Spacing.xl)
         }
         .navigationTitle(task.operation)
         .navigationSubtitle(task.target ?? "")
@@ -65,35 +52,42 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var taskHeader: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(task.status.color.opacity(0.2))
-                    .frame(width: 60, height: 60)
+        GlassCard {
+            HStack(spacing: GlassTokens.Spacing.lg) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            StatusSemantics.taskColor(status: task.status)
+                                .opacity(0.15)
+                        )
+                        .frame(width: 60, height: 60)
 
-                if task.status == .running {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                } else {
-                    Image(systemName: task.status.icon)
-                        .font(.largeTitle)
-                        .foregroundStyle(task.status.color)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.operation)
-                    .font(.title.bold())
-
-                if let target = task.target {
-                    Text(target)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    if task.status == .running {
+                        ProgressView()
+                            .scaleEffect(1.2)
+                    } else {
+                        Image(systemName: StatusSemantics.taskIcon(status: task.status))
+                            .font(.system(size: 32))
+                            .foregroundColor(StatusSemantics.taskColor(status: task.status))
+                    }
                 }
 
-                Text(task.status.rawValue.capitalized)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(task.status.color)
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                    HStack(spacing: GlassTokens.Spacing.sm) {
+                        Text(task.operation)
+                            .font(.system(size: GlassTokens.Typography.titleSize, weight: GlassTokens.Typography.titleWeight))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+
+                        let badge = StatusSemantics.taskBadge(status: task.status)
+                        StatusBadgeView(status: badge.status, text: badge.text)
+                    }
+
+                    if let target = task.target {
+                        Text(target)
+                            .font(.system(size: GlassTokens.Typography.calloutSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                    }
+                }
             }
         }
     }
@@ -102,27 +96,30 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var taskMetadata: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Task Information")
-                .font(.headline)
+        GlassCard {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                Text("Task Information")
+                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
 
-            metadataRow(label: "Started", value: formatDateTime(task.startTime), icon: "clock")
+                metadataRow(label: "Started", value: formatDateTime(task.startTime), icon: "clock")
 
-            if let endTime = task.endTime {
-                metadataRow(label: "Completed", value: formatDateTime(endTime), icon: "clock.fill")
-            }
+                if let endTime = task.endTime {
+                    metadataRow(label: "Completed", value: formatDateTime(endTime), icon: "clock.fill")
+                }
 
-            if let duration = task.duration {
-                metadataRow(label: "Duration", value: formatDuration(duration), icon: "timer")
-            }
+                if let duration = task.duration {
+                    metadataRow(label: "Duration", value: formatDuration(duration), icon: "timer")
+                }
 
-            if let exitCode = task.exitCode {
-                metadataRow(
-                    label: "Exit Code",
-                    value: "\(exitCode)",
-                    icon: "number.circle",
-                    valueColor: exitCode == 0 ? .green : .red
-                )
+                if let exitCode = task.exitCode {
+                    metadataRow(
+                        label: "Exit Code",
+                        value: "\(exitCode)",
+                        icon: "number.circle",
+                        valueColor: exitCode == 0 ? GlassTokens.Colors.success : GlassTokens.Colors.error
+                    )
+                }
             }
         }
     }
@@ -131,49 +128,22 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var errorSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
-                Text("Error Details")
-                    .font(.headline)
-            }
-
-            if let errorMessage = task.errorMessage {
-                Text(errorMessage)
-                    .font(.body)
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
-            }
-        }
-    }
-
-    // MARK: - Suggested Fix
-
-    @ViewBuilder
-    private var suggestedFixSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "lightbulb.fill")
-                    .foregroundStyle(.orange)
-                Text("Suggested Fix")
-                    .font(.headline)
-            }
-
-            if let fix = task.suggestedFix {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "checkmark.circle")
-                        .foregroundStyle(.green)
-                    Text(fix)
-                        .font(.body)
-                }
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.green.opacity(0.1))
-                .cornerRadius(8)
-            }
+        if task.stderrSnippet != nil {
+            ErrorCalloutView(
+                title: "Task Failed",
+                message: task.errorMessage ?? "The operation failed with an unknown error.",
+                suggestion: task.suggestedFix,
+                secondaryActionTitle: "Copy Error",
+                secondaryAction: copyError,
+                errorDetails: task.stderrSnippet
+            )
+        } else {
+            ErrorCalloutView(
+                title: "Task Failed",
+                message: task.errorMessage ?? "The operation failed with an unknown error.",
+                suggestion: task.suggestedFix,
+                errorDetails: nil
+            )
         }
     }
 
@@ -181,41 +151,44 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private var outputSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Command Output")
-                .font(.headline)
+        GlassCard {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                Text("Command Output")
+                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
 
-            if let stdout = task.stdoutSnippet {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Standard Output:")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.secondary)
+                if let stdout = task.stdoutSnippet {
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                        Text("Standard Output:")
+                            .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
 
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        Text(stdout)
-                            .font(.system(.caption, design: .monospaced))
-                            .padding(8)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.secondary.opacity(0.1))
-                            .cornerRadius(4)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            Text(stdout)
+                                .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
+                                .padding(GlassTokens.Spacing.sm)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(GlassTokens.Colors.cardBackground)
+                                .cornerRadius(GlassTokens.Radius.sm)
+                        }
                     }
                 }
-            }
 
-            if let stderr = task.stderrSnippet {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Standard Error:")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.secondary)
+                if let stderr = task.stderrSnippet {
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                        Text("Standard Error:")
+                            .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
 
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        Text(stderr)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.red)
-                            .padding(8)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(4)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            Text(stderr)
+                                .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
+                                .foregroundColor(GlassTokens.Colors.error)
+                                .padding(GlassTokens.Spacing.sm)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(GlassTokens.Colors.errorSubtle)
+                                .cornerRadius(GlassTokens.Radius.sm)
+                        }
                     }
                 }
             }
@@ -226,27 +199,27 @@ struct TaskDetailView: View {
 
     @ViewBuilder
     private func metadataRow(label: String, value: String, icon: String, valueColor: Color? = nil) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: GlassTokens.Spacing.md) {
             Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(.blue)
+                .font(.system(size: GlassTokens.Typography.headlineSize))
+                .foregroundColor(GlassTokens.Colors.accent)
                 .frame(width: 24)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
                 Text(label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: GlassTokens.Typography.captionSize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
 
                 Text(value)
-                    .font(.body)
-                    .foregroundStyle(valueColor ?? .primary)
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(valueColor ?? GlassTokens.Colors.textPrimary)
             }
 
             Spacer()
         }
-        .padding(12)
-        .background(Color.secondary.opacity(0.05))
-        .cornerRadius(6)
+        .padding(GlassTokens.Spacing.md)
+        .background(GlassTokens.Colors.cardBackground.opacity(0.5))
+        .cornerRadius(GlassTokens.Radius.sm)
     }
 
     // MARK: - Actions

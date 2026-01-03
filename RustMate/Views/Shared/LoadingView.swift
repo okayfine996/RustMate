@@ -3,6 +3,7 @@
 //  RustMate
 //
 //  Shared loading indicator component
+//  Updated: 2026-01-02 - Feature 004-glass-ui-refresh
 //
 
 import SwiftUI
@@ -23,7 +24,7 @@ struct LoadingView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: GlassTokens.Spacing.lg) {
             if showProgress, let progress = progress {
                 ProgressView(value: progress, total: 1.0)
                     .progressViewStyle(.linear)
@@ -35,10 +36,10 @@ struct LoadingView: View {
             }
 
             Text(message)
-                .font(.body)
-                .foregroundStyle(.secondary)
+                .font(.system(size: GlassTokens.Typography.bodySize))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
         }
-        .padding(24)
+        .padding(GlassTokens.Spacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

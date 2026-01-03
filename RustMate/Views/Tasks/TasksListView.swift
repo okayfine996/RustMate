@@ -12,27 +12,58 @@ struct TasksListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Filter bar
-            filterBar
+            // Header
+            headerSection
+                .padding(GlassTokens.Spacing.xxl)
 
             Divider()
 
+            // Filter bar
+            filterBar
+                .padding(GlassTokens.Spacing.lg)
+
+            Divider()
+
+            // Content
             if viewModel.filteredTasks.isEmpty {
                 emptyState
             } else {
                 tasksList
             }
         }
-        .navigationTitle("Tasks")
-        .toolbar {
-            ToolbarItemGroup {
-                Button {
-                    viewModel.clearCompleted()
-                } label: {
-                    Label("Clear Completed", systemImage: "trash")
-                }
-                .disabled(viewModel.filteredTasks.filter { $0.status != .running }.isEmpty)
+    }
+
+    // MARK: - Header Section
+
+    @ViewBuilder
+    private var headerSection: some View {
+        HStack(alignment: .top, spacing: GlassTokens.Spacing.xl) {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                Text("Tasks")
+                    .font(.system(size: GlassTokens.Typography.displaySize, weight: .bold))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+
+                Text("View and manage background operations. Track the status of toolchain installations, updates, and other operations.")
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                    .lineLimit(2)
             }
+
+            Spacer()
+
+            Button {
+                viewModel.clearCompleted()
+            } label: {
+                HStack(spacing: GlassTokens.Spacing.xs) {
+                    Image(systemName: "trash")
+                    Text("Clear Completed")
+                }
+                .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                .padding(.horizontal, GlassTokens.Spacing.lg)
+                .padding(.vertical, GlassTokens.Spacing.md)
+            }
+            .secondaryGlassButtonStyle()
+            .disabled(viewModel.filteredTasks.filter { $0.status != .running }.isEmpty)
         }
     }
 
@@ -40,48 +71,23 @@ struct TasksListView: View {
 
     @ViewBuilder
     private var filterBar: some View {
-        HStack(spacing: 12) {
-            ForEach(TasksViewModel.TaskFilter.allCases, id: \.self) { filter in
-                Button {
-                    viewModel.filter = filter
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(filter.rawValue)
-                            .font(.subheadline)
-
-                        if filter == .running && viewModel.runningCount > 0 {
-                            Text("\(viewModel.runningCount)")
-                                .font(.caption.bold())
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.blue)
-                                .clipShape(Capsule())
-                        }
-
-                        if filter == .failed && viewModel.failedCount > 0 {
-                            Text("\(viewModel.failedCount)")
-                                .font(.caption.bold())
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.red)
-                                .clipShape(Capsule())
-                        }
+        HStack(spacing: GlassTokens.Spacing.md) {
+            SegmentedChipsView(
+                options: TasksViewModel.TaskFilter.allCases,
+                displayName: { filter in
+                    var name = filter.rawValue
+                    if filter == .running && viewModel.runningCount > 0 {
+                        name += " (\(viewModel.runningCount))"
+                    } else if filter == .failed && viewModel.failedCount > 0 {
+                        name += " (\(viewModel.failedCount))"
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(viewModel.filter == filter ? Color.blue.opacity(0.2) : Color.clear)
-                    .cornerRadius(8)
-                }
-                .buttonStyle(.plain)
-            }
+                    return name
+                },
+                selection: $viewModel.filter
+            )
 
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color(nsColor: .controlBackgroundColor))
     }
 
     // MARK: - Tasks List
@@ -114,26 +120,32 @@ struct TasksListView: View {
 
     @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.green)
+        EmptyStateView(
+            icon: emptyStateIcon,
+            title: "No Tasks",
+            description: emptyStateMessage
+        )
+    }
 
-            Text("No Tasks")
-                .font(.title.bold())
-
-            Text(emptyStateMessage)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+    private var emptyStateIcon: String {
+        switch viewModel.filter {
+        case .all:
+            return "tray"
+        case .running:
+            return "arrow.triangle.2.circlepath"
+        case .success:
+            return "checkmark.circle.fill"
+        case .failed:
+            return "xmark.circle.fill"
+        case .cancelled:
+            return "slash.circle"
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var emptyStateMessage: String {
         switch viewModel.filter {
         case .all:
-            return "No tasks have been run yet.\nPerform operations to see them here."
+            return "No tasks have been run yet. Perform operations to see them here."
         case .running:
             return "No tasks are currently running."
         case .success:
@@ -175,69 +187,67 @@ struct TaskRowView: View {
     let task: TaskRecord
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: GlassTokens.Spacing.md) {
             // Status icon
             ZStack {
                 Circle()
-                    .fill(task.status.color.opacity(0.2))
+                    .fill(
+                        StatusSemantics.taskColor(status: task.status)
+                            .opacity(0.15)
+                    )
                     .frame(width: 40, height: 40)
 
                 if task.status == .running {
                     ProgressView()
                         .scaleEffect(0.8)
                 } else {
-                    Image(systemName: task.status.icon)
-                        .font(.title3)
-                        .foregroundStyle(task.status.color)
+                    Image(systemName: StatusSemantics.taskIcon(status: task.status))
+                        .font(.system(size: GlassTokens.Typography.headlineSize))
+                        .foregroundColor(StatusSemantics.taskColor(status: task.status))
                 }
             }
 
             // Content
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                HStack(spacing: GlassTokens.Spacing.sm) {
                     Text(task.operation)
-                        .font(.body.bold())
+                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
 
                     if let target = task.target {
                         Text("·")
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                         Text(target)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: GlassTokens.Typography.bodySize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
+
+                    let badge = StatusSemantics.taskBadge(status: task.status)
+                    StatusBadgeView(status: badge.status, text: badge.text)
                 }
 
-                HStack(spacing: 12) {
+                HStack(spacing: GlassTokens.Spacing.md) {
                     Label(formatTime(task.startTime), systemImage: "clock")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: GlassTokens.Typography.captionSize))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
 
                     if let duration = task.duration {
                         Label(formatDuration(duration), systemImage: "timer")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
 
                     if task.status == .failed, task.suggestedFix != nil {
                         Label("Has Fix", systemImage: "lightbulb")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.warning)
                     }
                 }
             }
 
             Spacer()
-
-            // Status badge
-            Text(task.status.rawValue.capitalized)
-                .font(.caption.bold())
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(task.status.color)
-                .cornerRadius(4)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, GlassTokens.Spacing.xs)
     }
 
     private func formatTime(_ date: Date) -> String {

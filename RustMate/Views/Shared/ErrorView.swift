@@ -3,6 +3,7 @@
 //  RustMate
 //
 //  Shared error display component
+//  Updated: 2026-01-02 - Feature 004-glass-ui-refresh
 //
 
 import SwiftUI
@@ -29,54 +30,52 @@ struct ErrorView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: GlassTokens.Spacing.lg) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(.orange)
+                .foregroundColor(GlassTokens.Colors.warning)
 
-            VStack(spacing: 8) {
+            VStack(spacing: GlassTokens.Spacing.sm) {
                 Text(title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+                    .font(.system(size: GlassTokens.Typography.titleSize, weight: GlassTokens.Typography.titleWeight))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
 
                 Text(message)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
 
             if !hints.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
                     Text("Suggestions:")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.primary)
+                        .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
 
                     ForEach(hints, id: \.self) { hint in
-                        HStack(alignment: .top, spacing: 8) {
+                        HStack(alignment: .top, spacing: GlassTokens.Spacing.sm) {
                             Text("•")
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(GlassTokens.Colors.textSecondary)
                             Text(hint)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(.system(size: GlassTokens.Typography.calloutSize))
+                                .foregroundColor(GlassTokens.Colors.textSecondary)
                         }
                     }
                 }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(8)
+                .padding(GlassTokens.Spacing.md)
+                .background(GlassTokens.Colors.warningSubtle)
+                .cornerRadius(GlassTokens.Radius.md)
             }
 
             if let actionTitle = actionTitle, let action = action {
                 Button(action: action) {
                     Text(actionTitle)
-                        .font(.body.bold())
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .primaryGlassButtonStyle()
             }
         }
-        .padding(24)
+        .padding(GlassTokens.Spacing.xl)
         .frame(maxWidth: 400)
     }
 }

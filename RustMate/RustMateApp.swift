@@ -110,6 +110,7 @@ struct RustMateApp: App {
                     activateMainWindow()
                 }
         }
+        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 800, height: 600)
         .commands {
             CommandGroup(replacing: .appSettings) {
