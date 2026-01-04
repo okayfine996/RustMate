@@ -203,9 +203,7 @@ struct ProjectContextView: View {
                             Image(systemName: "pencil")
                             Text("Set Override")
                         }
-                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                        .padding(.horizontal, GlassTokens.Spacing.lg)
-                        .padding(.vertical, GlassTokens.Spacing.md)
+                        .frame(maxWidth: .infinity)
                     }
                     .primaryGlassButtonStyle()
                     .disabled(availableToolchains.isEmpty)
@@ -218,14 +216,9 @@ struct ProjectContextView: View {
                                 Image(systemName: "trash")
                                 Text("Clear Override")
                             }
-                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                            .padding(.horizontal, GlassTokens.Spacing.lg)
-                            .padding(.vertical, GlassTokens.Spacing.md)
+                            .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundColor(GlassTokens.Colors.error)
-                        .background(GlassTokens.Colors.errorSubtle)
-                        .cornerRadius(GlassTokens.Radius.md)
+                        .destructiveGlassButtonStyle()
                     }
                 }
             }

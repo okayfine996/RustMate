@@ -124,9 +124,9 @@ struct TargetsListView: View {
                     }
 
                     if !previousVersions.isEmpty {
-                        // Previous versions section
+                        // Other versions section
                         VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
-                            Text("PREVIOUS VERSIONS")
+                            Text("OTHER VERSIONS")
                                 .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
                                 .foregroundColor(GlassTokens.Colors.textSecondary)
                                 .tracking(0.5)
@@ -142,26 +142,6 @@ struct TargetsListView: View {
                 }
                 .padding(.vertical, GlassTokens.Spacing.md)
             }
-
-            Divider()
-
-            // Add toolchain button
-            Button {
-                // TODO: Add toolchain action
-            } label: {
-                HStack(spacing: GlassTokens.Spacing.sm) {
-                    Image(systemName: "plus")
-                    Text("Add Toolchain")
-                }
-                .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, GlassTokens.Spacing.md)
-            }
-            .buttonStyle(.plain)
-            .foregroundColor(GlassTokens.Colors.accent)
-            .background(GlassTokens.Colors.cardBackground)
-            .cornerRadius(GlassTokens.Radius.md)
-            .padding(GlassTokens.Spacing.md)
         }
         .background(GlassTokens.Colors.cardBackground.opacity(0.5))
     }
@@ -175,12 +155,6 @@ struct TargetsListView: View {
             }
         } label: {
             HStack(spacing: GlassTokens.Spacing.md) {
-                // Icon
-                Image(systemName: channelIcon(for: toolchain))
-                    .font(.system(size: GlassTokens.Typography.headlineSize))
-                    .foregroundColor(viewModel.selectedToolchain?.id == toolchain.id ? GlassTokens.Colors.accent : GlassTokens.Colors.textSecondary)
-                    .frame(width: 24)
-
                 // Content
                 VStack(alignment: .leading, spacing: 2) {
                     Text(toolchain.name)
@@ -365,7 +339,7 @@ struct TargetsListView: View {
                     .foregroundColor(GlassTokens.Colors.textSecondary)
             }
         }
-        .padding(.horizontal, GlassTokens.Spacing.xxl)
+        .padding(.horizontal, GlassTokens.Spacing.md)
         .padding(.vertical, GlassTokens.Spacing.xl)
     }
 
@@ -422,7 +396,7 @@ struct TargetsListView: View {
                 selection: $filterSelection
             )
         }
-        .padding(.horizontal, GlassTokens.Spacing.xxl)
+        .padding(.horizontal, GlassTokens.Spacing.md)
         .padding(.vertical, GlassTokens.Spacing.md)
     }
 
@@ -449,7 +423,7 @@ struct TargetsListView: View {
                 .foregroundColor(GlassTokens.Colors.textSecondary)
                 .frame(width: 120, alignment: .trailing)
         }
-        .padding(.horizontal, GlassTokens.Spacing.xxl)
+        .padding(.horizontal, GlassTokens.Spacing.md)
         .padding(.vertical, GlassTokens.Spacing.sm)
         .background(GlassTokens.Colors.cardBackground.opacity(0.3))
     }
@@ -494,7 +468,7 @@ struct TargetsListView: View {
                 .disabled(currentPage >= totalPages - 1)
             }
         }
-        .padding(.horizontal, GlassTokens.Spacing.xxl)
+        .padding(.horizontal, GlassTokens.Spacing.md)
         .padding(.vertical, GlassTokens.Spacing.md)
         .background(GlassTokens.Colors.cardBackground.opacity(0.3))
     }
@@ -563,16 +537,33 @@ struct TargetTableRow: View {
     var body: some View {
         HStack(spacing: GlassTokens.Spacing.md) {
             // TARGET NAME column
-            VStack(alignment: .leading, spacing: 2) {
-                Text(target.triple)
-                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium, design: .monospaced))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
+            HStack(spacing: GlassTokens.Spacing.sm) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(
+                            StatusSemantics.componentColor(isInstalled: target.isInstalled)
+                                .opacity(0.15)
+                        )
+                        .frame(width: 32, height: 32)
 
-                if let description = target.description {
-                    Text(description)
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                        .lineLimit(1)
+                    Image(systemName: "cpu.fill")
+                        .font(.system(size: GlassTokens.Typography.bodySize))
+                        .foregroundColor(StatusSemantics.componentColor(isInstalled: target.isInstalled))
+                }
+
+                // Name and description
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(target.triple)
+                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium, design: .monospaced))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
+
+                    if let description = target.description {
+                        Text(description)
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -621,7 +612,7 @@ struct TargetTableRow: View {
             }
             .frame(width: 120, alignment: .trailing)
         }
-        .padding(.horizontal, GlassTokens.Spacing.xxl)
+        .padding(.horizontal, GlassTokens.Spacing.md)
         .padding(.vertical, GlassTokens.Spacing.md)
         .contentShape(Rectangle())
     }

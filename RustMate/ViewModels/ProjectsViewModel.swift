@@ -49,6 +49,13 @@ class ProjectsViewModel: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "projectBookmarks"),
            let decoded = try? JSONDecoder().decode([ProjectBookmark].self, from: data) {
             projects = decoded
+            // Don't auto-select here - let the view handle it after it's ready
+        }
+    }
+
+    func autoSelectFirstIfNeeded() {
+        if selectedProject == nil && !projects.isEmpty {
+            selectedProject = projects.first
         }
     }
 
@@ -80,11 +87,17 @@ class ProjectsViewModel: ObservableObject {
                 path: url.path,
                 displayName: url.lastPathComponent,
                 bookmarkData: bookmarkData,
-                addedDate: Date()
+                addedDate: Date(),
+                isFavorite: false
             )
 
             projects.append(bookmark)
             saveBookmarks()
+
+            // Auto-select if this is the only project
+            if projects.count == 1 {
+                selectedProject = bookmark
+            }
 
             url.stopAccessingSecurityScopedResource()
         } catch {
@@ -98,8 +111,16 @@ class ProjectsViewModel: ObservableObject {
         saveBookmarks()
 
         if selectedProject?.id == bookmark.id {
-            selectedProject = nil
+            // Auto-select first project after removal if list is not empty
+            selectedProject = projects.first
             projectContext = nil
+        }
+    }
+
+    func toggleFavorite(_ bookmark: ProjectBookmark) {
+        if let index = projects.firstIndex(where: { $0.id == bookmark.id }) {
+            projects[index].isFavorite.toggle()
+            saveBookmarks()
         }
     }
 

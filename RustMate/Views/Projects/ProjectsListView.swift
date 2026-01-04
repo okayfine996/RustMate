@@ -80,6 +80,9 @@ struct ProjectsListView: View {
         .task {
             // Load available toolchains for override picker
             await loadAvailableToolchains()
+
+            // Auto-select first project after view is ready
+            viewModel.autoSelectFirstIfNeeded()
         }
         .onChange(of: viewModel.selectedProject) { _, _ in
             Task {
@@ -197,10 +200,16 @@ struct ProjectsListView: View {
 
                     Spacer()
 
-                    // Favorite star
-                    Image(systemName: viewModel.selectedProject == project ? "star.fill" : "star")
-                        .font(.system(size: GlassTokens.Typography.bodySize))
-                        .foregroundColor(viewModel.selectedProject == project ? GlassTokens.Colors.warning : GlassTokens.Colors.textSecondary.opacity(0.3))
+                    // Favorite star button
+                    Button {
+                        viewModel.toggleFavorite(project)
+                    } label: {
+                        Image(systemName: project.isFavorite ? "star.fill" : "star")
+                            .font(.system(size: GlassTokens.Typography.bodySize))
+                            .foregroundColor(project.isFavorite ? GlassTokens.Colors.warning : GlassTokens.Colors.textSecondary.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
+                    .help(project.isFavorite ? "Remove from favorites" : "Add to favorites")
                 }
                 .padding(.vertical, GlassTokens.Spacing.xs)
                 .tag(project)
@@ -215,21 +224,27 @@ struct ProjectsListView: View {
     }
 
     private var filteredProjects: [ProjectBookmark] {
+        let filtered: [ProjectBookmark]
         if searchText.isEmpty {
-            return viewModel.projects
+            filtered = viewModel.projects
+        } else {
+            filtered = viewModel.projects.filter { project in
+                project.displayName.localizedCaseInsensitiveContains(searchText) ||
+                project.path.localizedCaseInsensitiveContains(searchText)
+            }
         }
-        return viewModel.projects.filter { project in
-            project.displayName.localizedCaseInsensitiveContains(searchText) ||
-            project.path.localizedCaseInsensitiveContains(searchText)
+
+        // Sort: favorites first, then by name
+        return filtered.sorted { lhs, rhs in
+            if lhs.isFavorite != rhs.isFavorite {
+                return lhs.isFavorite
+            }
+            return lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName) == .orderedAscending
         }
     }
 
     private func projectIcon(for project: ProjectBookmark) -> String {
-        // Detect project type based on files in the directory
-        // For now, return different icons for variety
-        let icons = ["cube", "shippingbox.fill", "terminal.fill", "gearshape.2.fill"]
-        let index = abs(project.path.hash) % icons.count
-        return icons[index]
+        return "cube"
     }
 
     private func shortenPath(_ path: String) -> String {

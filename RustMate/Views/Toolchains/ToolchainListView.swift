@@ -342,9 +342,6 @@ struct ToolchainListView: View {
             // Status
             HStack(spacing: GlassTokens.Spacing.xs) {
                 if toolchain.isDefault {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: GlassTokens.Typography.bodySize))
-                        .foregroundColor(GlassTokens.Colors.warning)
                     Text("Default")
                         .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
                         .foregroundColor(GlassTokens.Colors.textPrimary)
@@ -366,7 +363,7 @@ struct ToolchainListView: View {
                         await viewModel.updateToolchain(toolchain)
                     }
                 } label: {
-                    Image(systemName: "arrow.clockwise")
+                    Image(systemName: "arrow.down.circle")
                         .font(.system(size: GlassTokens.Typography.calloutSize))
                         .foregroundColor(GlassTokens.Colors.textPrimary)
                         .frame(width: 28, height: 28)
@@ -383,9 +380,9 @@ struct ToolchainListView: View {
                             await viewModel.setDefaultToolchain(toolchain)
                         }
                     } label: {
-                        Image(systemName: "checkmark.circle")
+                        Image(systemName: "pin.fill")
                             .font(.system(size: GlassTokens.Typography.calloutSize))
-                            .foregroundColor(GlassTokens.Colors.success)
+                            .foregroundColor(GlassTokens.Colors.accent)
                             .frame(width: 28, height: 28)
                             .background(GlassTokens.Colors.cardBackground)
                             .cornerRadius(GlassTokens.Radius.sm)
@@ -605,6 +602,7 @@ struct InstallToolchainSheet: View {
     @State private var toolchainName = ""
     @State private var selectedSuggestion: String?
     @State private var isInstalling = false
+    @State private var validationError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -668,6 +666,20 @@ struct InstallToolchainSheet: View {
 
                         TextField("e.g., stable, nightly, 1.75.0", text: $toolchainName)
                             .textFieldStyle(.roundedBorder)
+                            .onChange(of: toolchainName) { _, _ in
+                                // Clear validation error when user types
+                                validationError = nil
+                            }
+
+                        if let error = validationError {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.red)
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                            }
+                        }
 
                         Text("Examples: stable, beta, nightly, 1.75.0, nightly-2024-01-01")
                             .font(.caption)
@@ -701,12 +713,26 @@ struct InstallToolchainSheet: View {
                 Spacer()
 
                 Button("Install") {
-                    Task {
-                        isInstalling = true
-                        await viewModel.installToolchain(name: toolchainName)
-                        isInstalling = false
-                        dismiss()
+                    // Validate input first
+                    let trimmedName = toolchainName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                    if trimmedName.isEmpty {
+                        validationError = "Please enter a toolchain name"
+                        return
                     }
+
+                    if !ToolchainInfo.validateName(trimmedName) {
+                        validationError = "Invalid toolchain name. Use only letters, numbers, dots, hyphens, and underscores (max 128 characters)"
+                        return
+                    }
+
+                    // Validation passed, start installation in background
+                    Task {
+                        await viewModel.installToolchain(name: trimmedName)
+                    }
+
+                    // Close dialog immediately after starting installation
+                    dismiss()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(toolchainName.isEmpty || isInstalling)

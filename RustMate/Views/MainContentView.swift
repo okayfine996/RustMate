@@ -76,7 +76,7 @@ struct MainContentView: View {
                     .font(.system(size: GlassTokens.Typography.titleSize))
                     .foregroundColor(GlassTokens.Colors.accent)
 
-                Text("Rustup Manager")
+                Text("RustMate")
                     .font(.system(size: GlassTokens.Typography.titleSize, weight: .bold))
                     .foregroundColor(GlassTokens.Colors.textPrimary)
             }

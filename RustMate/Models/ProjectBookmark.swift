@@ -13,6 +13,7 @@ struct ProjectBookmark: Identifiable, Codable, Hashable {
     let displayName: String
     var bookmarkData: Data
     let addedDate: Date
+    var isFavorite: Bool
 
     // Equatable/Hashable conformance based on id
     static func == (lhs: ProjectBookmark, rhs: ProjectBookmark) -> Bool {

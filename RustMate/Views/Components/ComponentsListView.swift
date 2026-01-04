@@ -177,9 +177,9 @@ struct ComponentsListView: View {
                     }
 
                     if !previousVersions.isEmpty {
-                        // Previous versions section
+                        // Other versions section
                         VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
-                            Text("PREVIOUS VERSIONS")
+                            Text("OTHER VERSIONS")
                                 .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
                                 .foregroundColor(GlassTokens.Colors.textSecondary)
                                 .tracking(0.5)
@@ -195,26 +195,6 @@ struct ComponentsListView: View {
                 }
                 .padding(.vertical, GlassTokens.Spacing.md)
             }
-
-            Divider()
-
-            // Add toolchain button
-            Button {
-                // TODO: Add toolchain action
-            } label: {
-                HStack(spacing: GlassTokens.Spacing.sm) {
-                    Image(systemName: "plus")
-                    Text("Add Toolchain")
-                }
-                .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, GlassTokens.Spacing.md)
-            }
-            .buttonStyle(.plain)
-            .foregroundColor(GlassTokens.Colors.accent)
-            .background(GlassTokens.Colors.cardBackground)
-            .cornerRadius(GlassTokens.Radius.md)
-            .padding(GlassTokens.Spacing.md)
         }
         .background(GlassTokens.Colors.cardBackground.opacity(0.5))
     }
@@ -228,12 +208,6 @@ struct ComponentsListView: View {
             }
         } label: {
             HStack(spacing: GlassTokens.Spacing.md) {
-                // Icon
-                Image(systemName: channelIcon(for: toolchain))
-                    .font(.system(size: GlassTokens.Typography.headlineSize))
-                    .foregroundColor(viewModel.selectedToolchain?.id == toolchain.id ? GlassTokens.Colors.accent : GlassTokens.Colors.textSecondary)
-                    .frame(width: 24)
-
                 // Content
                 VStack(alignment: .leading, spacing: 2) {
                     Text(toolchain.name)
@@ -326,7 +300,7 @@ struct ComponentsListView: View {
                     .foregroundColor(GlassTokens.Colors.textSecondary)
             }
         }
-        .padding(.horizontal, GlassTokens.Spacing.xxl)
+        .padding(.horizontal, GlassTokens.Spacing.md)
         .padding(.vertical, GlassTokens.Spacing.xl)
     }
 
@@ -383,7 +357,7 @@ struct ComponentsListView: View {
                 selection: $filterSelection
             )
         }
-        .padding(.horizontal, GlassTokens.Spacing.xxl)
+        .padding(.horizontal, GlassTokens.Spacing.md)
         .padding(.vertical, GlassTokens.Spacing.md)
     }
 
@@ -467,7 +441,7 @@ struct ComponentsListView: View {
                 .foregroundColor(GlassTokens.Colors.textSecondary)
                 .frame(width: 100, alignment: .trailing)
         }
-        .padding(.horizontal, GlassTokens.Spacing.lg)
+        .padding(.horizontal, GlassTokens.Spacing.md)
         .padding(.vertical, GlassTokens.Spacing.sm)
         .background(GlassTokens.Colors.cardBackground.opacity(0.3))
     }
