@@ -259,7 +259,7 @@ struct TargetsListView: View {
     private var targetsContentView: some View {
         VStack(spacing: 0) {
             // Header with breadcrumb and description
-            headerSection
+            headerSection.padding(.leading,-35)
 
             Divider()
 

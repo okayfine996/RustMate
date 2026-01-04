@@ -367,7 +367,7 @@ struct ComponentsListView: View {
     private var componentsTableView: some View {
         VStack(spacing: 0) {
             // Header with breadcrumb and description
-            headerSection
+            headerSection.padding(.leading,-60)
 
             Divider()
 
