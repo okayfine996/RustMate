@@ -20,25 +20,65 @@ class SetupViewModel: ObservableObject {
     private let validator: EnvironmentValidator
     private let bookmarkManager = BookmarkManager()
 
+    @Published var validatedAuthorizations: Set<AuthorizedDirectory.DirectoryPurpose> = []
+    private let authService = AuthorizationService()
+
     var hasRequiredBookmarks: Bool {
-        settings.hasAllRequiredAuthorizations
+        // Check if all required authorizations are validated (can be accessed)
+        let required: Set<AuthorizedDirectory.DirectoryPurpose> = [.rustupExecutableDir, .cargoHome, .rustupHome]
+        return required.isSubset(of: validatedAuthorizations)
     }
 
     var hasRustupExecutableDir: Bool {
-        settings.hasAuthorization(for: .rustupExecutableDir)
+        validatedAuthorizations.contains(.rustupExecutableDir)
     }
 
     var hasCargoHome: Bool {
-        settings.hasAuthorization(for: .cargoHome)
+        validatedAuthorizations.contains(.cargoHome)
     }
 
     var hasRustupHome: Bool {
-        settings.hasAuthorization(for: .rustupHome)
+        validatedAuthorizations.contains(.rustupHome)
     }
 
     init(validator: EnvironmentValidator = EnvironmentValidator(), settings: AppSettings = .default) {
         self.validator = validator
         self.settings = settings
+
+        // Validate existing authorizations on init
+        Task {
+            await validateAuthorizations()
+        }
+    }
+
+    // MARK: - Authorization Validation
+
+    func validateAuthorizations() async {
+        print("🔍 SetupViewModel: Validating authorizations...")
+        var validated: Set<AuthorizedDirectory.DirectoryPurpose> = []
+
+        let purposesToCheck: [AuthorizedDirectory.DirectoryPurpose] = [
+            .rustupExecutableDir,
+            .cargoHome,
+            .rustupHome
+        ]
+
+        for purpose in purposesToCheck {
+            if settings.hasAuthorization(for: purpose) {
+                // Try to access the directory to verify it's still valid
+                do {
+                    let resource = try authService.resolveAuthorization(for: purpose, settings: settings)
+                    resource.stopAccessing()
+                    validated.insert(purpose)
+                    print("✅ SetupViewModel: \(purpose.displayText) is valid")
+                } catch {
+                    print("⚠️ SetupViewModel: \(purpose.displayText) authorization is invalid: \(error)")
+                }
+            }
+        }
+
+        validatedAuthorizations = validated
+        print("🔍 SetupViewModel: Validation complete. Valid: \(validated)")
     }
 
     // MARK: - Validation
@@ -120,6 +160,11 @@ class SetupViewModel: ObservableObject {
                     self.onSettingsChanged?()
 
                     print("✅ SetupViewModel: Authorized \(purpose.displayText) at \(url.path)")
+
+                    // Re-validate authorizations after adding new one
+                    Task {
+                        await self.validateAuthorizations()
+                    }
                 } catch {
                     print("❌ SetupViewModel: Failed to create bookmark for \(purpose.displayText): \(error)")
                 }

@@ -22,10 +22,8 @@ class SettingsViewModel: ObservableObject {
     // Bindings to settings properties
     @Published var rustupPath: String
     @Published var overrideStrategy: AppSettings.OverrideStrategy
-    @Published var showDetailedOutput: Bool
     @Published var autoRefresh: Bool
-    @Published var rustupHome: String
-    @Published var cargoHome: String
+    @Published var enableTaskNotifications: Bool
 
     // T048: Authorization state for new purposes
     @Published var authorizationStates: [AuthorizedDirectory.DirectoryPurpose: AuthorizationState] = [:]
@@ -34,11 +32,6 @@ class SettingsViewModel: ObservableObject {
     var hasCargoBookmark: Bool {
         // Use new helper API - supports legacy rustupAccess entries
         settings.hasAuthorization(for: .rustupExecutableDir)
-    }
-
-    var authorizedProjects: [AuthorizedDirectory] {
-        // Use new helper API
-        settings.authorizedDirectories(for: .projectAccess)
     }
 
     var hasRustupExecutableDir: Bool {
@@ -97,10 +90,8 @@ class SettingsViewModel: ObservableObject {
         self.settings = settings
         self.rustupPath = settings.rustupPath ?? ""
         self.overrideStrategy = settings.overrideStrategy
-        self.showDetailedOutput = settings.showDetailedTaskOutput
         self.autoRefresh = settings.autoRefreshOnActivation
-        self.rustupHome = settings.environmentVariables["RUSTUP_HOME"] ?? ""
-        self.cargoHome = settings.environmentVariables["CARGO_HOME"] ?? ""
+        self.enableTaskNotifications = settings.enableTaskNotifications
 
         Task {
             await validateEnvironment()
@@ -251,11 +242,6 @@ class SettingsViewModel: ObservableObject {
         objectWillChange.send()
     }
 
-    func removeProjectBookmark(path: String) {
-        settings.authorizedDirectories.removeAll { $0.path == path }
-        objectWillChange.send()
-    }
-
     // MARK: - Authorization Validation (T053)
 
     /// Validates all authorization bookmarks and updates their states
@@ -263,8 +249,7 @@ class SettingsViewModel: ObservableObject {
         let purposesToValidate: [AuthorizedDirectory.DirectoryPurpose] = [
             .rustupExecutableDir,
             .cargoHome,
-            .rustupHome,
-            .projectAccess
+            .rustupHome
         ]
 
         for purpose in purposesToValidate {
@@ -306,20 +291,8 @@ class SettingsViewModel: ObservableObject {
 
     func saveSettings() {
         settings.overrideStrategy = overrideStrategy
-        settings.showDetailedTaskOutput = showDetailedOutput
         settings.autoRefreshOnActivation = autoRefresh
-
-        if !rustupHome.isEmpty {
-            settings.environmentVariables["RUSTUP_HOME"] = rustupHome
-        } else {
-            settings.environmentVariables.removeValue(forKey: "RUSTUP_HOME")
-        }
-
-        if !cargoHome.isEmpty {
-            settings.environmentVariables["CARGO_HOME"] = cargoHome
-        } else {
-            settings.environmentVariables.removeValue(forKey: "CARGO_HOME")
-        }
+        settings.enableTaskNotifications = enableTaskNotifications
     }
 
     // MARK: - Error Handling
@@ -387,11 +360,12 @@ class SettingsViewModel: ObservableObject {
         settings = AppSettings()
         rustupPath = ""
         overrideStrategy = .toolchainFile
-        showDetailedOutput = false
         autoRefresh = true
-        rustupHome = ""
-        cargoHome = ""
+        enableTaskNotifications = true
         rustupVersion = nil
         authorizationStates = [:]
+
+        // Trigger setup flow by posting notification
+        NotificationCenter.default.post(name: NSNotification.Name("SettingsReset"), object: nil)
     }
 }

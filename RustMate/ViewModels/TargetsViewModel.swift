@@ -95,12 +95,41 @@ class TargetsViewModel: ObservableObject {
     func installTarget(_ target: TargetInfo) async {
         guard let toolchain = selectedToolchain else { return }
 
+        // Create initial running task record
+        let taskId = UUID()
+        let runningTask = TaskRecord(
+            id: taskId,
+            operation: "addTarget",
+            target: "\(target.triple) (\(toolchain.name))",
+            status: .running,
+            startTime: Date()
+        )
+
+        // Track and notify task started
+        await trackTaskStarted(runningTask)
+
         do {
             let result = try await service.addTarget(
                 targetTriple: target.triple,
                 toolchainName: toolchain.name
             )
-            trackTask(result)
+
+            // Create updated task with the same taskId
+            let completedTask = TaskRecord(
+                id: taskId,
+                operation: "addTarget",
+                target: "\(target.triple) (\(toolchain.name))",
+                status: result.status,
+                startTime: runningTask.startTime,
+                endTime: result.endTime ?? Date(),
+                exitCode: result.exitCode,
+                stdoutSnippet: result.stdoutSnippet,
+                stderrSnippet: result.stderrSnippet,
+                errorMessage: result.errorMessage,
+                suggestedFix: TaskResult.suggestFix(for: result.stderrSnippet ?? "")
+            )
+
+            await trackTaskCompleted(completedTask)
 
             // Refresh list after completion
             if result.status == .success {
@@ -109,18 +138,60 @@ class TargetsViewModel: ObservableObject {
         } catch {
             self.error = error
             print("Failed to install target: \(error)")
+
+            // Track failure with the same taskId
+            let failedTask = TaskRecord(
+                id: taskId,
+                operation: "addTarget",
+                target: "\(target.triple) (\(toolchain.name))",
+                status: .failed,
+                startTime: runningTask.startTime,
+                endTime: Date(),
+                exitCode: -1,
+                errorMessage: error.localizedDescription
+            )
+            await trackTaskCompleted(failedTask)
         }
     }
 
     func uninstallTarget(_ target: TargetInfo) async {
         guard let toolchain = selectedToolchain else { return }
 
+        // Create initial running task record
+        let taskId = UUID()
+        let runningTask = TaskRecord(
+            id: taskId,
+            operation: "removeTarget",
+            target: "\(target.triple) (\(toolchain.name))",
+            status: .running,
+            startTime: Date()
+        )
+
+        // Track and notify task started
+        await trackTaskStarted(runningTask)
+
         do {
             let result = try await service.removeTarget(
                 targetTriple: target.triple,
                 toolchainName: toolchain.name
             )
-            trackTask(result)
+
+            // Create updated task with the same taskId
+            let completedTask = TaskRecord(
+                id: taskId,
+                operation: "removeTarget",
+                target: "\(target.triple) (\(toolchain.name))",
+                status: result.status,
+                startTime: runningTask.startTime,
+                endTime: result.endTime ?? Date(),
+                exitCode: result.exitCode,
+                stdoutSnippet: result.stdoutSnippet,
+                stderrSnippet: result.stderrSnippet,
+                errorMessage: result.errorMessage,
+                suggestedFix: TaskResult.suggestFix(for: result.stderrSnippet ?? "")
+            )
+
+            await trackTaskCompleted(completedTask)
 
             // Refresh list after completion
             if result.status == .success {
@@ -129,10 +200,51 @@ class TargetsViewModel: ObservableObject {
         } catch {
             self.error = error
             print("Failed to uninstall target: \(error)")
+
+            // Track failure with the same taskId
+            let failedTask = TaskRecord(
+                id: taskId,
+                operation: "removeTarget",
+                target: "\(target.triple) (\(toolchain.name))",
+                status: .failed,
+                startTime: runningTask.startTime,
+                endTime: Date(),
+                exitCode: -1,
+                errorMessage: error.localizedDescription
+            )
+            await trackTaskCompleted(failedTask)
         }
     }
 
     // MARK: - Task Management
+
+    private func trackTaskStarted(_ task: TaskRecord) async {
+        // Track locally for UI badges
+        runningTasks[task.id] = task
+
+        // Broadcast to TaskManager for global task list
+        TaskManager.shared.addTask(task)
+
+        // Send notification
+        await TaskNotificationManager.shared.notifyTaskStarted(task)
+    }
+
+    private func trackTaskCompleted(_ record: TaskRecord) async {
+        // Update local tracking
+        runningTasks[record.id] = record
+
+        // Broadcast to TaskManager
+        TaskManager.shared.addTask(record)
+
+        // Send completion notification
+        await TaskNotificationManager.shared.notifyTaskCompleted(record)
+
+        // Remove completed tasks after a delay
+        Task {
+            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+            runningTasks.removeValue(forKey: record.id)
+        }
+    }
 
     private func trackTask(_ result: TaskResult) {
         if let record = result.taskRecord {

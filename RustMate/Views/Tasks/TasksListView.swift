@@ -187,67 +187,82 @@ struct TaskRowView: View {
     let task: TaskRecord
 
     var body: some View {
-        HStack(spacing: GlassTokens.Spacing.md) {
-            // Status icon
-            ZStack {
-                Circle()
-                    .fill(
-                        StatusSemantics.taskColor(status: task.status)
-                            .opacity(0.15)
-                    )
-                    .frame(width: 40, height: 40)
+        VStack(spacing: 0) {
+            HStack(spacing: GlassTokens.Spacing.md) {
+                // Status icon
+                ZStack {
+                    Circle()
+                        .fill(
+                            StatusSemantics.taskColor(status: task.status)
+                                .opacity(0.15)
+                        )
+                        .frame(width: 40, height: 40)
 
-                if task.status == .running {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                } else {
-                    Image(systemName: StatusSemantics.taskIcon(status: task.status))
-                        .font(.system(size: GlassTokens.Typography.headlineSize))
-                        .foregroundColor(StatusSemantics.taskColor(status: task.status))
+                    if task.status == .running {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: StatusSemantics.taskIcon(status: task.status))
+                            .font(.system(size: GlassTokens.Typography.headlineSize))
+                            .foregroundColor(StatusSemantics.taskColor(status: task.status))
+                    }
                 }
-            }
 
-            // Content
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
-                HStack(spacing: GlassTokens.Spacing.sm) {
-                    Text(task.operation)
-                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
+                // Content
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                    HStack(spacing: GlassTokens.Spacing.sm) {
+                        Text(task.operation)
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                    if let target = task.target {
-                        Text("·")
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                        Text(target)
-                            .font(.system(size: GlassTokens.Typography.bodySize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                        if let target = task.target {
+                            Text("·")
+                                .foregroundColor(GlassTokens.Colors.textSecondary)
+                            Text(target)
+                                .font(.system(size: GlassTokens.Typography.bodySize))
+                                .foregroundColor(GlassTokens.Colors.textSecondary)
+                        }
+
+                        let badge = StatusSemantics.taskBadge(status: task.status)
+                        StatusBadgeView(status: badge.status, text: badge.text)
                     }
 
-                    let badge = StatusSemantics.taskBadge(status: task.status)
-                    StatusBadgeView(status: badge.status, text: badge.text)
-                }
-
-                HStack(spacing: GlassTokens.Spacing.md) {
-                    Label(formatTime(task.startTime), systemImage: "clock")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-
-                    if let duration = task.duration {
-                        Label(formatDuration(duration), systemImage: "timer")
+                    HStack(spacing: GlassTokens.Spacing.md) {
+                        Label(formatTime(task.startTime), systemImage: "clock")
                             .font(.system(size: GlassTokens.Typography.captionSize))
                             .foregroundColor(GlassTokens.Colors.textSecondary)
-                    }
 
-                    if task.status == .failed, task.suggestedFix != nil {
-                        Label("Has Fix", systemImage: "lightbulb")
-                            .font(.system(size: GlassTokens.Typography.captionSize))
-                            .foregroundColor(GlassTokens.Colors.warning)
+                        if let duration = task.duration {
+                            Label(formatDuration(duration), systemImage: "timer")
+                                .font(.system(size: GlassTokens.Typography.captionSize))
+                                .foregroundColor(GlassTokens.Colors.textSecondary)
+                        } else if task.status == .running {
+                            // Show elapsed time for running tasks
+                            Label(formatElapsed(from: task.startTime), systemImage: "timer")
+                                .font(.system(size: GlassTokens.Typography.captionSize))
+                                .foregroundColor(StatusSemantics.taskColor(status: .running))
+                        }
+
+                        if task.status == .failed, task.suggestedFix != nil {
+                            Label("Has Fix", systemImage: "lightbulb")
+                                .font(.system(size: GlassTokens.Typography.captionSize))
+                                .foregroundColor(GlassTokens.Colors.warning)
+                        }
                     }
                 }
-            }
 
-            Spacer()
+                Spacer()
+            }
+            .padding(.vertical, GlassTokens.Spacing.xs)
+
+            // Progress bar for running tasks
+            if task.status == .running {
+                ProgressView()
+                    .progressViewStyle(.linear)
+                    .padding(.top, GlassTokens.Spacing.xs)
+            }
         }
-        .padding(.vertical, GlassTokens.Spacing.xs)
     }
 
     private func formatTime(_ date: Date) -> String {
@@ -262,6 +277,17 @@ struct TaskRowView: View {
         } else {
             let minutes = Int(duration / 60)
             let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
+            return "\(minutes)m \(seconds)s"
+        }
+    }
+
+    private func formatElapsed(from startTime: Date) -> String {
+        let elapsed = Date().timeIntervalSince(startTime)
+        if elapsed < 60 {
+            return String(format: "%.0fs", elapsed)
+        } else {
+            let minutes = Int(elapsed / 60)
+            let seconds = Int(elapsed.truncatingRemainder(dividingBy: 60))
             return "\(minutes)m \(seconds)s"
         }
     }

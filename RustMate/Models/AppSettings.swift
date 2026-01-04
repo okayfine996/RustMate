@@ -4,34 +4,25 @@ import Foundation
 struct AppSettings: Codable, Sendable {
     var rustupPath: String?
     var cargoPath: String?
-    var rustupHome: String?
-    var cargoHome: String?
     var overrideStrategy: OverrideStrategy
     var authorizedDirectories: [AuthorizedDirectory]
-    var showDetailedTaskOutput: Bool
     var autoRefreshOnActivation: Bool
-    var environmentVariables: [String: String]
+    var enableTaskNotifications: Bool
 
     init(
         rustupPath: String? = nil,
         cargoPath: String? = nil,
-        rustupHome: String? = nil,
-        cargoHome: String? = nil,
         overrideStrategy: OverrideStrategy = .toolchainFile,
         authorizedDirectories: [AuthorizedDirectory] = [],
-        showDetailedTaskOutput: Bool = false,
         autoRefreshOnActivation: Bool = true,
-        environmentVariables: [String: String] = [:]
+        enableTaskNotifications: Bool = true
     ) {
         self.rustupPath = rustupPath
         self.cargoPath = cargoPath
-        self.rustupHome = rustupHome
-        self.cargoHome = cargoHome
         self.overrideStrategy = overrideStrategy
         self.authorizedDirectories = authorizedDirectories
-        self.showDetailedTaskOutput = showDetailedTaskOutput
         self.autoRefreshOnActivation = autoRefreshOnActivation
-        self.environmentVariables = environmentVariables
+        self.enableTaskNotifications = enableTaskNotifications
     }
 
     enum OverrideStrategy: String, Codable, Sendable {
@@ -64,8 +55,6 @@ struct AppSettings: Codable, Sendable {
             return AppSettings(
                 rustupPath: nil,
                 cargoPath: nil,
-                rustupHome: nil,
-                cargoHome: nil,
                 overrideStrategy: .toolchainFile,
                 authorizedDirectories: []
             )
@@ -81,8 +70,6 @@ struct AppSettings: Codable, Sendable {
             return AppSettings(
                 rustupPath: nil,
                 cargoPath: nil,
-                rustupHome: nil,
-                cargoHome: nil,
                 overrideStrategy: .toolchainFile,
                 authorizedDirectories: []
             )

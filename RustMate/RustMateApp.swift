@@ -185,6 +185,15 @@ class AppState: ObservableObject {
     init() {
         loadSettings()
         checkSetupStatus()
+
+        // Listen for settings reset notification
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("SettingsReset"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSettingsReset()
+        }
     }
 
     // MARK: - Settings Persistence
@@ -216,18 +225,28 @@ class AppState: ObservableObject {
     }
 
     private func checkSetupStatus() {
+        // Always check if all required authorizations exist
+        // This ensures we show setup if user deletes cargo/rustup directories
+        // or if authorizations become stale
+        let hasRequiredAuth = settings.hasAllRequiredAuthorizations
+
+        if !hasRequiredAuth {
+            needsSetup = true
+            print("🔍 AppState: Missing required authorizations, showing setup")
+            return
+        }
+
         // Check if this is first launch
         let hasCompletedFirstLaunch = UserDefaults.standard.bool(forKey: firstLaunchKey)
 
         if !hasCompletedFirstLaunch {
-            // First launch - need setup
+            // First launch - need setup (even if authorizations exist somehow)
             needsSetup = true
             print("🔍 AppState: First launch detected, showing setup")
         } else {
-            // Not first launch, but check if all required authorizations exist
-            // Always require authorizations for sandboxed local execution
-            needsSetup = !settings.hasAllRequiredAuthorizations
-            print("🔍 AppState: Not first launch, has all required authorizations: \(settings.hasAllRequiredAuthorizations)")
+            // Has completed first launch and has all authorizations
+            needsSetup = false
+            print("🔍 AppState: Setup completed, has all required authorizations")
         }
     }
 
@@ -235,6 +254,18 @@ class AppState: ObservableObject {
         // Mark first launch as complete
         UserDefaults.standard.set(true, forKey: firstLaunchKey)
         needsSetup = false
+    }
+
+    private func handleSettingsReset() {
+        print("🔄 AppState: Settings reset detected, clearing first launch flag and triggering setup")
+        // Clear first launch flag to force setup flow
+        UserDefaults.standard.set(false, forKey: firstLaunchKey)
+        // Reload settings (will be empty after reset)
+        loadSettings()
+        // Force setup flow
+        needsSetup = true
+        // Close settings sheet if open
+        showSettings = false
     }
 }
 
@@ -259,6 +290,15 @@ struct RootView: View {
                 MainContentView()
             }
         }
+        .task {
+            // Request notification permission on app launch
+            let granted = await TaskNotificationManager.shared.requestAuthorization()
+            if granted {
+                print("✅ Notification permission granted")
+            } else {
+                print("⚠️ Notification permission denied")
+            }
+        }
         .sheet(isPresented: $appState.showSettings) {
             SettingsView(settings: appState.settings)
         }
@@ -273,6 +313,12 @@ struct RootView: View {
         // Handle "Open Settings" notifications
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
             appState.showSettings = true
+        }
+        // Handle "Authorization Required" notifications - switch to setup flow
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AuthorizationRequired"))) { _ in
+            print("🔐 RootView: Authorization required, switching to setup flow")
+            appState.needsSetup = true
+            appState.showSettings = false
         }
     }
 

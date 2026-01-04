@@ -86,11 +86,6 @@ struct RustupCommandResolver {
     ) throws -> [String: String] {
         var env: [String: String] = [:]
 
-        // Add custom environment variables from settings
-        for (key, value) in settings.environmentVariables {
-            env[key] = value
-        }
-
         // Resolve and set CARGO_HOME if authorized
         if let cargoHomeAuth = settings.authorizedDirectory(for: .cargoHome) {
             do {

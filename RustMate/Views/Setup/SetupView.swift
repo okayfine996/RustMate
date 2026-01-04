@@ -65,22 +65,17 @@ struct SetupView: View {
 
             // Footer
             HStack {
+                Spacer()
+
                 if let result = viewModel.validationResult, result.hasRustup {
-                    Button("Skip for Now") {
-                        viewModel.skipSetup()
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-
                     Button("Continue") {
+                        // Sync settings before completing setup
+                        syncSettings()
                         viewModel.completeSetup()
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!viewModel.hasRequiredBookmarks)
                 } else {
-                    Spacer()
-
                     Button("Retry Validation") {
                         print("🔘 SetupView: Retry Validation button clicked")
                         Task {
