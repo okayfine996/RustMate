@@ -42,16 +42,6 @@
 		9A70D3372F0519B2000D8C52 /* RustMateUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RustMateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		9A70D4512F0642D8000D8C52 /* Exceptions for "RustMateXPC" folder in "RustMate" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				RustMateXPCProtocol.swift,
-			);
-			target = 9A70D31D2F0519B1000D8C52 /* RustMate */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9A70D3202F0519B1000D8C52 /* RustMate */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -70,9 +60,6 @@
 		};
 		9A70D3D82F06017A000D8C52 /* RustMateXPC */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				9A70D4512F0642D8000D8C52 /* Exceptions for "RustMateXPC" folder in "RustMate" target */,
-			);
 			path = RustMateXPC;
 			sourceTree = "<group>";
 		};
