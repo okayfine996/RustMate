@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct MenuBarToolchainMenu: View {
     @ObservedObject var viewModel: MenuBarToolchainViewModel

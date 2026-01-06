@@ -128,7 +128,7 @@ struct SettingsContentView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        SettingsView(settings: appState.settings)
+        SettingsView(settingsBinding: $appState.settings)
     }
 }
 

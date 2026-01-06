@@ -1,0 +1,155 @@
+# T025: Release DMG workflow skeleton
+# This workflow automates the build, sign, notarize, and release process
+# 
+# ⚠️ SETUP REQUIRED:
+# 1. Add secrets to GitHub repository:
+#    - APPLE_DEVELOPER_ID_APPLICATION: Developer ID Application certificate
+#    - APPLE_DEVELOPER_ID_INSTALLER: Developer ID Installer certificate (if using pkg)
+#    - NOTARIZATION_APPLE_ID: Apple ID for notarization
+#    - NOTARIZATION_TEAM_ID: Team ID
+#    - NOTARIZATION_PASSWORD: App-specific password
+#    - SPARKLE_PRIVATE_KEY: EdDSA private key for signing updates
+#
+# 2. Configure signing certificates in Xcode
+# 3. Generate Sparkle EdDSA keys: `./bin/generate_keys`
+# 4. Add public key to Info.plist: SUPublicEDKey
+
+name: Release DMG
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'           # Stable releases: v1.2.0
+      - 'v*.*.*-beta.*'    # Beta releases: v1.3.0-beta.1
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      # TODO: Install Sparkle tools for appcast generation
+      # - name: Install Sparkle tools
+      #   run: |
+      #     # Download and install Sparkle's generate_appcast tool
+      #     # https://github.com/sparkle-project/Sparkle/releases
+      
+      # TODO: Import signing certificates
+      # - name: Import certificates
+      #   env:
+      #     CERTIFICATE_P12: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION }}
+      #     CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      #   run: |
+      #     # Import Developer ID certificates to keychain
+      #     # security import ...
+      
+      # TODO: Build the app
+      # - name: Build RustMate
+      #   run: |
+      #     xcodebuild -scheme RustMate \
+      #       -configuration Release \
+      #       -archivePath build/RustMate.xcarchive \
+      #       archive
+      #     
+      #     xcodebuild -exportArchive \
+      #       -archivePath build/RustMate.xcarchive \
+      #       -exportPath build/Export \
+      #       -exportOptionsPlist ExportOptions.plist
+      
+      # TODO: Create DMG
+      # - name: Create DMG
+      #   run: |
+      #     # Use create-dmg or hdiutil to package the app
+      #     # Name format: RustMate-${{ github.ref_name }}.dmg
+      
+      # TODO: Sign DMG
+      # - name: Sign DMG
+      #   run: |
+      #     codesign --sign "Developer ID Application: Your Name (Team ID)" \
+      #       --timestamp \
+      #       RustMate-${{ github.ref_name }}.dmg
+      
+      # TODO: Notarize DMG
+      # - name: Notarize DMG
+      #   env:
+      #     APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
+      #     TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+      #     PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+      #   run: |
+      #     xcrun notarytool submit RustMate-${{ github.ref_name }}.dmg \
+      #       --apple-id "$APPLE_ID" \
+      #       --team-id "$TEAM_ID" \
+      #       --password "$PASSWORD" \
+      #       --wait
+      #     
+      #     xcrun stapler staple RustMate-${{ github.ref_name }}.dmg
+      
+      # TODO: Verify notarization
+      # - name: Verify DMG
+      #   run: |
+      #     spctl --assess --type open --context context:primary-signature -v \
+      #       RustMate-${{ github.ref_name }}.dmg
+      
+      # TODO: Generate appcast entry
+      # - name: Generate appcast
+      #   env:
+      #     SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+      #   run: |
+      #     # Use Sparkle's generate_appcast tool
+      #     # This generates the XML entry with EdDSA signature
+      #     ./bin/generate_appcast /path/to/releases/
+      
+      # TODO: Create GitHub Release
+      # - name: Create Release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     files: RustMate-${{ github.ref_name }}.dmg
+      #     prerelease: ${{ contains(github.ref_name, 'beta') }}
+      #     body: |
+      #       ## Release Notes
+      #       
+      #       [Add release notes here]
+      #       
+      #       ### Installation
+      #       1. Download RustMate-${{ github.ref_name }}.dmg
+      #       2. Open the DMG
+      #       3. Drag RustMate to Applications
+      #       
+      #       ### Update Channel
+      #       - Stable releases: Automatically available to all users
+      #       - Beta releases: Available to users who enable "Receive Beta Updates"
+      
+      # TODO: Update appcast files
+      # - name: Update appcast
+      #   run: |
+      #     # Determine which appcast to update based on tag
+      #     if [[ "${{ github.ref_name }}" == *"beta"* ]]; then
+      #       # Update appcast-beta.xml
+      #       echo "Beta release - update appcast-beta.xml"
+      #     else
+      #       # Update both appcast-stable.xml and appcast-beta.xml
+      #       echo "Stable release - update both appcasts"
+      #     fi
+      #     
+      #     # Commit and push to gh-pages branch or upload to hosting
+
+      - name: Placeholder
+        run: |
+          echo "⚠️ This workflow is a skeleton and requires configuration"
+          echo "Please see RELEASING.md for manual release steps"
+          echo "Tag: ${{ github.ref_name }}"
+          exit 1
+
+# Notes:
+# - This workflow is intentionally incomplete and will fail
+# - It serves as a template for future automation
+# - Manual release process is documented in RELEASING.md
+# - Remove the placeholder step and uncomment TODOs when ready to automate
+

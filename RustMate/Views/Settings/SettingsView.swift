@@ -9,10 +9,12 @@ import SwiftUI
 
 struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
+    @EnvironmentObject private var updateService: AppUpdateService  // T012: Access update service
     @Environment(\.dismiss) private var dismiss
 
-    init(settings: AppSettings = AppSettings()) {
-        _viewModel = StateObject(wrappedValue: SettingsViewModel(settings: settings))
+    // T004: Accept Binding<AppSettings> for single source of truth
+    init(settingsBinding: Binding<AppSettings>) {
+        _viewModel = StateObject(wrappedValue: SettingsViewModel(settingsBinding: settingsBinding))
     }
 
     var body: some View {
@@ -27,6 +29,15 @@ struct SettingsView: View {
                         projectOverrideSection
                         uiPreferencesSection
                     }
+                }
+
+                Divider()
+                    .padding(.vertical, GlassTokens.Spacing.sm)
+
+                // T012: Updates Section
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+                    sectionHeader(title: "Updates")
+                    updatesSection
                 }
 
                 Divider()
@@ -317,6 +328,141 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Updates Section (T012, T014)
+
+    @ViewBuilder
+    private var updatesSection: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                    Text("Application Updates")
+                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
+                    
+                    Text("Automatically check for and download updates")
+                        .font(.system(size: GlassTokens.Typography.captionSize))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                }
+                
+                // T015/T018: Beta channel toggle with current channel display
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                    Toggle("Receive Beta Updates", isOn: Binding(
+                        get: { viewModel.settings.updateChannel == .beta },
+                        set: { isBeta in
+                            // T016: Update channel preference
+                            viewModel.settings.updateChannel = isBeta ? .beta : .stable
+                            // T017: Switch update service to new channel
+                            updateService.switchChannel(to: viewModel.settings.updateChannel)
+                        }
+                    ))
+                    .toggleStyle(.switch)
+                    
+                    // T018: Display current channel
+                    HStack(spacing: GlassTokens.Spacing.xs) {
+                        Text("Current channel:")
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                        
+                        Text(updateService.currentChannel.displayText)
+                            .font(.system(size: GlassTokens.Typography.captionSize, weight: .semibold))
+                            .foregroundColor(updateService.currentChannel == .beta ? GlassTokens.Colors.warning : GlassTokens.Colors.success)
+                    }
+                    
+                    Text(viewModel.settings.updateChannel == .beta 
+                        ? "You'll receive early access to new features and improvements"
+                        : "You'll receive stable, tested releases")
+                        .font(.system(size: GlassTokens.Typography.captionSize))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                }
+                
+                Divider()
+                
+                // T014: Display update state
+                HStack(spacing: GlassTokens.Spacing.md) {
+                    updateStateIndicator
+                    
+                    Spacer()
+                    
+                    // T012: Check for Updates button
+                    Button("Check for Updates") {
+                        updateService.checkForUpdates()
+                    }
+                    .primaryGlassButtonStyle()
+                    .disabled(updateService.isUpdating)
+                }
+                
+                // T014: Show detailed state information
+                if case .updateAvailable(let info) = updateService.updateState {
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                        Text("Version \(info.version) is available")
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                        
+                        if let size = info.formattedSize {
+                            Text("Download size: \(size)")
+                                .font(.system(size: GlassTokens.Typography.captionSize))
+                                .foregroundColor(GlassTokens.Colors.textSecondary)
+                        }
+                        
+                        if let notesURL = info.releaseNotesURL {
+                            Link("View Release Notes", destination: notesURL)
+                                .font(.system(size: GlassTokens.Typography.captionSize))
+                        }
+                    }
+                    .padding(.top, GlassTokens.Spacing.sm)
+                }
+                
+                // T014/T020: Show error details with retry option
+                if case .failed(let error) = updateService.updateState {
+                    ErrorCalloutView(
+                        title: error.userMessage,
+                        message: error.recoverySuggestion,
+                        retryAction: {
+                            updateService.checkForUpdates()
+                        },
+                        errorDetails: error.debugContext?.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
+                    )
+                    .padding(.top, GlassTokens.Spacing.sm)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var updateStateIndicator: some View {
+        HStack(spacing: GlassTokens.Spacing.sm) {
+            // State icon
+            Group {
+                switch updateService.updateState {
+                case .idle, .noUpdate:
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(GlassTokens.Colors.success)
+                case .checking:
+                    ProgressView()
+                        .scaleEffect(0.8)
+                case .updateAvailable:
+                    Image(systemName: "arrow.down.circle.fill")
+                        .foregroundColor(GlassTokens.Colors.warning)
+                case .downloading:
+                    ProgressView()
+                        .scaleEffect(0.8)
+                case .readyToInstall:
+                    Image(systemName: "arrow.clockwise.circle.fill")
+                        .foregroundColor(GlassTokens.Colors.success)
+                case .failed:
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(GlassTokens.Colors.error)
+                }
+            }
+            .font(.system(size: GlassTokens.Typography.titleSize))
+            
+            // State text
+            Text(updateService.stateDisplayText)
+                .font(.system(size: GlassTokens.Typography.bodySize))
+                .foregroundColor(GlassTokens.Colors.textPrimary)
+        }
+    }
+
     // MARK: - Danger Zone Section
 
     @ViewBuilder
@@ -355,10 +501,11 @@ struct SettingsView: View {
 // MARK: - Previews
 
 #Preview("General Tab") {
-    SettingsView()
+    @State var settings = AppSettings()
+    return SettingsView(settingsBinding: $settings)
 }
 
 #Preview("With Authorized Access") {
-    let settings = AppSettings()
-    SettingsView(settings: settings)
+    @State var settings = AppSettings()
+    return SettingsView(settingsBinding: $settings)
 }

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>RustMate Updates (Test - Stable)</title>
+        <description>Test appcast for local development - Stable channel</description>
+        <language>en</language>
+        
+        <!-- 测试版本 1.0.1 -->
+        <item>
+            <title>Version 1.0.1 (Test)</title>
+            <description><![CDATA[
+                <h2>Test Update</h2>
+                <p>This is a test update to verify Sparkle integration.</p>
+                <ul>
+                    <li>Test feature 1</li>
+                    <li>Test feature 2</li>
+                    <li>Test bug fix</li>
+                </ul>
+            ]]></description>
+            <pubDate>Mon, 05 Jan 2026 10:00:00 +0000</pubDate>
+            
+            <!-- 版本信息 -->
+            <sparkle:version>1000001</sparkle:version>
+            <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+            
+            <!-- 下载链接（本地服务器，测试模式无需签名） -->
+            <enclosure 
+                url="http://localhost:8000/RustMate-1.0.1.dmg"
+                length="50000000"
+                type="application/octet-stream"
+            />
+            
+            <!-- 注意：测试模式下无需 sparkle:edSignature -->
+            <!-- 生产环境必须包含签名 -->
+            
+            <!-- 最低系统要求 -->
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+        </item>
+    </channel>
+</rss>
+

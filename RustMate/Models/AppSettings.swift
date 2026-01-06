@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// User-configurable application settings
 struct AppSettings: Codable, Sendable {
@@ -8,6 +9,9 @@ struct AppSettings: Codable, Sendable {
     var authorizedDirectories: [AuthorizedDirectory]
     var autoRefreshOnActivation: Bool
     var enableTaskNotifications: Bool
+    
+    // T006: Update channel preference (stable/beta)
+    var updateChannel: UpdateChannel
 
     init(
         rustupPath: String? = nil,
@@ -15,7 +19,8 @@ struct AppSettings: Codable, Sendable {
         overrideStrategy: OverrideStrategy = .toolchainFile,
         authorizedDirectories: [AuthorizedDirectory] = [],
         autoRefreshOnActivation: Bool = true,
-        enableTaskNotifications: Bool = true
+        enableTaskNotifications: Bool = true,
+        updateChannel: UpdateChannel = .stable
     ) {
         self.rustupPath = rustupPath
         self.cargoPath = cargoPath
@@ -23,6 +28,7 @@ struct AppSettings: Codable, Sendable {
         self.authorizedDirectories = authorizedDirectories
         self.autoRefreshOnActivation = autoRefreshOnActivation
         self.enableTaskNotifications = enableTaskNotifications
+        self.updateChannel = updateChannel
     }
 
     enum OverrideStrategy: String, Codable, Sendable {
@@ -42,6 +48,19 @@ struct AppSettings: Codable, Sendable {
                 return "Creates or updates rust-toolchain.toml in the project. Can be committed to version control."
             case .rustupOverride:
                 return "Uses rustup's override database. Does not modify project files."
+            }
+        }
+    }
+    
+    // T006: Update channel enum
+    enum UpdateChannel: String, Codable, Sendable {
+        case stable
+        case beta
+        
+        var displayText: String {
+            switch self {
+            case .stable: return "Stable"
+            case .beta: return "Beta"
             }
         }
     }
