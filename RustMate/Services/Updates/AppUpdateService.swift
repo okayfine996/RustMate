@@ -54,6 +54,9 @@ class AppUpdateService: NSObject, ObservableObject {
             userDriverDelegate: nil
         )
         
+        // Sync channel preference to UserDefaults (used by delegate in background thread)
+        UserDefaults.standard.set(channel.rawValue, forKey: "updateChannel")
+        
         // Configure the updater
         configureUpdater()
         
@@ -89,6 +92,10 @@ class AppUpdateService: NSObject, ObservableObject {
     /// Manually check for updates
     func checkForUpdates() {
         print("🔍 AppUpdateService: Manually checking for updates...")
+        
+        // Sync channel preference to UserDefaults (used by delegate in background thread)
+        UserDefaults.standard.set(currentChannel.rawValue, forKey: "updateChannel")
+        
         updateState = .checking
         
         updaterController.checkForUpdates(nil)
@@ -108,6 +115,9 @@ class AppUpdateService: NSObject, ObservableObject {
         currentChannel = channel
         let feedConfig = UpdateFeedConfig.feed(for: channel)
         feedURL = feedConfig.url
+        
+        // Sync to UserDefaults (used by delegate in background thread)
+        UserDefaults.standard.set(channel.rawValue, forKey: "updateChannel")
         
         // Note: Sparkle 2's feedURL is read-only at runtime.
         // The new channel will be used on next update check via delegate method.
@@ -226,6 +236,64 @@ extension AppUpdateService: SPUUpdaterDelegate {
         let channel = AppSettings.UpdateChannel(rawValue: channelRawValue) ?? .stable
         let config = UpdateFeedConfig.feed(for: channel)
         return config.url.absoluteString
+    }
+    
+    /// Called when no update is found
+    nonisolated func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
+        Task { @MainActor in
+            print("ℹ️ AppUpdateService: No update found")
+            updateState = .noUpdate
+            
+            // Reset to idle after a short delay to show the message
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                await MainActor.run {
+                    if case .noUpdate = updateState {
+                        updateState = .idle
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Called when update check completes (with potential error)
+    nonisolated func updater(_ updater: SPUUpdater, didFinishUpdateCheckFor updateCheck: SPUUpdateCheck, error: Error?) {
+        Task { @MainActor in
+            if let error = error {
+                print("❌ AppUpdateService: Update check failed: \(error.localizedDescription)")
+                handleUpdateError(error)
+            } else {
+                print("✅ AppUpdateService: Update check completed")
+                // If no update was found, updaterDidNotFindUpdate will be called
+                // If update was found, didFindValidUpdate will be called
+                // If we're still in checking state after a delay, reset to idle as fallback
+                Task {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                    await MainActor.run {
+                        // Only reset if still checking (other methods should have updated state)
+                        if case .checking = updateState {
+                            print("⚠️ AppUpdateService: Still in checking state, resetting to idle")
+                            updateState = .idle
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Called when a valid update is found
+    nonisolated func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        Task { @MainActor in
+            print("✅ AppUpdateService: Update found - \(item.versionString) (build \(item.version))")
+            
+            let updateInfo = UpdateInfo(
+                version: item.versionString,
+                buildNumber: String(item.version),
+                releaseNotesURL: item.releaseNotesURL,
+                downloadSize: item.contentLength > 0 ? Int64(item.contentLength) : nil
+            )
+            updateState = .updateAvailable(updateInfo)
+        }
     }
     
     #if DEBUG
