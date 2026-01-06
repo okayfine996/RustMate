@@ -284,16 +284,51 @@ extension AppUpdateService: SPUUpdaterDelegate {
     /// Called when a valid update is found
     nonisolated func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
         Task { @MainActor in
-            print("✅ AppUpdateService: Update found - \(item.versionString) (build \(item.version))")
+            let versionString = item.versionString
+            print("✅ AppUpdateService: Update found - \(versionString)")
+            
+            // Generate build number from version string
+            // Convert "1.0.1" -> "1001000" or "1.2.0-beta.1" -> "1200001"
+            let buildNumber = versionStringToBuildNumber(versionString)
             
             let updateInfo = UpdateInfo(
-                version: item.versionString,
-                buildNumber: String(item.version),
+                version: versionString,
+                buildNumber: buildNumber,
                 releaseNotesURL: item.releaseNotesURL,
                 downloadSize: item.contentLength > 0 ? Int64(item.contentLength) : nil
             )
             updateState = .updateAvailable(updateInfo)
         }
+    }
+    
+    /// Convert version string to a numeric build number for comparison
+    private func versionStringToBuildNumber(_ version: String) -> String {
+        // Remove non-numeric characters except dots and dashes
+        var cleaned = version.replacingOccurrences(of: "-", with: ".")
+        let components = cleaned.components(separatedBy: ".")
+        
+        // Extract numeric parts (major.minor.patch)
+        var numbers: [Int] = []
+        for component in components.prefix(4) { // Limit to 4 components (major.minor.patch.beta)
+            if let num = Int(component.filter { $0.isNumber }) {
+                numbers.append(num)
+            } else {
+                break
+            }
+        }
+        
+        // Pad to at least 3 components (major.minor.patch)
+        while numbers.count < 3 {
+            numbers.append(0)
+        }
+        
+        // Convert to build number format: major * 1000000 + minor * 1000 + patch
+        // e.g., 1.0.1 -> 1001000, 1.2.0 -> 1020000
+        let buildNum = numbers[0] * 1_000_000 + 
+                      (numbers.count > 1 ? numbers[1] : 0) * 1_000 + 
+                      (numbers.count > 2 ? numbers[2] : 0)
+        
+        return String(buildNum)
     }
     
     #if DEBUG
