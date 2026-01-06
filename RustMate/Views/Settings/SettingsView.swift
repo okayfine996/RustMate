@@ -347,12 +347,13 @@ struct SettingsView: View {
                 // T015/T018: Beta channel toggle with current channel display
                 VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
                     Toggle("Receive Beta Updates", isOn: Binding(
-                        get: { viewModel.settings.updateChannel == .beta },
+                        get: { updateService.currentChannel == .beta },
                         set: { isBeta in
-                            // T016: Update channel preference
-                            viewModel.settings.updateChannel = isBeta ? .beta : .stable
-                            // T017: Switch update service to new channel
-                            updateService.switchChannel(to: viewModel.settings.updateChannel)
+                            let newChannel: AppSettings.UpdateChannel = isBeta ? .beta : .stable
+                            // T016: Update channel preference in settings
+                            viewModel.settings.updateChannel = newChannel
+                            // T017: Switch update service to new channel (this will trigger UI update via @Published)
+                            updateService.switchChannel(to: newChannel)
                         }
                     ))
                     .toggleStyle(.switch)
@@ -368,7 +369,7 @@ struct SettingsView: View {
                             .foregroundColor(updateService.currentChannel == .beta ? GlassTokens.Colors.warning : GlassTokens.Colors.success)
                     }
                     
-                    Text(viewModel.settings.updateChannel == .beta 
+                    Text(updateService.currentChannel == .beta 
                         ? "You'll receive early access to new features and improvements"
                         : "You'll receive stable, tested releases")
                         .font(.system(size: GlassTokens.Typography.captionSize))
