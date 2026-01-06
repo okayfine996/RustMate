@@ -316,20 +316,20 @@ jobs:
               "$RELEASES_DIR"
           else
             echo "⚠️ generate_appcast not found, creating minimal appcast..."
-            # Create minimal appcast manually
-            cat > appcast.xml <<EOF
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-<channel>
-    <item>
-        <title>RustMate ${{ steps.vars.outputs.version }}</title>
-        <sparkle:version>1000000</sparkle:version>
-        <sparkle:shortVersionString>${{ steps.vars.outputs.version }}</sparkle:shortVersionString>
-        <enclosure url="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$DMG_NAME" type="application/octet-stream"/>
-    </item>
-</channel>
-</rss>
-EOF
+            # Create minimal appcast manually using echo to avoid YAML heredoc issues
+            {
+              echo '<?xml version="1.0" encoding="utf-8"?>'
+              echo '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">'
+              echo '<channel>'
+              echo '    <item>'
+              echo "        <title>RustMate ${{ steps.vars.outputs.version }}</title>"
+              echo '        <sparkle:version>1000000</sparkle:version>'
+              echo "        <sparkle:shortVersionString>${{ steps.vars.outputs.version }}</sparkle:shortVersionString>"
+              echo "        <enclosure url=\"https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$DMG_NAME\" type=\"application/octet-stream\"/>"
+              echo '    </item>'
+              echo '</channel>'
+              echo '</rss>'
+            } > appcast.xml
           fi
           
           # Save appcast for this release
@@ -416,18 +416,18 @@ EOF
             local item=$2
             
             if [ ! -f "$file" ] || [ ! -s "$file" ]; then
-              # Create new appcast file
-              cat > "$file" <<EOF
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-<channel>
-    <title>RustMate Updates</title>
-    <description>RustMate update feed</description>
-    <language>en</language>
-    ${item}
-</channel>
-</rss>
-EOF
+              # Create new appcast file using echo to avoid YAML heredoc issues
+              {
+                echo '<?xml version="1.0" encoding="utf-8"?>'
+                echo '<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">'
+                echo '<channel>'
+                echo '    <title>RustMate Updates</title>'
+                echo '    <description>RustMate update feed</description>'
+                echo '    <language>en</language>'
+                echo "${item}"
+                echo '</channel>'
+                echo '</rss>'
+              } > "$file"
             else
               # Insert item before </channel>
               # Use perl for better XML handling (available on macOS)
