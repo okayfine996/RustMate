@@ -82,8 +82,16 @@ func activateMainWindow() {
 struct RustMateApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var menuBarViewModel = MenuBarToolchainViewModel()
+    // T011: Initialize update service on app launch
+    @StateObject private var updateService: AppUpdateService
 
     init() {
+        // T011: Initialize update service with user's preferred channel
+        // Note: This will use default .stable until AppState is loaded
+        // The channel will be synced in the body once appState is available
+        let initialChannel = AppSettings.default.updateChannel
+        _updateService = StateObject(wrappedValue: AppUpdateService(channel: initialChannel))
+        
         // Set up notification observer for opening main window
         // This needs to be at app level to ensure it's always active
         NotificationCenter.default.addObserver(
@@ -99,10 +107,18 @@ struct RustMateApp: App {
         WindowGroup(id: "main") {
             RootView()
                 .environmentObject(appState)
+                .environmentObject(updateService)  // T011: Provide update service to views
                 .task {
                     // Initialize menu bar state on app launch
                     print("📊 App: Initializing menu bar state")
                     await menuBarViewModel.loadState()
+                    
+                    // T011: Sync update channel with user settings
+                    let userChannel = appState.settings.updateChannel
+                    if updateService.currentChannel != userChannel {
+                        print("🔄 App: Syncing update channel to \(userChannel.displayText)")
+                        updateService.switchChannel(to: userChannel)
+                    }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenMainWindow"))) { _ in
                     print("🔔 RootView: Received OpenMainWindow in SwiftUI context")
@@ -123,7 +139,8 @@ struct RustMateApp: App {
 
         #if os(macOS)
         Settings {
-            SettingsView(settings: appState.settings)
+            // T004: Pass Binding to enable write-back to AppState
+            SettingsView(settingsBinding: $appState.settings)
         }
 
         // Menu bar entry with display space fallback
@@ -273,11 +290,18 @@ class AppState: ObservableObject {
 
 struct RootView: View {
     @EnvironmentObject var appState: AppState
-    @StateObject private var settingsViewModel = SettingsViewModel()
     @State private var showAuthorizationSheet = false
     @State private var authorizationPurposes: [AuthorizedDirectory.DirectoryPurpose] = []
     @State private var authorizationQueue: [AuthorizedDirectory.DirectoryPurpose] = []
     @State private var isProcessingAuthorizationQueue = false
+    
+    // Lazy computed property for settings view model
+    private var settingsViewModel: SettingsViewModel {
+        SettingsViewModel(settingsBinding: Binding(
+            get: { appState.settings },
+            set: { appState.settings = $0 }
+        ))
+    }
 
     var body: some View {
         Group {
@@ -300,7 +324,7 @@ struct RootView: View {
             }
         }
         .sheet(isPresented: $appState.showSettings) {
-            SettingsView(settings: appState.settings)
+            SettingsView(settingsBinding: $appState.settings)
         }
         // T042/T046: Handle authorization requests from anywhere in the app
         .onReceive(NotificationCenter.default.publisher(for: AuthorizationCoordinator.authorizationRequestedNotification)) { notification in

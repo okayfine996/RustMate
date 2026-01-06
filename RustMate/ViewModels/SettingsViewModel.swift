@@ -8,10 +8,18 @@
 import Foundation
 import AppKit
 import Combine
+import SwiftUI
 
 @MainActor
 class SettingsViewModel: ObservableObject {
-    @Published var settings: AppSettings
+    // T004/T005: Use Binding to AppState.settings for single source of truth
+    private var settingsBinding: Binding<AppSettings>
+    
+    var settings: AppSettings {
+        get { settingsBinding.wrappedValue }
+        set { settingsBinding.wrappedValue = newValue }
+    }
+    
     @Published var rustupVersion: String?
     @Published var showResetConfirmation = false
 
@@ -86,8 +94,10 @@ class SettingsViewModel: ObservableObject {
         }
     }
 
-    init(settings: AppSettings = AppSettings()) {
-        self.settings = settings
+    // T004/T005: Accept Binding<AppSettings> to enable write-back
+    init(settingsBinding: Binding<AppSettings>) {
+        self.settingsBinding = settingsBinding
+        let settings = settingsBinding.wrappedValue
         self.rustupPath = settings.rustupPath ?? ""
         self.overrideStrategy = settings.overrideStrategy
         self.autoRefresh = settings.autoRefreshOnActivation
@@ -290,9 +300,11 @@ class SettingsViewModel: ObservableObject {
     // MARK: - Settings Updates
 
     func saveSettings() {
+        // T004/T005: Write back to binding (which triggers AppState persistence)
         settings.overrideStrategy = overrideStrategy
         settings.autoRefreshOnActivation = autoRefresh
         settings.enableTaskNotifications = enableTaskNotifications
+        // Binding automatically propagates changes to AppState
     }
 
     // MARK: - Error Handling
