@@ -25,6 +25,9 @@ on:
 jobs:
   build-and-release:
     runs-on: macos-latest
+    permissions:
+      contents: write  # Required to create releases and push to gh-pages
+      actions: read    # Required to read workflow runs
     
     steps:
       - name: Checkout code
@@ -404,8 +407,6 @@ jobs:
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
             ${{ steps.vars.outputs.dmg_name }}
