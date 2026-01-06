@@ -77,7 +77,7 @@
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "SPARKLE_TEST_MODE"
-            value = "1"
+            value = "0"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
