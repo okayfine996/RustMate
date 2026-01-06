@@ -51,19 +51,56 @@ jobs:
           SPARKLE_VERSION="2.5.2"
           curl -L "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz" -o Sparkle.tar.xz
           tar -xf Sparkle.tar.xz
+          
+          # List extracted contents to debug
+          echo "📋 Extracted contents:"
+          ls -la
+          
+          # Create bin directory
           mkdir -p bin
-          cp Sparkle-${SPARKLE_VERSION}/bin/* bin/ || true
+          
+          # Try to find and copy Sparkle tools
           if [ -d "Sparkle-${SPARKLE_VERSION}/bin" ]; then
+            echo "Found Sparkle-${SPARKLE_VERSION}/bin directory"
             cp Sparkle-${SPARKLE_VERSION}/bin/* bin/
+          elif [ -d "bin" ] && [ -f "bin/generate_appcast" ]; then
+            echo "Found bin directory at root"
+            cp bin/* bin/ 2>/dev/null || true
           else
-            # Try alternative structure
-            find Sparkle-${SPARKLE_VERSION} -name "generate*" -exec cp {} bin/ \;
-            find Sparkle-${SPARKLE_VERSION} -name "sign_update" -exec cp {} bin/ \;
+            echo "Searching for Sparkle tools..."
+            # Find generate_appcast and other tools
+            find . -name "generate_appcast" -type f -exec cp {} bin/ \;
+            find . -name "generate_keys" -type f -exec cp {} bin/ \;
+            find . -name "sign_update" -type f -exec cp {} bin/ \;
+            
+            # Also check common Sparkle directory structures
+            for dir in Sparkle* sparkle*; do
+              if [ -d "$dir" ]; then
+                echo "Checking directory: $dir"
+                find "$dir" -type f \( -name "generate_appcast" -o -name "generate_keys" -o -name "sign_update" \) -exec cp {} bin/ \;
+                if [ -d "$dir/bin" ]; then
+                  cp "$dir/bin"/* bin/ 2>/dev/null || true
+                fi
+              fi
+            done
           fi
-          chmod +x bin/* || true
-          rm -rf Sparkle-${SPARKLE_VERSION} Sparkle.tar.xz
-          ls -la bin/
-          echo "✅ Sparkle tools installed"
+          
+          # Make executable
+          chmod +x bin/* 2>/dev/null || true
+          
+          # Verify installation
+          echo "📋 Installed tools:"
+          ls -la bin/ || echo "⚠️ bin directory is empty"
+          
+          # Cleanup
+          rm -rf Sparkle* sparkle* Sparkle.tar.xz 2>/dev/null || true
+          
+          # Verify we have the required tools
+          if [ -f "bin/generate_appcast" ] || [ -f "bin/generate_appcast.sh" ]; then
+            echo "✅ Sparkle tools installed"
+          else
+            echo "⚠️ generate_appcast not found, will use fallback method"
+          fi
       
       - name: Import certificates
         env:
