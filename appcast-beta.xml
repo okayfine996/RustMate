@@ -32,6 +32,15 @@
             <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
             <enclosure url="RustMate-v1.0.1.dmg" length="4092080" type="application/octet-stream"/>
         </item>
+        <item>
+            <title>1.0.0</title>
+            <pubDate>Tue, 06 Jan 2026 15:57:28 +0000</pubDate>
+            <sparkle:fullReleaseNotesLink>https://github.com/okayfine996/RustMate/releases/tag/v1.0.1</sparkle:fullReleaseNotesLink>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/okayfine996/RustMate/releases/download/RustMate-v1.0.1.dmg" length="4104641" type="application/octet-stream"/>
+        </item>
 </channel>
 </rss>
 
