@@ -337,9 +337,18 @@ jobs:
           
           # Import Sparkle private key
           if [ -n "$SPARKLE_PRIVATE_KEY" ]; then
-            echo "$SPARKLE_PRIVATE_KEY" | base64 --decode > sparkle_private_key.txt
+            # Try to decode as base64 first, if it fails, use directly
+            echo "$SPARKLE_PRIVATE_KEY" | base64 --decode > sparkle_private_key.txt 2>/dev/null
+            if [ $? -ne 0 ] || [ ! -s sparkle_private_key.txt ]; then
+              echo "⚠️ Base64 decode failed, using key directly"
+              echo "$SPARKLE_PRIVATE_KEY" > sparkle_private_key.txt
+            fi
+            
+            # Import key to keychain if generate_keys tool is available
             if [ -f "bin/generate_keys" ]; then
-              ./bin/generate_keys -f sparkle_private_key.txt || echo "⚠️ Failed to import key, continuing..."
+              ./bin/generate_keys -f sparkle_private_key.txt 2>&1 || echo "⚠️ Failed to import key to keychain, continuing..."
+            else
+              echo "⚠️ generate_keys not found, skipping key import"
             fi
             rm -f sparkle_private_key.txt
           else
