@@ -79,8 +79,20 @@ class ToolchainViewModel: ObservableObject {
             self.toolchains = updatedToolchains
 
             // Update selected toolchain if it changed
+            // Try to find matching toolchain by ID first, then by name
+            // If not found, keep the current selection to avoid clearing the UI
             if let selected = selectedToolchain {
-                selectedToolchain = updatedToolchains.first { $0.id == selected.id }
+                // First try to match by ID
+                if let matched = updatedToolchains.first(where: { $0.id == selected.id }) {
+                    selectedToolchain = matched
+                } else if let matched = updatedToolchains.first(where: { $0.name == selected.name }) {
+                    // Fallback to name matching
+                    selectedToolchain = matched
+                } else {
+                    // Keep the existing selection if no match found
+                    // This prevents UI content from disappearing during refresh
+                    print("⚠️ ToolchainViewModel: Could not find matching toolchain in refresh, keeping current selection")
+                }
             }
         } catch {
             // Silent failure for background refresh - don't disrupt user

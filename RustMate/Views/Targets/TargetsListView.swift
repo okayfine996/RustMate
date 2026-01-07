@@ -259,7 +259,7 @@ struct TargetsListView: View {
     private var targetsContentView: some View {
         VStack(spacing: 0) {
             // Header with breadcrumb and description
-            headerSection.padding(.leading,-35)
+            headerSection
 
             Divider()
 
@@ -339,7 +339,8 @@ struct TargetsListView: View {
                     .foregroundColor(GlassTokens.Colors.textSecondary)
             }
         }
-        .padding(.horizontal, GlassTokens.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, GlassTokens.Spacing.lg)
         .padding(.vertical, GlassTokens.Spacing.xl)
     }
 

@@ -300,7 +300,8 @@ struct ComponentsListView: View {
                     .foregroundColor(GlassTokens.Colors.textSecondary)
             }
         }
-        .padding(.horizontal, GlassTokens.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, GlassTokens.Spacing.lg)
         .padding(.vertical, GlassTokens.Spacing.xl)
     }
 
@@ -367,7 +368,7 @@ struct ComponentsListView: View {
     private var componentsTableView: some View {
         VStack(spacing: 0) {
             // Header with breadcrumb and description
-            headerSection.padding(.leading,-60)
+            headerSection
 
             Divider()
 
