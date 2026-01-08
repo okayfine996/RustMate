@@ -11,113 +11,375 @@ struct SettingsView: View {
     @StateObject private var viewModel: SettingsViewModel
     @EnvironmentObject private var updateService: AppUpdateService  // T012: Access update service
     @Environment(\.dismiss) private var dismiss
+    
+    @State private var selectedSection: SettingsSection = .general
 
     // T004: Accept Binding<AppSettings> for single source of truth
     init(settingsBinding: Binding<AppSettings>) {
         _viewModel = StateObject(wrappedValue: SettingsViewModel(settingsBinding: settingsBinding))
     }
+    
+    enum SettingsSection: String, CaseIterable {
+        case general = "General"
+        case permissions = "Permissions"
+        case advanced = "Advanced"
+        
+        var icon: String {
+            switch self {
+            case .general: return "gearshape"
+            case .permissions: return "lock"
+            case .advanced: return "gearshape.2"
+            }
+        }
+    }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xxl) {
-                // General Section
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
-                    sectionHeader(title: "General")
-
-                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                        rustupConfigurationSection
-                        projectOverrideSection
-                        uiPreferencesSection
+        HSplitView {
+            // Left sidebar navigation
+            navigationSidebar
+                .frame(minWidth: 220, idealWidth: 250, maxWidth: 280)
+            
+            // Right content area
+            contentArea
+        }
+    }
+    
+    // MARK: - Navigation Sidebar
+    
+    @ViewBuilder
+    private var navigationSidebar: some View {
+        VStack(spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                Text("Settings")
+                    .font(.system(size: GlassTokens.Typography.titleSize, weight: .bold))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                Text("Manage preferences")
+                    .font(.system(size: GlassTokens.Typography.captionSize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+            }
+            .padding(.horizontal, GlassTokens.Spacing.lg)
+            .padding(.top, GlassTokens.Spacing.xl)
+            .padding(.bottom, GlassTokens.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Divider()
+                .background(GlassTokens.Colors.divider)
+            
+            // Navigation items
+            ScrollView {
+                VStack(spacing: GlassTokens.Spacing.xs) {
+                    ForEach(SettingsSection.allCases, id: \.self) { section in
+                        navigationItem(section: section)
                     }
                 }
-
-                Divider()
-                    .padding(.vertical, GlassTokens.Spacing.sm)
-
-                // T012: Updates Section
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
-                    sectionHeader(title: "Updates")
-                    updatesSection
+                .padding(.vertical, GlassTokens.Spacing.md)
+            }
+            
+            Spacer()
+            
+            // Links section
+            Divider()
+                .background(GlassTokens.Colors.divider)
+            
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                Text("LINKS")
+                    .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                    .tracking(0.5)
+                    .padding(.horizontal, GlassTokens.Spacing.lg)
+                    .padding(.top, GlassTokens.Spacing.lg)
+                    .padding(.bottom, GlassTokens.Spacing.xs)
+                
+                VStack(spacing: GlassTokens.Spacing.xs) {
+                    linkItem(title: "Documentation", icon: "questionmark.circle", action: {
+                        if let url = URL(string: "https://github.com/okayfine996/RustMate") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    })
+                    
+                    linkItem(title: "Report Issue", icon: "exclamationmark.circle", action: {
+                        if let url = URL(string: "https://github.com/okayfine996/RustMate/issues") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    })
                 }
-
-                Divider()
-                    .padding(.vertical, GlassTokens.Spacing.sm)
-
-                // Permissions Section
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
-                    sectionHeader(title: "Permissions")
-                    permissionsSection
-                }
-
-                Divider()
-                    .padding(.vertical, GlassTokens.Spacing.sm)
-
-                // Advanced Section
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
-                    sectionHeader(title: "Advanced")
-                    dangerZoneSection
+            }
+            .padding(.bottom, GlassTokens.Spacing.lg)
+        }
+        .background(GlassTokens.Colors.cardBackground.opacity(0.5))
+    }
+    
+    @ViewBuilder
+    private func navigationItem(section: SettingsSection) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedSection = section
+            }
+        } label: {
+            HStack(spacing: GlassTokens.Spacing.md) {
+                Image(systemName: section.icon)
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(selectedSection == section ? GlassTokens.Colors.accent : GlassTokens.Colors.textSecondary)
+                    .frame(width: 20)
+                
+                Text(section.rawValue)
+                    .font(.system(size: GlassTokens.Typography.bodySize, weight: selectedSection == section ? .semibold : .regular))
+                    .foregroundColor(selectedSection == section ? GlassTokens.Colors.textPrimary : GlassTokens.Colors.textSecondary)
+                
+                Spacer()
+            }
+            .padding(.horizontal, GlassTokens.Spacing.lg)
+            .padding(.vertical, GlassTokens.Spacing.sm)
+            .background(selectedSection == section ? GlassTokens.Colors.accentSubtle.opacity(0.3) : Color.clear)
+            .cornerRadius(GlassTokens.Radius.md)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    @ViewBuilder
+    private func linkItem(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: GlassTokens.Spacing.md) {
+                Image(systemName: icon)
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                    .frame(width: 20)
+                
+                Text(title)
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                Spacer()
+            }
+            .padding(.horizontal, GlassTokens.Spacing.lg)
+            .padding(.vertical, GlassTokens.Spacing.sm)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    // MARK: - Content Area
+    
+    @ViewBuilder
+    private var contentArea: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xxl) {
+                // Breadcrumbs
+                breadcrumbsView
+                
+                // Page title and description
+                pageHeaderView
+                
+                // Content based on selected section
+                Group {
+                    switch selectedSection {
+                    case .general:
+                        generalContentView
+                    case .permissions:
+                        permissionsContentView
+                    case .advanced:
+                        advancedContentView
+                    }
                 }
             }
             .padding(GlassTokens.Spacing.xxl)
         }
+        .background(GlassTokens.Colors.backgroundPrimary)
     }
-
+    
     @ViewBuilder
-    private func sectionHeader(title: String) -> some View {
-        Text(title)
-            .font(.system(size: GlassTokens.Typography.titleSize, weight: GlassTokens.Typography.titleWeight))
-            .foregroundColor(GlassTokens.Colors.textPrimary)
+    private var breadcrumbsView: some View {
+        HStack(spacing: GlassTokens.Spacing.xs) {
+            Text("Settings")
+                .font(.system(size: GlassTokens.Typography.captionSize))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
+            
+            Image(systemName: "chevron.right")
+                .font(.system(size: GlassTokens.Typography.captionSize))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
+            
+            Text(selectedSection.rawValue)
+                .font(.system(size: GlassTokens.Typography.captionSize))
+                .foregroundColor(GlassTokens.Colors.textPrimary)
+        }
+    }
+    
+    @ViewBuilder
+    private var pageHeaderView: some View {
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+            Text("\(selectedSection.rawValue) Settings")
+                .font(.system(size: GlassTokens.Typography.titleSize, weight: .bold))
+                .foregroundColor(GlassTokens.Colors.textPrimary)
+            
+            Text(pageDescription)
+                .font(.system(size: GlassTokens.Typography.bodySize))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
+        }
+    }
+    
+    private var pageDescription: String {
+        switch selectedSection {
+        case .general:
+            return "Configure your local Rust environment, toolchains, and UI preferences."
+        case .permissions:
+            return "Manage file access permissions for RustMate to access required directories."
+        case .advanced:
+            return "Advanced settings and system configuration options."
+        }
     }
 
+    // MARK: - Content Views
+    
+    @ViewBuilder
+    private var generalContentView: some View {
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
+            // Rustup Configuration
+            rustupConfigurationSection
+            
+            // UI Preferences (including notifications)
+            uiPreferencesWithNotificationsSection
+        }
+    }
+    
+    @ViewBuilder
+    private var permissionsContentView: some View {
+        permissionsSection
+    }
+    
+    @ViewBuilder
+    private var advancedContentView: some View {
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
+            // Application Updates
+            updatesSection
+            
+            // Project Override Strategy
+            projectOverrideSection
+            
+            // Danger Zone
+            dangerZoneSection
+        }
+    }
+    
     // MARK: - Section Views
 
     @ViewBuilder
     private var rustupConfigurationSection: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                Text("Rustup Configuration")
-                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                    Text("Rustup Path:")
-                        .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+                // Header with icon
+                HStack(spacing: GlassTokens.Spacing.md) {
+                    Image(systemName: "terminal")
+                        .font(.system(size: GlassTokens.Typography.titleSize))
+                        .foregroundColor(GlassTokens.Colors.accent)
+                    
+                    Text("Rustup Configuration")
+                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
                         .foregroundColor(GlassTokens.Colors.textPrimary)
-
-                    HStack(spacing: GlassTokens.Spacing.sm) {
-                        TextField("Auto-detect", text: $viewModel.rustupPath)
-                            .textFieldStyle(.roundedBorder)
-                            .disabled(true)
-
-                        Button("Browse...") {
-                            viewModel.browseForRustup()
+                }
+                
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                    // Default Toolchain (simplified - using rustup path as fallback)
+                    settingRow(
+                        label: "Default Toolchain",
+                        description: "The toolchain to use when no override is set.",
+                        content: {
+                            if let version = viewModel.rustupVersion {
+                                Text(version)
+                                    .font(.system(size: GlassTokens.Typography.bodySize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                            } else {
+                                Text("Auto-detect")
+                                    .font(.system(size: GlassTokens.Typography.bodySize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                            }
                         }
-                        .secondaryGlassButtonStyle()
+                    )
+                    
+                    // Installation Profile (placeholder for future feature)
+                    settingRow(
+                        label: "Installation Profile",
+                        description: "Set of components installed by default.",
+                        content: {
+                            Text("Default (Recommended)")
+                                .font(.system(size: GlassTokens.Typography.bodySize))
+                                .foregroundColor(GlassTokens.Colors.textSecondary)
+                        }
+                    )
+                    
+                    // Auto-update Toolchains
+                    settingRow(
+                        label: "Auto-update Toolchains",
+                        description: "Automatically check for updates on startup.",
+                        content: {
+                            Toggle("", isOn: .constant(true))
+                                .toggleStyle(.switch)
+                        }
+                    )
+                    
+                    Divider()
+                        .padding(.vertical, GlassTokens.Spacing.xs)
+                    
+                    // Rustup Path (advanced)
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                        Text("Rustup Path:")
+                            .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                        
+                        HStack(spacing: GlassTokens.Spacing.sm) {
+                            TextField("Auto-detect", text: $viewModel.rustupPath)
+                                .textFieldStyle(.roundedBorder)
+                                .disabled(true)
+                            
+                            Button("Browse...") {
+                                viewModel.browseForRustup()
+                            }
+                            .secondaryGlassButtonStyle()
+                        }
                     }
-                }
-
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                    Text("Version:")
-                        .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
-
+                    
+                    // Version info
                     if let version = viewModel.rustupVersion {
-                        Text(version)
-                            .font(.system(size: GlassTokens.Typography.bodySize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                    } else {
-                        Text("Not detected")
-                            .font(.system(size: GlassTokens.Typography.bodySize))
-                            .foregroundColor(GlassTokens.Colors.error)
+                        VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                            Text("Version: \(version)")
+                                .font(.system(size: GlassTokens.Typography.bodySize))
+                                .foregroundColor(GlassTokens.Colors.textSecondary)
+                        }
                     }
-                }
-
-                Button("Validate Environment") {
-                    Task {
-                        await viewModel.validateEnvironment()
+                    
+                    Button("Validate Environment") {
+                        Task {
+                            await viewModel.validateEnvironment()
+                        }
                     }
+                    .primaryGlassButtonStyle()
+                    .padding(.top, GlassTokens.Spacing.xs)
                 }
-                .primaryGlassButtonStyle()
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func settingRow<Content: View>(
+        label: String,
+        description: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
+                    
+                    Text(description)
+                        .font(.system(size: GlassTokens.Typography.captionSize))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                }
+                
+                Spacer()
+                
+                content()
             }
         }
     }
@@ -146,33 +408,68 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var uiPreferencesSection: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
-                // UI Preferences subsection
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                    Text("UI Preferences")
-                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
-
-                    Toggle("Auto-refresh on app activation", isOn: $viewModel.autoRefresh)
-                        .toggleStyle(.switch)
+    private var uiPreferencesWithNotificationsSection: some View {
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
+            // UI Preferences
+            GlassCard {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+                    // Header with icon
+                    HStack(spacing: GlassTokens.Spacing.md) {
+                        Image(systemName: "display")
+                            .font(.system(size: GlassTokens.Typography.titleSize))
+                            .foregroundColor(GlassTokens.Colors.accent)
+                        
+                        Text("UI Preferences")
+                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                    }
+                    
+                    settingRow(
+                        label: "Auto-refresh Dashboard",
+                        description: "Keep project lists and statuses up to date in the background.",
+                        content: {
+                            Toggle("", isOn: $viewModel.autoRefresh)
+                                .toggleStyle(.switch)
+                        }
+                    )
                 }
-
-                Divider()
-
-                // Notifications subsection
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                    Text("Notifications")
-                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
-
-                    Toggle("Enable task notifications", isOn: $viewModel.enableTaskNotifications)
-                        .toggleStyle(.switch)
-
-                    Text("Show system notifications when tasks start and complete")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
+            }
+            
+            // Notifications
+            GlassCard {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+                    // Header with icon
+                    HStack(spacing: GlassTokens.Spacing.md) {
+                        Image(systemName: "bell")
+                            .font(.system(size: GlassTokens.Typography.titleSize))
+                            .foregroundColor(GlassTokens.Colors.accent)
+                        
+                        Text("Notifications")
+                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                        // Build Failures
+                        settingRow(
+                            label: "Build Failures",
+                            description: "Notify me when a background build fails.",
+                            content: {
+                                Toggle("", isOn: $viewModel.enableTaskNotifications)
+                                    .toggleStyle(.switch)
+                            }
+                        )
+                        
+                        // Toolchain Updates Available
+                        settingRow(
+                            label: "Toolchain Updates Available",
+                            description: "Notify when a new stable version is released.",
+                            content: {
+                                Toggle("", isOn: .constant(false))
+                                    .toggleStyle(.switch)
+                            }
+                        )
+                    }
                 }
             }
         }
