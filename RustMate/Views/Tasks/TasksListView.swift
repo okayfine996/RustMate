@@ -14,7 +14,8 @@ struct TasksListView: View {
         VStack(spacing: 0) {
             // Header
             headerSection
-                .padding(GlassTokens.Spacing.xxl)
+                .padding(.horizontal)
+                .padding(.vertical,GlassTokens.Spacing.xxl)
 
             Divider()
 
@@ -37,34 +38,18 @@ struct TasksListView: View {
 
     @ViewBuilder
     private var headerSection: some View {
-        HStack(alignment: .top, spacing: GlassTokens.Spacing.xl) {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                Text("Tasks")
-                    .font(.system(size: GlassTokens.Typography.displaySize, weight: .bold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+            Text("Tasks")
+                .font(.system(size: GlassTokens.Typography.displaySize, weight: .bold))
+                .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                Text("View and manage background operations. Track the status of toolchain installations, updates, and other operations.")
-                    .font(.system(size: GlassTokens.Typography.bodySize))
-                    .foregroundColor(GlassTokens.Colors.textSecondary)
-                    .lineLimit(2)
-            }
-
-            Spacer()
-
-            Button {
-                viewModel.clearCompleted()
-            } label: {
-                HStack(spacing: GlassTokens.Spacing.xs) {
-                    Image(systemName: "trash")
-                    Text("Clear Completed")
-                }
-                .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                .padding(.horizontal, GlassTokens.Spacing.lg)
-                .padding(.vertical, GlassTokens.Spacing.md)
-            }
-            .secondaryGlassButtonStyle()
-            .disabled(viewModel.filteredTasks.filter { $0.status != .running }.isEmpty)
+            Text("View and manage background operations. Track the status of toolchain installations, updates, and other operations.")
+                .font(.system(size: GlassTokens.Typography.bodySize))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
+                .lineLimit(2)
+//                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Filter Bar
