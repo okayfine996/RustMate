@@ -15,22 +15,102 @@ struct ProjectContextView: View {
     let onClearOverride: () -> Void
 
     @State private var showingOverridePicker = false
+    @State private var selectedTab: ProjectTab = .toolchain
+
+    enum ProjectTab: String, CaseIterable {
+        case toolchain = "Toolchain Version"
+        case cargo = "Cargo & Build"
+        case info = "Diagnostics"
+        
+        var icon: String {
+            switch self {
+            case .toolchain: return "wrench.and.screwdriver"
+            case .cargo: return "cube.box"
+            case .info: return "exclamationmark.triangle"
+            }
+        }
+    }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
-                // Project header
-                projectHeader
-
-                // Active toolchain card
-                activeToolchainCard
-
-                // Configuration source priority
-                configurationSourcePriority
-            }
-            .padding(GlassTokens.Spacing.xxl)
+        VStack(spacing: 0) {
+            // Project header
+            projectHeader
+                .padding(GlassTokens.Spacing.xl)
+            
+            Divider()
+            
+            // Tab selector
+            tabSelector
+            
+            Divider()
+            
+            // Tab content
+            tabContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+    
+    // MARK: - Tab Selector
+    
+    @ViewBuilder
+    private var tabSelector: some View {
+        HStack(spacing: 0) {
+            ForEach(ProjectTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(GlassTokens.Animation.fast) {
+                        selectedTab = tab
+                    }
+                } label: {
+                    HStack(spacing: GlassTokens.Spacing.xs) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: GlassTokens.Typography.bodySize))
+                        
+                        Text(tab.rawValue)
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                        
+                        // Badge for Diagnostics tab (will be shown if there are issues)
+                        if tab == .info {
+                            // Badge count will be computed from diagnostics when available
+                            // For now, we'll show it in the diagnostics view itself
+                        }
+                    }
+                    .foregroundColor(selectedTab == tab ? GlassTokens.Colors.accent : GlassTokens.Colors.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, GlassTokens.Spacing.md)
+                    .overlay(
+                        Rectangle()
+                            .frame(height: selectedTab == tab ? 2 : 0)
+                            .foregroundColor(GlassTokens.Colors.accent),
+                        alignment: .bottom
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .background(GlassTokens.Colors.backgroundSecondary)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(GlassTokens.Colors.divider),
+            alignment: .bottom
+        )
+    }
+    
+    // MARK: - Tab Content
+    
+    @ViewBuilder
+    private var tabContent: some View {
+        Group {
+            switch selectedTab {
+            case .toolchain:
+                ProjectToolchainSettingsView(projectPath: context.projectPath)
+            case .cargo:
+                ProjectCargoSettingsView(projectPath: context.projectPath)
+            case .info:
+                ProjectDiagnosticsView(projectPath: context.projectPath)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Project Header
@@ -38,57 +118,80 @@ struct ProjectContextView: View {
     @ViewBuilder
     private var projectHeader: some View {
         VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-            // Breadcrumb path
+            // Breadcrumb
             HStack(spacing: GlassTokens.Spacing.xs) {
-                Image(systemName: "folder.fill")
+                Text("Projects")
                     .font(.system(size: GlassTokens.Typography.captionSize))
                     .foregroundColor(GlassTokens.Colors.textSecondary)
-
-                Text(context.projectPath)
-                    .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: GlassTokens.Typography.captionSize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                Text(projectName)
+                    .font(.system(size: GlassTokens.Typography.captionSize))
                     .foregroundColor(GlassTokens.Colors.textSecondary)
             }
 
-            // Project title and actions
-            HStack(spacing: GlassTokens.Spacing.lg) {
-                Text(projectName)
-                    .font(.system(size: GlassTokens.Typography.displaySize, weight: .bold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-
+            // Title and description
+            HStack(alignment: .top, spacing: GlassTokens.Spacing.lg) {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                    Text(headerTitle)
+                        .font(.system(size: GlassTokens.Typography.displaySize, weight: .bold))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
+                    
+                    Text(headerDescription)
+                        .font(.system(size: GlassTokens.Typography.bodySize))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                }
+                
                 Spacer()
-
-                // Action buttons
-                HStack(spacing: GlassTokens.Spacing.sm) {
+                
+                // Header action icons
+                HStack(spacing: GlassTokens.Spacing.md) {
                     Button {
-                        // Open folder action
-                        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: context.projectPath)
-                    } label: {
-                        HStack(spacing: GlassTokens.Spacing.xs) {
-                            Image(systemName: "folder.fill")
-                            Text("Open Folder")
+                        Task {
+                            await refreshProject()
                         }
-                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                        .padding(.horizontal, GlassTokens.Spacing.md)
-                        .padding(.vertical, GlassTokens.Spacing.sm)
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: GlassTokens.Typography.bodySize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
-                    .secondaryGlassButtonStyle()
-
+                    .buttonStyle(.plain)
+                    .help("Refresh")
+                    
                     Button {
-                        // Open terminal action
-                        openInTerminal()
+                        // Mail/envelope action (placeholder)
                     } label: {
-                        HStack(spacing: GlassTokens.Spacing.xs) {
-                            Image(systemName: "terminal.fill")
-                            Text("Terminal")
-                        }
-                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                        .padding(.horizontal, GlassTokens.Spacing.md)
-                        .padding(.vertical, GlassTokens.Spacing.sm)
+                        Image(systemName: "envelope")
+                            .font(.system(size: GlassTokens.Typography.bodySize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
-                    .secondaryGlassButtonStyle()
+                    .buttonStyle(.plain)
+                    .help("Notifications")
                 }
             }
         }
+    }
+    
+    private var headerTitle: String {
+        switch selectedTab {
+        case .toolchain: return "Toolchain Settings"
+        case .cargo: return "Cargo & Build Settings"
+        case .info: return "Project Diagnostics"
+        }
+    }
+    
+    private var headerDescription: String {
+        switch selectedTab {
+        case .toolchain: return "Configure the Rust environment for `rust-toolchain.toml`"
+        case .cargo: return "Configure build settings for `.cargo/config.toml`"
+        case .info: return "View detailed information about your project's toolchain configuration"
+        }
+    }
+    
+    private func refreshProject() async {
+        // Refresh project context
+        // This would need to be passed from parent or accessed via environment
     }
 
     private var projectName: String {
@@ -123,26 +226,34 @@ struct ProjectContextView: View {
             print("✅ Successfully opened Terminal")
 
             // Keep the file for a bit longer to ensure Terminal has time to execute it
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            Task {
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
                 try? FileManager.default.removeItem(at: commandFile)
-                print("🗑️ Cleaned up temporary command file")
             }
         } catch {
             print("❌ Failed to open Terminal: \(error)")
-
-            // Fallback: just open Terminal and copy path to clipboard
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString("cd \"\(context.projectPath)\"", forType: .string)
-
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-            task.arguments = ["-a", "Terminal.app"]
-
-            do {
-                try task.run()
-                print("✅ Opened Terminal, path copied to clipboard")
-            } catch {
-                print("❌ Failed to open Terminal: \(error)")
+        }
+    }
+    
+    private func openInVSCode() {
+        // Try to open the project in VS Code using the 'code' command
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        task.arguments = ["code", context.projectPath]
+        
+        do {
+            try task.run()
+            print("✅ Successfully opened VS Code")
+        } catch {
+            // If 'code' command is not available, try opening with the app bundle
+            let vsCodeURL = URL(fileURLWithPath: "/Applications/Visual Studio Code.app")
+            if FileManager.default.fileExists(atPath: vsCodeURL.path) {
+                let openTask = Process()
+                openTask.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+                openTask.arguments = ["-a", vsCodeURL.path, context.projectPath]
+                try? openTask.run()
+            } else {
+                print("❌ VS Code not found. Please install VS Code or add 'code' to your PATH.")
             }
         }
     }

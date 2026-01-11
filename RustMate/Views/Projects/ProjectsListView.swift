@@ -139,54 +139,50 @@ struct ProjectsListView: View {
     @ViewBuilder
     private var projectsList: some View {
         VStack(spacing: 0) {
-            // Header with search
-            VStack(spacing: GlassTokens.Spacing.md) {
+            // Top header with logo and title
+            VStack(spacing: GlassTokens.Spacing.sm) {
+                HStack(spacing: GlassTokens.Spacing.md) {
+                    Image(systemName: "wrench.and.screwdriver.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.orange)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Rust Manager")
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .bold))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                        Text("Workspace v2.0")
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                    }
+                }
+                .padding(.horizontal, GlassTokens.Spacing.md)
+                .padding(.top, GlassTokens.Spacing.md)
+                
+                Divider()
+            }
+            
+            // PROJECTS section header
+            VStack(spacing: GlassTokens.Spacing.sm) {
                 HStack {
                     Text("PROJECTS")
                         .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
                         .foregroundColor(GlassTokens.Colors.textSecondary)
                         .tracking(0.5)
-
+                    
                     Spacer()
-
-                    Button {
-                        showingFilePicker = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: GlassTokens.Typography.headlineSize))
-                            .foregroundColor(GlassTokens.Colors.accent)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Add project")
                 }
-
-                // Search field
-                HStack(spacing: GlassTokens.Spacing.xs) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: GlassTokens.Typography.bodySize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-
-                    TextField("Search projects...", text: $searchText)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: GlassTokens.Typography.bodySize))
-                }
-                .padding(GlassTokens.Spacing.sm)
-                .background(GlassTokens.Colors.cardBackground)
-                .cornerRadius(GlassTokens.Radius.sm)
+                .padding(.horizontal, GlassTokens.Spacing.md)
+                .padding(.top, GlassTokens.Spacing.md)
             }
-            .padding(GlassTokens.Spacing.md)
-
-            Divider()
 
             // Project list
             List(filteredProjects, selection: $viewModel.selectedProject) { project in
                 HStack(spacing: GlassTokens.Spacing.md) {
-                    // Project type icon
-                    Image(systemName: projectIcon(for: project))
-                        .font(.system(size: GlassTokens.Typography.titleSize))
-                        .foregroundColor(GlassTokens.Colors.accent)
-                        .frame(width: 32)
-
+                    // Health status indicator
+                    Circle()
+                        .fill(healthStatusColor(for: project))
+                        .frame(width: 10, height: 10)
+                    
                     VStack(alignment: .leading, spacing: 2) {
                         Text(project.displayName)
                             .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
@@ -200,16 +196,10 @@ struct ProjectsListView: View {
 
                     Spacer()
 
-                    // Favorite star button
-                    Button {
-                        viewModel.toggleFavorite(project)
-                    } label: {
-                        Image(systemName: project.isFavorite ? "star.fill" : "star")
-                            .font(.system(size: GlassTokens.Typography.bodySize))
-                            .foregroundColor(project.isFavorite ? GlassTokens.Colors.warning : GlassTokens.Colors.textSecondary.opacity(0.5))
-                    }
-                    .buttonStyle(.plain)
-                    .help(project.isFavorite ? "Remove from favorites" : "Add to favorites")
+                    // Right arrow icon
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: GlassTokens.Typography.captionSize))
+                        .foregroundColor(GlassTokens.Colors.textSecondary.opacity(0.5))
                 }
                 .padding(.vertical, GlassTokens.Spacing.xs)
                 .tag(project)
@@ -220,7 +210,29 @@ struct ProjectsListView: View {
                 }
             }
             .listStyle(.sidebar)
+            
+            // Bottom add button
+            VStack(spacing: 0) {
+                Divider()
+                
+                Button {
+                    showingFilePicker = true
+                } label: {
+                    HStack(spacing: GlassTokens.Spacing.sm) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: GlassTokens.Typography.bodySize))
+                        Text("Add Project")
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                    }
+                    .foregroundColor(GlassTokens.Colors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, GlassTokens.Spacing.md)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, GlassTokens.Spacing.md)
+            }
         }
+        .background(GlassTokens.Colors.backgroundPrimary)
     }
 
     private var filteredProjects: [ProjectBookmark] {
@@ -255,6 +267,21 @@ struct ProjectsListView: View {
             return path.replacingOccurrences(of: homeDirDecoded, with: "~")
         }
         return path
+    }
+    
+    private func healthStatusColor(for project: ProjectBookmark) -> Color {
+        guard let healthStatus = project.healthStatus else {
+            return .gray  // Unknown status
+        }
+        
+        switch healthStatus.indicatorColor {
+        case .green:
+            return .green
+        case .red:
+            return .red
+        case .yellow:
+            return .yellow
+        }
     }
 
     // MARK: - Empty & Loading States

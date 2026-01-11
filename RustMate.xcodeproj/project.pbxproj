@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		323AC3EE2F0BFB3100039FFF /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 323AC3ED2F0BFB3100039FFF /* Sparkle */; };
+		9A70D3F02F0BFB3200039FFF /* TOMLDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 9A70D3EF2F0BFB3200039FFF /* TOMLDecoder */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +76,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				323AC3EE2F0BFB3100039FFF /* Sparkle in Frameworks */,
+				9A70D3F02F0BFB3200039FFF /* TOMLDecoder in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -138,6 +140,7 @@
 			name = RustMate;
 			packageProductDependencies = (
 				323AC3ED2F0BFB3100039FFF /* Sparkle */,
+				9A70D3EF2F0BFB3200039FFF /* TOMLDecoder */,
 			);
 			productName = RustMate;
 			productReference = 9A70D31E2F0519B1000D8C52 /* RustMate.app */;
@@ -223,6 +226,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				323AC3EC2F0BFB3100039FFF /* XCRemoteSwiftPackageReference "Sparkle" */,
+				9A70D3EE2F0BFB3200039FFF /* XCRemoteSwiftPackageReference "TOMLDecoder" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9A70D31F2F0519B1000D8C52 /* Products */;
@@ -622,6 +626,14 @@
 				minimumVersion = 2.8.1;
 			};
 		};
+		9A70D3EE2F0BFB3200039FFF /* XCRemoteSwiftPackageReference "TOMLDecoder" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/dduan/TOMLDecoder";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -629,6 +641,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 323AC3EC2F0BFB3100039FFF /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		9A70D3EF2F0BFB3200039FFF /* TOMLDecoder */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9A70D3EE2F0BFB3200039FFF /* XCRemoteSwiftPackageReference "TOMLDecoder" */;
+			productName = TOMLDecoder;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

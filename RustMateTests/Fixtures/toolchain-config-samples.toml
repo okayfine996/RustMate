@@ -1,0 +1,41 @@
+# Valid toolchain configuration examples
+
+# Example 1: Stable channel with specific version
+[toolchain]
+channel = "stable"
+version = "1.75.0"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]
+profile = "default"
+
+# Example 2: Nightly with date
+[toolchain]
+channel = "nightly"
+version = "nightly-2024-01-01"
+components = ["rustfmt", "clippy", "rust-src"]
+
+# Example 3: Beta channel, latest version
+[toolchain]
+channel = "beta"
+components = ["rustfmt"]
+
+# Example 4: Minimal profile
+[toolchain]
+channel = "stable"
+version = "1.75.0"
+profile = "minimal"
+
+# Invalid examples (for testing validation)
+
+# Invalid version format
+# [toolchain]
+# channel = "stable"
+# version = "invalid-version"
+
+# Invalid component name
+# [toolchain]
+# components = ["invalid-component!"]
+
+# Invalid target name
+# [toolchain]
+# targets = ["invalid target name"]

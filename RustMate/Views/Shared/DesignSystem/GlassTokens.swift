@@ -37,39 +37,44 @@ enum GlassTokens {
     // MARK: - Colors
 
     enum Colors {
-        // Background layers
-        static let backgroundPrimary = Color(nsColor: .windowBackgroundColor)
-        static let backgroundSecondary = Color(nsColor: .controlBackgroundColor)
-        static let backgroundTertiary = Color(nsColor: .underPageBackgroundColor)
+        // Background layers - Light theme optimized
+        static let backgroundPrimary = Color(white: 0.98)  // Very light gray/white
+        static let backgroundSecondary = Color(white: 0.95)  // Light gray
+        static let backgroundTertiary = Color(white: 0.92)  // Slightly darker gray
 
-        // Glass card colors
-        static let cardBackground = Color.black.opacity(0.2)
-        static let cardStroke = Color.white.opacity(0.1)
+        // Card colors - Clean white cards with subtle borders
+        static let cardBackground = Color.white
+        static let cardStroke = Color(white: 0.85)  // Light gray border
 
         // Text colors
-        static let textPrimary = Color.primary
-        static let textSecondary = Color.secondary
-        static let textTertiary = Color(nsColor: .tertiaryLabelColor)
+        static let textPrimary = Color(white: 0.1)  // Almost black
+        static let textSecondary = Color(white: 0.4)  // Medium gray
+        static let textTertiary = Color(white: 0.6)  // Light gray
 
-        // Accent and emphasis
-        static let accent = Color.accentColor
-        static let accentSubtle = Color.accentColor.opacity(0.15)
+        // Accent and emphasis - Blue theme
+        static let accent = Color(red: 0.0, green: 0.478, blue: 1.0)  // System blue
+        static let accentSubtle = Color(red: 0.0, green: 0.478, blue: 1.0, opacity: 0.1)  // Light blue background
+        static let accentHover = Color(red: 0.0, green: 0.4, blue: 0.9)  // Darker blue for hover
 
-        // Status colors
-        static let success = Color.green
-        static let warning = Color.orange
-        static let error = Color.red
-        static let info = Color.blue
+        // Status colors - Vibrant but not too bright
+        static let success = Color(red: 0.2, green: 0.7, blue: 0.3)  // Green
+        static let warning = Color(red: 1.0, green: 0.6, blue: 0.0)  // Orange
+        static let error = Color(red: 0.9, green: 0.2, blue: 0.2)  // Red
+        static let info = Color(red: 0.0, green: 0.478, blue: 1.0)  // Blue
 
-        // Status subtle backgrounds
-        static let successSubtle = Color.green.opacity(0.15)
-        static let warningSubtle = Color.orange.opacity(0.15)
-        static let errorSubtle = Color.red.opacity(0.15)
-        static let infoSubtle = Color.blue.opacity(0.15)
+        // Status subtle backgrounds - Light backgrounds for status indicators
+        static let successSubtle = Color(red: 0.2, green: 0.7, blue: 0.3, opacity: 0.1)
+        static let warningSubtle = Color(red: 1.0, green: 0.6, blue: 0.0, opacity: 0.1)
+        static let errorSubtle = Color(red: 0.9, green: 0.2, blue: 0.2, opacity: 0.1)
+        static let infoSubtle = Color(red: 0.0, green: 0.478, blue: 1.0, opacity: 0.1)
 
-        // Dividers
-        static let divider = Color(nsColor: .separatorColor)
-        static let dividerSubtle = Color(nsColor: .separatorColor).opacity(0.5)
+        // Dividers - Light gray dividers
+        static let divider = Color(white: 0.85)
+        static let dividerSubtle = Color(white: 0.9)
+        
+        // Selection and active states
+        static let selectionBackground = Color(red: 0.0, green: 0.478, blue: 1.0, opacity: 0.1)  // Light blue for selected items
+        static let selectionBorder = Color(red: 0.0, green: 0.478, blue: 1.0)  // Blue border for selected items
     }
 
     // MARK: - Typography

@@ -12,6 +12,8 @@ import Combine
 class ProjectsViewModel: ObservableObject {
     private var service: LocalProjectContextService  // T054: Replaced XPC with local execution
     private let taskManager = TaskManager.shared
+    private let diagnosticsService = ProjectDiagnosticsService()
+    private let toolchainConfigService: ToolchainConfigService = LocalToolchainConfigService()
 
     // State
     @Published var projects: [ProjectBookmark] = []
@@ -66,6 +68,25 @@ class ProjectsViewModel: ObservableObject {
     }
 
     func addBookmark(url: URL) {
+        // Check if directory exists
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            error = NSError(domain: "RustMate", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Project directory not found. The directory may have been moved or deleted."
+            ])
+            return
+        }
+        
+        // Check for duplicates by path
+        let newPath = url.path
+        for existingProject in projects {
+            if existingProject.path == newPath {
+                error = NSError(domain: "RustMate", code: -1, userInfo: [
+                    NSLocalizedDescriptionKey: "This project is already in your list."
+                ])
+                return
+            }
+        }
+        
         // Start accessing security-scoped resource
         guard url.startAccessingSecurityScopedResource() else {
             error = NSError(domain: "RustMate", code: -1, userInfo: [
@@ -160,12 +181,75 @@ class ProjectsViewModel: ObservableObject {
             if isStale {
                 updateBookmark(project, with: url)
             }
+            
+            // Update health status
+            await updateHealthStatus(for: project, projectPath: url.path)
         } catch {
             self.error = error
             projectContext = nil
         }
 
         isLoading = false
+    }
+    
+    // MARK: - Health Status Management
+    
+    func updateHealthStatus(for project: ProjectBookmark, projectPath: String) async {
+        do {
+            // Compute diagnostics
+            let diagnostics = try await diagnosticsService.computeDiagnostics(projectPath: projectPath)
+            
+            // Check if toolchain is installed (simplified - check if actual version exists)
+            let toolchainInstalled = diagnostics.actualToolchainVersion != nil
+            
+            // Check if components are available (simplified - assume true if toolchain is installed)
+            // TODO: Implement proper component checking
+            let componentsAvailable = toolchainInstalled
+            
+            // Calculate health status
+            let healthStatus = ProjectHealthStatus.calculate(
+                from: diagnostics,
+                toolchainInstalled: toolchainInstalled,
+                componentsAvailable: componentsAvailable
+            )
+            
+            // Update project bookmark with health status
+            if let index = projects.firstIndex(where: { $0.id == project.id }) {
+                projects[index].healthStatus = healthStatus
+                saveBookmarks()
+            }
+        } catch {
+            // If health status calculation fails, set to unknown
+            if let index = projects.firstIndex(where: { $0.id == project.id }) {
+                projects[index].healthStatus = ProjectHealthStatus(
+                    status: .unknown,
+                    indicatorColor: .yellow,
+                    details: "Failed to compute health status: \(error.localizedDescription)"
+                )
+            }
+        }
+    }
+    
+    func refreshHealthStatuses() async {
+        for project in projects {
+            do {
+                var isStale = false
+                let url = try URL(
+                    resolvingBookmarkData: project.bookmarkData,
+                    options: .withSecurityScope,
+                    relativeTo: nil,
+                    bookmarkDataIsStale: &isStale
+                )
+                
+                guard url.startAccessingSecurityScopedResource() else { continue }
+                defer { url.stopAccessingSecurityScopedResource() }
+                
+                await updateHealthStatus(for: project, projectPath: url.path)
+            } catch {
+                // Skip projects that can't be accessed
+                continue
+            }
+        }
     }
 
     func refreshProjectContext() async {

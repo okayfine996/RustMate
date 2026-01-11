@@ -98,7 +98,7 @@ struct MainContentView: View {
                             .padding(.vertical, GlassTokens.Spacing.sm)
                             .background(
                                 selectedTab == tab ?
-                                    GlassTokens.Colors.accentSubtle.opacity(0.3) :
+                                    GlassTokens.Colors.selectionBackground :
                                     Color.clear
                             )
                             .cornerRadius(GlassTokens.Radius.sm)
@@ -109,7 +109,13 @@ struct MainContentView: View {
         }
         .padding(.horizontal, GlassTokens.Spacing.lg)
         .padding(.vertical, GlassTokens.Spacing.sm)
-        .background(GlassTokens.Colors.cardBackground.opacity(0.8))
+        .background(GlassTokens.Colors.backgroundPrimary)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(GlassTokens.Colors.divider),
+            alignment: .bottom
+        )
     }
 
     @ViewBuilder

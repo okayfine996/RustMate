@@ -1,0 +1,49 @@
+# Valid Cargo configuration examples
+
+# Example 1: Registry mirror (Tsinghua)
+[source.crates-io]
+replace-with = "tsinghua"
+
+[source.tsinghua]
+registry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"
+
+# Example 2: Aliases
+[alias]
+b = "build"
+t = "test"
+r = "run"
+
+# Example 3: Linker configuration (mold)
+[build]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+# Example 4: Proxy settings
+[http]
+proxy = "http://proxy.example.com:8080"
+
+[https]
+proxy = "https://proxy.example.com:8080"
+
+# Example 5: Combined configuration
+[source.crates-io]
+replace-with = "ustc"
+
+[source.ustc]
+registry = "https://mirrors.ustc.edu.cn/crates.io-index.git"
+
+[alias]
+b = "build"
+t = "test"
+
+[build]
+rustflags = ["-C", "link-arg=-fuse-ld=zld"]
+
+# Invalid examples (for testing validation)
+
+# Invalid registry URL
+# [source.invalid]
+# registry = "not-a-valid-url"
+
+# Invalid alias name
+# [alias]
+# invalid-alias-name! = "build"
