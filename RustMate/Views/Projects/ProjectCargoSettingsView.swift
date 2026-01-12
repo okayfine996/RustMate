@@ -350,3 +350,10 @@ struct ProjectCargoSettingsView: View {
         )
     }
 }
+
+// MARK: - Preview
+
+#Preview {
+    ProjectCargoSettingsView(projectPath: "/Users/example/project")
+        .frame(width: 800, height: 1000)
+}

@@ -16,6 +16,10 @@ class ProjectToolchainViewModel: ObservableObject {
     @Published var config: ProjectToolchainConfig?
     @Published var isLoading = false
     @Published var error: Error?
+    @Published var availableTargets: [TargetInfo] = []
+    @Published var isLoadingTargets = false
+    
+    private let targetService = LocalRustupToolchainService()
     
     init(service: ToolchainConfigService = LocalToolchainConfigService()) {
         self.service = service
@@ -119,11 +123,55 @@ class ProjectToolchainViewModel: ObservableObject {
         }
     }
     
+    func toggleTarget(_ target: String) {
+        if config == nil {
+            config = ProjectToolchainConfig()
+        }
+        if var targets = config?.targets {
+            if let index = targets.firstIndex(of: target) {
+                targets.remove(at: index)
+            } else {
+                targets.append(target)
+            }
+            config?.targets = targets
+        } else {
+            config?.targets = [target]
+        }
+    }
+    
     func updateProfile(_ profile: ProjectToolchainConfig.ToolchainProfile?) {
         if config == nil {
             config = ProjectToolchainConfig()
         }
         config?.profile = profile
+    }
+    
+    // MARK: - Target Loading
+    
+    func loadAvailableTargets() async {
+        guard let channel = config?.channel else {
+            // If no channel is set, try to use default toolchain
+            await loadTargetsForToolchain("stable")
+            return
+        }
+        
+        let toolchainName = channel.rawValue
+        await loadTargetsForToolchain(toolchainName)
+    }
+    
+    private func loadTargetsForToolchain(_ toolchainName: String) async {
+        isLoadingTargets = true
+        error = nil
+        
+        do {
+            availableTargets = try await targetService.listTargets(toolchainName: toolchainName)
+        } catch {
+            // Don't set error here, just log it - target loading is optional
+            print("Failed to load targets: \(error)")
+            availableTargets = []
+        }
+        
+        isLoadingTargets = false
     }
     
     // MARK: - Validation

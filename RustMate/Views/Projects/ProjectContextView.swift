@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct ProjectContextView: View {
     let context: ProjectContextInfo
@@ -148,26 +149,24 @@ struct ProjectContextView: View {
                 // Header action icons
                 HStack(spacing: GlassTokens.Spacing.md) {
                     Button {
-                        Task {
-                            await refreshProject()
-                        }
+                        openInFolder()
                     } label: {
-                        Image(systemName: "arrow.clockwise")
+                        Image(systemName: "folder")
                             .font(.system(size: GlassTokens.Typography.bodySize))
                             .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
                     .buttonStyle(.plain)
-                    .help("Refresh")
+                    .help("Open in Finder")
                     
                     Button {
-                        // Mail/envelope action (placeholder)
+                        openInTerminal()
                     } label: {
-                        Image(systemName: "envelope")
+                        Image(systemName: "terminal")
                             .font(.system(size: GlassTokens.Typography.bodySize))
                             .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
                     .buttonStyle(.plain)
-                    .help("Notifications")
+                    .help("Open in Terminal")
                 }
             }
         }
@@ -196,6 +195,11 @@ struct ProjectContextView: View {
 
     private var projectName: String {
         URL(fileURLWithPath: context.projectPath).lastPathComponent
+    }
+    
+    private func openInFolder() {
+        let url = URL(fileURLWithPath: context.projectPath)
+        NSWorkspace.shared.open(url)
     }
 
     private func openInTerminal() {

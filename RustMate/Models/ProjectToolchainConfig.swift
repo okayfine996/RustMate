@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents toolchain configuration for a project, stored in rust-toolchain.toml
-struct ProjectToolchainConfig: Codable, Sendable {
+struct ProjectToolchainConfig: Codable, Sendable, Equatable {
     var channel: ToolchainChannel?
     var version: String?
     var components: [String]
@@ -46,11 +46,29 @@ struct ProjectToolchainConfig: Codable, Sendable {
     enum ToolchainProfile: String, Codable, Sendable {
         case minimal
         case `default`
+        case complete
         
         var displayText: String {
             switch self {
             case .minimal: return "Minimal"
             case .default: return "Default"
+            case .complete: return "Complete"
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .minimal: return "Essential components only"
+            case .default: return "Standard set (clippy, rustfmt)"
+            case .complete: return "All available components/docs"
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .minimal: return "line.3.horizontal"
+            case .default: return "checkmark.square.fill"
+            case .complete: return "doc.text.fill"
             }
         }
     }
