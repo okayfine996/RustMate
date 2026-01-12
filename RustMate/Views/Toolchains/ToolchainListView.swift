@@ -145,13 +145,13 @@ struct ToolchainListView: View {
         VStack(spacing: 0) {
             // Header
             headerSection
-                .padding(GlassTokens.Spacing.xxl)
+                .padding(GlassTokens.Spacing.md)
 
             Divider()
 
             // Search and disk usage bar
             searchAndDiskUsageBar
-                .padding(GlassTokens.Spacing.lg)
+//                .padding(GlassTokens.Spacing.md)
 
             Divider()
 

@@ -30,19 +30,6 @@ struct ProjectCargoSettingsView: View {
                         errorBanner(error)
                     }
                     
-                    // Breadcrumb
-                    HStack(spacing: GlassTokens.Spacing.xs) {
-                        Text("Settings")
-                            .font(.system(size: GlassTokens.Typography.captionSize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: GlassTokens.Typography.captionSize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                        Text("Cargo")
-                            .font(.system(size: GlassTokens.Typography.captionSize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                    }
-                    
                     // Page Title
                     HStack {
                         Text("Cargo Configuration")

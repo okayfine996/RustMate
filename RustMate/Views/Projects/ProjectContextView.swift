@@ -115,10 +115,12 @@ struct ProjectContextView: View {
                 }
                 .buttonStyle(.plain)
             }
+//            .background(GlassTokens.Colors.backgroundSecondary)
             
             Spacer()
         }
-        .background(GlassTokens.Colors.backgroundSecondary)
+        
+//        .background(GlassTokens.Colors.backgroundSecondary)
         .overlay(
             Rectangle()
                 .frame(height: 1)
