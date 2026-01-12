@@ -111,6 +111,13 @@ class ProjectCargoViewModel: ObservableObject {
         config?.proxySettings = proxy
     }
     
+    func updateStripSymbols(_ enabled: Bool?) {
+        if config == nil {
+            config = ProjectCargoConfig()
+        }
+        config?.stripSymbols = enabled
+    }
+    
     // MARK: - Validation
     
     func validateAlias(_ alias: String) -> Bool {

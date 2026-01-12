@@ -14,7 +14,7 @@ struct ProjectBookmark: Identifiable, Codable, Hashable {
     var bookmarkData: Data
     let addedDate: Date
     var isFavorite: Bool
-    
+
     // Health status (computed, not persisted)
     // Note: This is not included in Codable encoding/decoding
     var healthStatus: ProjectHealthStatus?

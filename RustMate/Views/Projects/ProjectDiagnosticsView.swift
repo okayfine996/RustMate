@@ -11,298 +11,484 @@ struct ProjectDiagnosticsView: View {
     @StateObject private var viewModel: ProjectDiagnosticsViewModel
     let projectPath: String
     
+    @State private var showingConflictAlert = true
+    
     init(projectPath: String) {
         self.projectPath = projectPath
         _viewModel = StateObject(wrappedValue: ProjectDiagnosticsViewModel())
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
-                // Error display
-                if let error = viewModel.error {
-                    errorBanner(error)
-                }
-                
-                // Loading indicator
-                if viewModel.isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                            .padding()
-                        Spacer()
+        ZStack(alignment: .bottom) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
+                    // Error display
+                    if let error = viewModel.error {
+                        errorBanner(error)
                     }
+                    
+                    // Loading indicator
+                    if viewModel.isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .padding()
+                            Spacer()
+                        }
+                    } else if let diagnostics = viewModel.diagnostics {
+                        // Top Alert Banner (if there's a conflict)
+                        if diagnostics.hasMismatch && showingConflictAlert {
+                            conflictAlertBanner
+                        }
+                        
+                        // Information Cards
+                        HStack(alignment: .top, spacing: GlassTokens.Spacing.lg) {
+                            projectConfigCard(diagnostics: diagnostics)
+                            activeEnvironmentCard(diagnostics: diagnostics)
+                        }
+                        
+                        // Directory Override Alert (if override is active)
+                        if diagnostics.toolchainSource == .override {
+                            overrideAlertBanner(diagnostics: diagnostics)
+                        }
+                        
+                        // Resolution Path Section
+                        resolutionPathSection(diagnostics: diagnostics)
+                    }
+                    
+                    // Bottom padding to account for fixed status bar
+                    Spacer()
+                        .frame(height: 100)
                 }
-                // Breadcrumb
-                HStack(spacing: GlassTokens.Spacing.xs) {
-                    Text("Settings")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                    Text("Info")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                }
-                
-                // Page Title
-                Text("Project Diagnostics")
-                    .font(.system(size: GlassTokens.Typography.displaySize, weight: .bold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-                
-                // Page Description
-                Text("View detailed information about your project's toolchain configuration, version status, and potential issues.")
-                    .font(.system(size: GlassTokens.Typography.bodySize))
-                    .foregroundColor(GlassTokens.Colors.textSecondary)
-                    .padding(.bottom, GlassTokens.Spacing.md)
-                
-                // Status Overview
-                statusOverviewSection
-                
-                // Version Information
-                versionSection
-                
-                // Conflicts
-                conflictsSection
-                
-                // MSRV Check
-                msrvSection
-                
-                // Actions
-                actionsSection
+                .padding(GlassTokens.Spacing.xxl)
             }
-            .padding(GlassTokens.Spacing.xxl)
+            
+            // Fixed status bar at bottom
+            VStack {
+                Spacer()
+                statusBar
+                    .padding(.horizontal, GlassTokens.Spacing.xxl)
+                    .padding(.bottom, GlassTokens.Spacing.lg)
+            }
         }
         .task {
             await viewModel.loadDiagnostics(projectPath: projectPath)
         }
     }
     
-    // MARK: - Status Overview
+    // MARK: - Conflict Alert Banner
     
     @ViewBuilder
-    private var statusOverviewSection: some View {
-        VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-            HStack(spacing: GlassTokens.Spacing.sm) {
-                Image(systemName: "info.circle.fill")
-                    .font(.system(size: GlassTokens.Typography.headlineSize))
-                    .foregroundColor(GlassTokens.Colors.accent)
-                Text("Status Overview")
-                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-            }
+    private var conflictAlertBanner: some View {
+        HStack(alignment: .top, spacing: GlassTokens.Spacing.md) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 20))
+                .foregroundColor(.yellow)
             
-            if let diagnostics = viewModel.diagnostics {
-                HStack(spacing: GlassTokens.Spacing.md) {
-                    Circle()
-                        .fill(statusColor(for: diagnostics))
-                        .frame(width: 16, height: 16)
-                    
-                    Text(statusText(for: diagnostics))
-                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
-                    
-                    Spacer()
-                    
-                    if viewModel.hasIssues {
-                        Text("\(viewModel.issueCount) issue(s)")
-                            .font(.system(size: GlassTokens.Typography.captionSize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                    }
-                }
-                .padding(GlassTokens.Spacing.md)
-                .background(GlassTokens.Colors.cardBackground)
-                .cornerRadius(GlassTokens.Radius.md)
-                .overlay(
-                    RoundedRectangle(cornerRadius: GlassTokens.Radius.md)
-                        .stroke(GlassTokens.Colors.divider, lineWidth: GlassTokens.Stroke.thin)
-                )
-            } else {
-                Text("Loading diagnostics...")
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                Text("Environment Conflict Detected")
+                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                Text("The active toolchain in your environment does not match the project configuration defined in `rust-toolchain.toml`. This may lead to inconsistent build artifacts.")
                     .font(.system(size: GlassTokens.Typography.bodySize))
                     .foregroundColor(GlassTokens.Colors.textSecondary)
             }
-        }
-    }
-    
-    // MARK: - Version Section
-    
-    @ViewBuilder
-    private var versionSection: some View {
-        VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-            HStack(spacing: GlassTokens.Spacing.sm) {
-                Image(systemName: "number")
-                    .font(.system(size: GlassTokens.Typography.headlineSize))
-                    .foregroundColor(GlassTokens.Colors.accent)
-                Text("Version Information")
-                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-            }
-            
-            if let diagnostics = viewModel.diagnostics {
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                    versionRow("Actual Version", diagnostics.actualToolchainVersion)
-                    versionRow("Configured Version", diagnostics.configuredVersion)
-                    versionRow("Override Version", diagnostics.overrideVersion)
-                    versionRow("Source", diagnostics.toolchainSource.displayText)
-                }
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func versionRow(_ label: String, _ value: String?) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: GlassTokens.Typography.bodySize))
-                .foregroundColor(GlassTokens.Colors.textSecondary)
             
             Spacer()
             
-            Text(value ?? "Not set")
-                .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
-                .foregroundColor(value != nil ? GlassTokens.Colors.textPrimary : GlassTokens.Colors.textSecondary)
-        }
-                        .padding(GlassTokens.Spacing.sm)
-                        .background(GlassTokens.Colors.backgroundSecondary)
-                        .cornerRadius(GlassTokens.Radius.sm)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: GlassTokens.Radius.sm)
-                                .stroke(GlassTokens.Colors.divider, lineWidth: GlassTokens.Stroke.thin)
-                        )
-    }
-    
-    // MARK: - Conflicts Section
-    
-    @ViewBuilder
-    private var conflictsSection: some View {
-        if let diagnostics = viewModel.diagnostics, !diagnostics.conflictDetails.isEmpty {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                HStack(spacing: GlassTokens.Spacing.sm) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: GlassTokens.Typography.headlineSize))
-                        .foregroundColor(GlassTokens.Colors.warning)
-                    Text("Conflicts")
-                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
+            Button {
+                withAnimation {
+                    showingConflictAlert = false
                 }
-                
-                ForEach(Array(diagnostics.conflictDetails.enumerated()), id: \.offset) { _, conflict in
-                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.yellow)
-                            
-                            Text(conflict.message)
-                                .font(.system(size: GlassTokens.Typography.bodySize))
-                                .foregroundColor(GlassTokens.Colors.textPrimary)
-                        }
-                        
-                        if let fix = conflict.suggestedFix {
-                            Text(fix)
-                                .font(.system(size: GlassTokens.Typography.captionSize))
-                                .foregroundColor(GlassTokens.Colors.textSecondary)
-                        }
-                    }
-                    .padding(GlassTokens.Spacing.md)
-                    .background(GlassTokens.Colors.cardBackground)
-                    .cornerRadius(GlassTokens.Radius.sm)
-                }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
             }
+            .buttonStyle(.plain)
         }
+        .padding(GlassTokens.Spacing.lg)
+        .background(Color.yellow.opacity(0.1))
+        .cornerRadius(GlassTokens.Radius.md)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.md)
+                .stroke(Color.yellow.opacity(0.3), lineWidth: GlassTokens.Stroke.thin)
+        )
     }
     
-    // MARK: - MSRV Section
+    // MARK: - Project Config Card
     
     @ViewBuilder
-    private var msrvSection: some View {
-        if let diagnostics = viewModel.diagnostics, let msrv = diagnostics.msrvViolation {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                HStack(spacing: GlassTokens.Spacing.sm) {
-                    Image(systemName: "checkmark.shield.fill")
-                        .font(.system(size: GlassTokens.Typography.headlineSize))
-                        .foregroundColor(GlassTokens.Colors.accent)
-                    Text("MSRV Check")
-                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
-                }
-                
-                HStack {
-                    Image(systemName: msrv.isViolation ? "xmark.circle.fill" : "checkmark.circle.fill")
-                        .foregroundColor(msrv.isViolation ? .red : .green)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(msrv.message)
-                            .font(.system(size: GlassTokens.Typography.bodySize))
-                            .foregroundColor(GlassTokens.Colors.textPrimary)
-                        
-                        Text("Required: \(msrv.requiredVersion) | Configured: \(msrv.configuredVersion)")
-                            .font(.system(size: GlassTokens.Typography.captionSize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                    }
-                }
-                .padding(GlassTokens.Spacing.md)
-                .background(GlassTokens.Colors.cardBackground)
-                .cornerRadius(GlassTokens.Radius.sm)
+    private func projectConfigCard(diagnostics: ProjectDiagnostics) -> some View {
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+            HStack(spacing: GlassTokens.Spacing.sm) {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(GlassTokens.Colors.accent)
+                Text("PROJECT CONFIG")
+                    .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                    .tracking(0.5)
             }
-        }
-    }
-    
-    // MARK: - Actions Section
-    
-    @ViewBuilder
-    private var actionsSection: some View {
-        if let diagnostics = viewModel.diagnostics, diagnostics.hasMismatch {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                HStack(spacing: GlassTokens.Spacing.sm) {
-                    Image(systemName: "wrench.and.screwdriver")
-                        .font(.system(size: GlassTokens.Typography.headlineSize))
-                        .foregroundColor(GlassTokens.Colors.accent)
-                    Text("Actions")
-                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
-                }
+            
+            if let version = diagnostics.configuredVersion {
+                Text(version)
+                    .font(.system(size: 32, weight: .bold, design: .monospaced))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+            } else {
+                Text("Not configured")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+            }
+            
+            HStack(spacing: GlassTokens.Spacing.xs) {
+                Text("Source:")
+                    .font(.system(size: GlassTokens.Typography.captionSize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
                 
                 Button {
-                    Task {
-                        try? await viewModel.fixMismatch()
-                    }
+                    // Open rust-toolchain.toml
                 } label: {
-                    HStack {
-                        Image(systemName: "trash")
-                        Text("Clear Override")
-                    }
-                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                    .frame(maxWidth: .infinity)
-                    .padding(GlassTokens.Spacing.md)
+                    Text("rust-toolchain.toml")
+                        .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
+                        .foregroundColor(GlassTokens.Colors.accent)
+                        .padding(.horizontal, GlassTokens.Spacing.sm)
+                        .padding(.vertical, GlassTokens.Spacing.xs)
+                        .background(GlassTokens.Colors.accentSubtle)
+                        .cornerRadius(GlassTokens.Radius.sm)
                 }
-                .secondaryGlassButtonStyle()
-                .disabled(viewModel.isLoading)
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(GlassTokens.Spacing.xl)
+        .background(GlassTokens.Colors.cardBackground)
+        .cornerRadius(GlassTokens.Radius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.lg)
+                .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+        )
+        .overlay(
+            Image(systemName: "doc.text.fill")
+                .font(.system(size: 80))
+                .foregroundColor(GlassTokens.Colors.backgroundSecondary)
+                .opacity(0.3),
+            alignment: .trailing
+        )
+    }
+    
+    // MARK: - Active Environment Card
+    
+    @ViewBuilder
+    private func activeEnvironmentCard(diagnostics: ProjectDiagnostics) -> some View {
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+            HStack(spacing: GlassTokens.Spacing.sm) {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(.orange)
+                Text("ACTIVE ENVIRONMENT")
+                    .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                    .tracking(0.5)
+            }
+            
+            HStack(alignment: .firstTextBaseline, spacing: GlassTokens.Spacing.xs) {
+                if let version = diagnostics.actualToolchainVersion ?? diagnostics.overrideVersion {
+                    Text(version)
+                        .font(.system(size: 32, weight: .bold, design: .monospaced))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
+                } else {
+                    Text("Not set")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                }
+                
+                if diagnostics.hasMismatch {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.yellow)
+                }
+            }
+            
+            HStack(spacing: GlassTokens.Spacing.xs) {
+                Text("Source:")
+                    .font(.system(size: GlassTokens.Typography.captionSize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                
+                Button {
+                    // Show source info
+                } label: {
+                    Text(diagnostics.toolchainSource.displayText)
+                        .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
+                        .foregroundColor(GlassTokens.Colors.accent)
+                        .padding(.horizontal, GlassTokens.Spacing.sm)
+                        .padding(.vertical, GlassTokens.Spacing.xs)
+                        .background(GlassTokens.Colors.accentSubtle)
+                        .cornerRadius(GlassTokens.Radius.sm)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(GlassTokens.Spacing.xl)
+        .background(GlassTokens.Colors.cardBackground)
+        .cornerRadius(GlassTokens.Radius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.lg)
+                .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+        )
+        .overlay(
+            Image(systemName: "terminal.fill")
+                .font(.system(size: 80))
+                .foregroundColor(GlassTokens.Colors.backgroundSecondary)
+                .opacity(0.3),
+            alignment: .trailing
+        )
+    }
+    
+    // MARK: - Override Alert Banner
+    
+    @ViewBuilder
+    private func overrideAlertBanner(diagnostics: ProjectDiagnostics) -> some View {
+        HStack(alignment: .top, spacing: GlassTokens.Spacing.md) {
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 20))
+                .foregroundColor(.red)
+            
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                Text("Directory override active")
+                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                Text("A manual `rustup override` is forcing a nightly toolchain.")
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+            }
+            
+            Spacer()
+            
+            Button {
+                Task {
+                    try? await viewModel.fixMismatch()
+                }
+            } label: {
+                HStack(spacing: GlassTokens.Spacing.xs) {
+                    Image(systemName: "trash")
+                    Text("Clear Override")
+                }
+                .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, GlassTokens.Spacing.md)
+                .padding(.vertical, GlassTokens.Spacing.sm)
+                .background(Color.red)
+                .cornerRadius(GlassTokens.Radius.md)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isLoading)
+        }
+        .padding(GlassTokens.Spacing.lg)
+        .background(Color.red.opacity(0.1))
+        .cornerRadius(GlassTokens.Radius.md)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.md)
+                .stroke(Color.red.opacity(0.3), lineWidth: GlassTokens.Stroke.thin)
+        )
+    }
+    
+    // MARK: - Resolution Path Section
+    
+    @ViewBuilder
+    private func resolutionPathSection(diagnostics: ProjectDiagnostics) -> some View {
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+            HStack {
+                Text("Resolution Path")
+                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                Spacer()
+                
+                Button("Priority Order") {
+                    // Show priority info
+                }
+                .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
+                .foregroundColor(GlassTokens.Colors.accent)
+                .padding(.horizontal, GlassTokens.Spacing.sm)
+                .padding(.vertical, GlassTokens.Spacing.xs)
+                .background(GlassTokens.Colors.accentSubtle)
+                .cornerRadius(GlassTokens.Radius.sm)
+                .buttonStyle(.plain)
+            }
+            
+            VStack(alignment: .leading, spacing: 0) {
+                // Shell Environment
+                resolutionPathItem(
+                    title: "Shell Environment",
+                    value: diagnostics.toolchainSource == .environment ? (diagnostics.actualToolchainVersion ?? "Set") : "Not set",
+                    badge: "RUSTUP_TOOLCHAIN",
+                    isActive: diagnostics.toolchainSource == .environment,
+                    showDivider: true
+                )
+                
+                // Directory Override
+                resolutionPathItem(
+                    title: "Directory Override",
+                    value: diagnostics.toolchainSource == .override ? (diagnostics.overrideVersion ?? diagnostics.actualToolchainVersion ?? "Set") : nil,
+                    badge: diagnostics.toolchainSource == .override ? "Winning" : nil,
+                    isActive: diagnostics.toolchainSource == .override,
+                    showDivider: true,
+                    isWinning: diagnostics.toolchainSource == .override
+                )
+                
+                // rust-toolchain.toml
+                resolutionPathItem(
+                    title: "rust-toolchain.toml",
+                    value: diagnostics.configuredVersion != nil ? "\(diagnostics.configuredVersion ?? "")\(diagnostics.toolchainSource == .override ? " (Ignored due to override)" : "")" : nil,
+                    badge: "Project Config",
+                    isActive: diagnostics.toolchainSource == .toolchainFile,
+                    showDivider: true,
+                    isIgnored: diagnostics.toolchainSource == .override && diagnostics.configuredVersion != nil
+                )
+                
+                // Global Default
+                resolutionPathItem(
+                    title: "Global Default",
+                    value: diagnostics.toolchainSource == .default ? "stable" : "stable",
+                    badge: "rustup default",
+                    isActive: diagnostics.toolchainSource == .default,
+                    showDivider: false
+                )
+            }
+        }
+        .padding(GlassTokens.Spacing.lg)
+        .background(GlassTokens.Colors.cardBackground)
+        .cornerRadius(GlassTokens.Radius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.lg)
+                .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+        )
+    }
+    
+    @ViewBuilder
+    private func resolutionPathItem(
+        title: String,
+        value: String?,
+        badge: String?,
+        isActive: Bool,
+        showDivider: Bool,
+        isWinning: Bool = false,
+        isIgnored: Bool = false
+    ) -> some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: GlassTokens.Spacing.md) {
+                // Radio button indicator
+                ZStack {
+                    Circle()
+                        .fill(isActive ? GlassTokens.Colors.accent : Color.clear)
+                        .frame(width: 20, height: 20)
+                        .overlay(
+                            Circle()
+                                .stroke(isActive ? GlassTokens.Colors.accent : GlassTokens.Colors.textTertiary, lineWidth: 2)
+                        )
+                    
+                    if isActive {
+                        Circle()
+                            .fill(.white)
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                .frame(width: 20)
+                
+                // Content
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                    HStack {
+                        Text(title)
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                            .foregroundColor(isActive ? GlassTokens.Colors.textPrimary : GlassTokens.Colors.textSecondary)
+                        
+                        Spacer()
+                        
+                        if let badge = badge {
+                            Text(badge)
+                                .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
+                                .foregroundColor(isWinning ? .white : GlassTokens.Colors.textSecondary)
+                                .padding(.horizontal, GlassTokens.Spacing.sm)
+                                .padding(.vertical, 2)
+                                .background(isWinning ? GlassTokens.Colors.accent : GlassTokens.Colors.backgroundSecondary)
+                                .cornerRadius(GlassTokens.Radius.sm)
+                        }
+                    }
+                    
+                    if let value = value {
+                        Text(value)
+                            .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
+                            .foregroundColor(isIgnored ? GlassTokens.Colors.textSecondary : GlassTokens.Colors.textPrimary)
+                    }
+                }
+            }
+            .padding(.vertical, GlassTokens.Spacing.md)
+            
+            if showDivider {
+                Divider()
+                    .padding(.leading, 40)
             }
         }
     }
     
-    // MARK: - Helper Methods
+    // MARK: - Status Bar
     
-    private func statusColor(for diagnostics: ProjectDiagnostics) -> Color {
-        if diagnostics.hasMismatch || diagnostics.msrvViolation?.isViolation == true {
-            return .red
-        } else if !diagnostics.conflictDetails.isEmpty {
-            return .yellow
-        } else {
-            return .green
+    @ViewBuilder
+    private var statusBar: some View {
+        HStack(spacing: GlassTokens.Spacing.md) {
+            // Left: Status indicator
+            HStack(spacing: GlassTokens.Spacing.sm) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                
+                Text("Diagnostics updated just now")
+                    .font(.system(size: GlassTokens.Typography.bodySize))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+            }
+            
+            Spacer()
+            
+            // Right: Action buttons
+            HStack(spacing: GlassTokens.Spacing.md) {
+                Button("Rescan") {
+                    Task {
+                        await viewModel.loadDiagnostics(projectPath: projectPath)
+                    }
+                }
+                .font(.system(size: GlassTokens.Typography.bodySize))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
+                .buttonStyle(.plain)
+                
+                Button {
+                    // Apply fixes
+                    if let diagnostics = viewModel.diagnostics, diagnostics.hasMismatch {
+                        Task {
+                            try? await viewModel.fixMismatch()
+                        }
+                    }
+                } label: {
+                    HStack(spacing: GlassTokens.Spacing.xs) {
+                        Image(systemName: "wrench.and.screwdriver")
+                            .font(.system(size: GlassTokens.Typography.bodySize))
+                        Text("Apply Fixes")
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, GlassTokens.Spacing.lg)
+                    .padding(.vertical, GlassTokens.Spacing.md)
+                    .background(GlassTokens.Colors.accent)
+                    .cornerRadius(GlassTokens.Radius.md)
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.isLoading || viewModel.diagnostics?.hasMismatch != true)
+            }
         }
-    }
-    
-    private func statusText(for diagnostics: ProjectDiagnostics) -> String {
-        if diagnostics.hasMismatch || diagnostics.msrvViolation?.isViolation == true {
-            return "Issues Detected"
-        } else if !diagnostics.conflictDetails.isEmpty {
-            return "Warnings"
-        } else {
-            return "All Good"
-        }
+        .padding(GlassTokens.Spacing.lg)
+        .background(GlassTokens.Colors.backgroundTertiary)
+        .cornerRadius(GlassTokens.Radius.md)
     }
     
     // MARK: - Error Banner

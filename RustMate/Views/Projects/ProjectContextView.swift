@@ -17,6 +17,7 @@ struct ProjectContextView: View {
 
     @State private var showingOverridePicker = false
     @State private var selectedTab: ProjectTab = .toolchain
+    @StateObject private var diagnosticsViewModel = ProjectDiagnosticsViewModel()
 
     enum ProjectTab: String, CaseIterable {
         case toolchain = "Toolchain Version"
@@ -26,7 +27,7 @@ struct ProjectContextView: View {
         var icon: String {
             switch self {
             case .toolchain: return "wrench.and.screwdriver"
-            case .cargo: return "cube.box"
+            case .cargo: return "doc.text"
             case .info: return "exclamationmark.triangle"
             }
         }
@@ -49,6 +50,24 @@ struct ProjectContextView: View {
             tabContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .task {
+            // Load diagnostics when view appears for badge count
+            await diagnosticsViewModel.loadDiagnostics(projectPath: context.projectPath)
+        }
+        .onChange(of: context.projectPath) { _, newPath in
+            // Reload diagnostics when project changes
+            Task {
+                await diagnosticsViewModel.loadDiagnostics(projectPath: newPath)
+            }
+        }
+        .onChange(of: selectedTab) { _, _ in
+            // Reload diagnostics when switching to diagnostics tab
+            if selectedTab == .info {
+                Task {
+                    await diagnosticsViewModel.loadDiagnostics(projectPath: context.projectPath)
+                }
+            }
+        }
     }
     
     // MARK: - Tab Selector
@@ -65,18 +84,27 @@ struct ProjectContextView: View {
                     HStack(spacing: GlassTokens.Spacing.xs) {
                         Image(systemName: tab.icon)
                             .font(.system(size: GlassTokens.Typography.bodySize))
+                            .foregroundColor(selectedTab == tab ? GlassTokens.Colors.accent : GlassTokens.Colors.textSecondary)
                         
                         Text(tab.rawValue)
                             .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                            .foregroundColor(selectedTab == tab ? GlassTokens.Colors.accent : GlassTokens.Colors.textPrimary)
                         
-                        // Badge for Diagnostics tab (will be shown if there are issues)
+                        // Badge for Diagnostics tab
                         if tab == .info {
-                            // Badge count will be computed from diagnostics when available
-                            // For now, we'll show it in the diagnostics view itself
+                            let issueCount = diagnosticsViewModel.issueCount
+                            if issueCount > 0 {
+                                Text("\(issueCount)")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.brown.opacity(0.8))
+                                    .clipShape(Circle())
+                            }
                         }
                     }
-                    .foregroundColor(selectedTab == tab ? GlassTokens.Colors.accent : GlassTokens.Colors.textSecondary)
-                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, GlassTokens.Spacing.lg)
                     .padding(.vertical, GlassTokens.Spacing.md)
                     .overlay(
                         Rectangle()
@@ -87,6 +115,8 @@ struct ProjectContextView: View {
                 }
                 .buttonStyle(.plain)
             }
+            
+            Spacer()
         }
         .background(GlassTokens.Colors.backgroundSecondary)
         .overlay(

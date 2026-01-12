@@ -494,70 +494,25 @@ struct ProjectToolchainSettingsView: View {
     
     @ViewBuilder
     private var saveButton: some View {
-        let hasChanges = hasUnsavedChanges()
-        let changeCount = countChanges()
-        
-        HStack(spacing: GlassTokens.Spacing.md) {
-            // Left: Status indicator (only show if there are changes)
-            if hasChanges {
-                HStack(spacing: GlassTokens.Spacing.sm) {
-                    Circle()
-                        .fill(Color.orange)
-                        .frame(width: 8, height: 8)
-                    
-                    Text("\(changeCount) change\(changeCount == 1 ? "" : "s") pending...")
-                        .font(.system(size: GlassTokens.Typography.bodySize))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
+        SettingsStatusBar(
+            hasChanges: hasUnsavedChanges(),
+            changeCount: countChanges(),
+            statusMessage: hasUnsavedChanges() ? nil : "All systems operational!",
+            isLoading: viewModel.isLoading,
+            onDiscard: {
+                discardChanges()
+            },
+            onSave: {
+                Task {
+                    do {
+                        try await viewModel.saveConfig()
+                        originalConfig = viewModel.config
+                    } catch {
+                        // Error is handled by viewModel.error
+                    }
                 }
-            } else {
-                // Empty space when no changes
-                Spacer()
-                    .frame(width: 0)
             }
-            
-            Spacer()
-            
-            // Right: Action buttons
-            HStack(spacing: GlassTokens.Spacing.md) {
-                if hasChanges {
-                    Button("Discard") {
-                        discardChanges()
-                    }
-                    .font(.system(size: GlassTokens.Typography.bodySize))
-                    .foregroundColor(GlassTokens.Colors.textSecondary)
-                    .buttonStyle(.plain)
-                }
-                
-                Button {
-                    Task {
-                        do {
-                            try await viewModel.saveConfig()
-                            originalConfig = viewModel.config
-                        } catch {
-                            // Error is handled by viewModel.error
-                        }
-                    }
-                } label: {
-                    HStack(spacing: GlassTokens.Spacing.xs) {
-                        Text("Save & Sync")
-                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
-                        
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: GlassTokens.Typography.bodySize))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, GlassTokens.Spacing.lg)
-                    .padding(.vertical, GlassTokens.Spacing.md)
-                    .background(GlassTokens.Colors.accent)
-                    .cornerRadius(GlassTokens.Radius.md)
-                }
-                .buttonStyle(.plain)
-                .disabled(viewModel.isLoading)
-            }
-        }
-        .padding(GlassTokens.Spacing.lg)
-        .background(GlassTokens.Colors.backgroundTertiary)
-        .cornerRadius(GlassTokens.Radius.md)
+        )
     }
     
     // MARK: - Change Tracking
@@ -689,4 +644,11 @@ struct ProjectToolchainSettingsView: View {
                 .stroke(Color.yellow.opacity(0.3), lineWidth: GlassTokens.Stroke.thin)
         )
     }
+}
+
+// MARK: - Preview
+
+#Preview {
+    ProjectToolchainSettingsView(projectPath: "/Users/example/project")
+        .frame(width: 900, height: 1200)
 }

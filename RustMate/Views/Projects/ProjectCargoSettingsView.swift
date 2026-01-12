@@ -16,59 +16,129 @@ struct ProjectCargoSettingsView: View {
         _viewModel = StateObject(wrappedValue: ProjectCargoViewModel())
     }
     
+    @State private var originalConfig: ProjectCargoConfig?
+    @State private var showingAddAlias = false
+    @State private var newAliasName = ""
+    @State private var newAliasCommand = ""
+    
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
-                // Error display
-                if let error = viewModel.error {
-                    errorBanner(error)
+        ZStack(alignment: .bottom) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
+                    // Error display
+                    if let error = viewModel.error {
+                        errorBanner(error)
+                    }
+                    
+                    // Breadcrumb
+                    HStack(spacing: GlassTokens.Spacing.xs) {
+                        Text("Settings")
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                        Text("Cargo")
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                    }
+                    
+                    // Page Title
+                    HStack {
+                        Text("Cargo Configuration")
+                            .font(.system(size: GlassTokens.Typography.displaySize, weight: .bold))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                        
+                        Spacer()
+                        
+                        // File indicator
+                        Text(".cargo/config.toml")
+                            .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, GlassTokens.Spacing.sm)
+                            .padding(.vertical, GlassTokens.Spacing.xs)
+                            .background(GlassTokens.Colors.accent)
+                            .cornerRadius(GlassTokens.Radius.sm)
+                    }
+                    
+                    // Registry Mirror Section
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                        Text("Registry Mirror")
+                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                        
+                        registryMirrorSection
+                    }
+                    
+                    // Cargo Aliases Section
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                        HStack {
+                            Text("Cargo Aliases")
+                                .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                                .foregroundColor(GlassTokens.Colors.textPrimary)
+                            
+                            Spacer()
+                            
+                            Button("+ Add Alias") {
+                                showingAddAlias = true
+                            }
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                            .foregroundColor(GlassTokens.Colors.accent)
+                            .buttonStyle(.plain)
+                        }
+                        
+                        aliasesSection
+                    }
+                    
+                    // Build & Linker Settings Section
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                        Text("Build & Linker Settings")
+                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                        
+                        buildLinkerSection
+                    }
+                    
+                    // Rustflags Section
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                        HStack(spacing: GlassTokens.Spacing.sm) {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: GlassTokens.Typography.headlineSize))
+                                .foregroundColor(GlassTokens.Colors.accent)
+                            Text("Rustflags")
+                                .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                                .foregroundColor(GlassTokens.Colors.textPrimary)
+                        }
+                        
+                        rustflagsSection
+                    }
+                    
+                    // Bottom padding to account for fixed status bar
+                    Spacer()
+                        .frame(height: 100)
                 }
-                // Breadcrumb
-                HStack(spacing: GlassTokens.Spacing.xs) {
-                    Text("Settings")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                    Text("Cargo")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                }
-                
-                // Page Title
-                Text("Cargo Configuration")
-                    .font(.system(size: GlassTokens.Typography.displaySize, weight: .bold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-                
-                // Page Description
-                Text("Optimize your build experience with registry mirrors, aliases, linker options, and proxy settings.")
-                    .font(.system(size: GlassTokens.Typography.bodySize))
-                    .foregroundColor(GlassTokens.Colors.textSecondary)
-                    .padding(.bottom, GlassTokens.Spacing.md)
-                
-                // Registry Mirror
-                registryMirrorSection
-                
-                // Aliases
-                aliasesSection
-                
-                // Linker
-                linkerSection
-                
-                // Rustflags
-                rustflagsSection
-                
-                // Proxy Settings
-                proxySection
-                
-                // Save Button
-                saveButton
+                .padding(GlassTokens.Spacing.xxl)
             }
-            .padding(GlassTokens.Spacing.xxl)
+            
+            // Fixed status bar at bottom
+            VStack {
+                Spacer()
+                statusBar
+                    .padding(.horizontal, GlassTokens.Spacing.xxl)
+                    .padding(.bottom, GlassTokens.Spacing.lg)
+            }
         }
         .task {
             await viewModel.loadConfig(projectPath: projectPath)
+            originalConfig = viewModel.config
+        }
+        .onChange(of: viewModel.config) { _, newConfig in
+            if originalConfig == nil && newConfig != nil {
+                originalConfig = newConfig
+            }
+        }
+        .sheet(isPresented: $showingAddAlias) {
+            addAliasSheet
         }
     }
     
@@ -77,69 +147,90 @@ struct ProjectCargoSettingsView: View {
     @ViewBuilder
     private var registryMirrorSection: some View {
         VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-            HStack(spacing: GlassTokens.Spacing.sm) {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: GlassTokens.Typography.headlineSize))
-                    .foregroundColor(GlassTokens.Colors.accent)
-                Text("Registry Mirror")
-                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-            }
-            
-            Text("Switch to a faster mirror for downloading crates")
-                .font(.system(size: GlassTokens.Typography.captionSize))
+            Text("Select the crate source registry to optimize download speeds.")
+                .font(.system(size: GlassTokens.Typography.bodySize))
                 .foregroundColor(GlassTokens.Colors.textSecondary)
             
-            Picker("Mirror", selection: Binding(
-                get: { viewModel.config?.registryMirror ?? .cratesIo },
-                set: { viewModel.updateRegistryMirror($0 == .cratesIo ? nil : $0) }
-            )) {
+            HStack(spacing: GlassTokens.Spacing.md) {
                 ForEach([
                     ProjectCargoConfig.RegistryMirror.cratesIo,
                     .tsinghua,
                     .ustc,
                     .byteDance
                 ], id: \.self) { mirror in
-                    Text(mirror.displayText).tag(mirror)
+                    registryMirrorButton(mirror: mirror)
                 }
             }
-            .pickerStyle(.menu)
         }
+        .padding(GlassTokens.Spacing.lg)
+        .background(GlassTokens.Colors.cardBackground)
+        .cornerRadius(GlassTokens.Radius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.lg)
+                .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+        )
     }
     
-    // MARK: - Aliases Section
+    @ViewBuilder
+    private func registryMirrorButton(mirror: ProjectCargoConfig.RegistryMirror) -> some View {
+        let isSelected = viewModel.config?.registryMirror == mirror || 
+                        (mirror == .cratesIo && viewModel.config?.registryMirror == nil)
+        
+        Button {
+            viewModel.updateRegistryMirror(mirror == .cratesIo ? nil : mirror)
+        } label: {
+            VStack(spacing: GlassTokens.Spacing.sm) {
+                Image(systemName: mirror.icon)
+                    .font(.system(size: 24))
+                    .foregroundColor(isSelected ? .white : GlassTokens.Colors.textPrimary)
+                
+                Text(mirror.displayText)
+                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                    .foregroundColor(isSelected ? .white : GlassTokens.Colors.textPrimary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(GlassTokens.Spacing.md)
+            .background(isSelected ? GlassTokens.Colors.accent : GlassTokens.Colors.backgroundSecondary)
+            .cornerRadius(GlassTokens.Radius.md)
+        }
+        .buttonStyle(.plain)
+    }
+    
+    // MARK: - Cargo Aliases Section
     
     @ViewBuilder
     private var aliasesSection: some View {
         VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-            HStack {
-                Text("Aliases")
-                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-                
-                Spacer()
-                
-                Button("ADD ALIAS") {
-                    // TODO: Open alias editor
-                }
-                .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
-                .foregroundColor(GlassTokens.Colors.accent)
-            }
-            
             if let aliases = viewModel.config?.aliases, !aliases.isEmpty {
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Table headers
+                    HStack(spacing: GlassTokens.Spacing.md) {
+                        Text("ALIAS")
+                            .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                            .frame(width: 100, alignment: .leading)
+                        
+                        Text("COMMAND")
+                            .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal, GlassTokens.Spacing.md)
+                    .padding(.vertical, GlassTokens.Spacing.sm)
+                    .background(GlassTokens.Colors.backgroundSecondary)
+                    
+                    // Table rows
                     ForEach(Array(aliases.keys.sorted()), id: \.self) { alias in
-                        HStack {
+                        HStack(spacing: GlassTokens.Spacing.md) {
                             Text(alias)
                                 .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
-                                .foregroundColor(GlassTokens.Colors.textPrimary)
-                            
-                            Text("→")
-                                .foregroundColor(GlassTokens.Colors.textSecondary)
+                                .foregroundColor(GlassTokens.Colors.accent)
+                                .frame(width: 100, alignment: .leading)
                             
                             Text(aliases[alias] ?? "")
                                 .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
-                                .foregroundColor(GlassTokens.Colors.textSecondary)
+                                .foregroundColor(GlassTokens.Colors.textPrimary)
                             
                             Spacer()
                             
@@ -147,19 +238,20 @@ struct ProjectCargoSettingsView: View {
                                 viewModel.removeAlias(alias)
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.red)
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
                             }
                             .buttonStyle(.plain)
                         }
-                        .padding(GlassTokens.Spacing.sm)
-                        .background(GlassTokens.Colors.backgroundSecondary)
-                        .cornerRadius(GlassTokens.Radius.sm)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: GlassTokens.Radius.sm)
-                                .stroke(GlassTokens.Colors.divider, lineWidth: GlassTokens.Stroke.thin)
-                        )
+                        .padding(.horizontal, GlassTokens.Spacing.md)
+                        .padding(.vertical, GlassTokens.Spacing.sm)
+                        .background(GlassTokens.Colors.cardBackground)
                     }
                 }
+                .cornerRadius(GlassTokens.Radius.md)
+                .overlay(
+                    RoundedRectangle(cornerRadius: GlassTokens.Radius.md)
+                        .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+                )
             } else {
                 Text("No aliases configured")
                     .font(.system(size: GlassTokens.Typography.bodySize))
@@ -167,36 +259,90 @@ struct ProjectCargoSettingsView: View {
                     .padding(GlassTokens.Spacing.md)
             }
         }
+        .padding(GlassTokens.Spacing.lg)
+        .background(GlassTokens.Colors.cardBackground)
+        .cornerRadius(GlassTokens.Radius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.lg)
+                .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+        )
     }
     
-    // MARK: - Linker Section
+    // MARK: - Build & Linker Settings Section
     
     @ViewBuilder
-    private var linkerSection: some View {
+    private var buildLinkerSection: some View {
         VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-            HStack(spacing: GlassTokens.Spacing.sm) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: GlassTokens.Typography.headlineSize))
-                    .foregroundColor(GlassTokens.Colors.accent)
-                Text("Linker")
-                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-            }
+            // Use Mold Linker
+            buildSettingCard(
+                icon: "checkmark.square.fill",
+                iconColor: GlassTokens.Colors.accent,
+                title: "Use Mold Linker",
+                description: "Enable the high-performance mold linker on Linux systems. Significantly reduces linking time.",
+                isEnabled: viewModel.config?.linker == .mold,
+                onToggle: { enabled in
+                    viewModel.updateLinker(enabled ? .mold : nil)
+                }
+            )
             
-            Text("Use a faster linker to speed up builds")
-                .font(.system(size: GlassTokens.Typography.captionSize))
-                .foregroundColor(GlassTokens.Colors.textSecondary)
-            
-            Picker("Linker", selection: Binding(
-                get: { viewModel.config?.linker ?? .none },
-                set: { viewModel.updateLinker($0 == .none ? nil : $0) }
-            )) {
-                Text("None (Default)").tag(ProjectCargoConfig.LinkerOption.none)
-                Text("mold").tag(ProjectCargoConfig.LinkerOption.mold)
-                Text("zld").tag(ProjectCargoConfig.LinkerOption.zld)
-            }
-            .pickerStyle(.segmented)
+            // Strip Symbols
+            buildSettingCard(
+                icon: "scissors",
+                iconColor: .brown,
+                title: "Strip Symbols",
+                description: "Remove debug symbols from release builds to reduce binary size.",
+                isEnabled: viewModel.config?.stripSymbols == true,
+                onToggle: { enabled in
+                    viewModel.updateStripSymbols(enabled ? true : nil)
+                }
+            )
         }
+        .padding(GlassTokens.Spacing.lg)
+        .background(GlassTokens.Colors.cardBackground)
+        .cornerRadius(GlassTokens.Radius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.lg)
+                .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+        )
+    }
+    
+    @ViewBuilder
+    private func buildSettingCard(
+        icon: String,
+        iconColor: Color,
+        title: String,
+        description: String,
+        isEnabled: Bool,
+        onToggle: @escaping (Bool) -> Void
+    ) -> some View {
+        HStack(alignment: .top, spacing: GlassTokens.Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundColor(iconColor)
+                .frame(width: 24, height: 24)
+            
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                Text(title)
+                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                Text(description)
+                    .font(.system(size: GlassTokens.Typography.captionSize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+            }
+            
+            Spacer()
+            
+            Toggle("", isOn: Binding(
+                get: { isEnabled },
+                set: onToggle
+            ))
+            .toggleStyle(.switch)
+            .tint(GlassTokens.Colors.accent)
+        }
+        .padding(GlassTokens.Spacing.md)
+        .background(GlassTokens.Colors.backgroundSecondary)
+        .cornerRadius(GlassTokens.Radius.md)
     }
     
     // MARK: - Rustflags Section
@@ -204,113 +350,174 @@ struct ProjectCargoSettingsView: View {
     @ViewBuilder
     private var rustflagsSection: some View {
         VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-            HStack(spacing: GlassTokens.Spacing.sm) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: GlassTokens.Typography.headlineSize))
-                    .foregroundColor(GlassTokens.Colors.accent)
-                Text("Rustflags")
-                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-            }
+            Text("Custom compiler flags passed to rustc. Separate multiple flags with spaces.")
+                .font(.system(size: GlassTokens.Typography.bodySize))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
             
             TextEditor(text: Binding(
                 get: { viewModel.config?.rustflags ?? "" },
                 set: { viewModel.updateRustflags($0.isEmpty ? nil : $0) }
             ))
             .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
-            .frame(height: 100)
+            .frame(height: 120)
             .padding(GlassTokens.Spacing.sm)
             .background(GlassTokens.Colors.backgroundSecondary)
-            .cornerRadius(GlassTokens.Radius.sm)
+            .cornerRadius(GlassTokens.Radius.md)
             .overlay(
-                RoundedRectangle(cornerRadius: GlassTokens.Radius.sm)
+                RoundedRectangle(cornerRadius: GlassTokens.Radius.md)
                     .stroke(GlassTokens.Colors.divider, lineWidth: GlassTokens.Stroke.thin)
             )
         }
+        .padding(GlassTokens.Spacing.lg)
+        .background(GlassTokens.Colors.cardBackground)
+        .cornerRadius(GlassTokens.Radius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.lg)
+                .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+        )
     }
     
-    // MARK: - Proxy Section
+    // MARK: - Add Alias Sheet
     
     @ViewBuilder
-    private var proxySection: some View {
-        VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-            HStack(spacing: GlassTokens.Spacing.sm) {
-                Image(systemName: "network")
-                    .font(.system(size: GlassTokens.Typography.headlineSize))
-                    .foregroundColor(GlassTokens.Colors.accent)
-                Text("Proxy Settings")
-                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+    private var addAliasSheet: some View {
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+            Text("Add Cargo Alias")
+                .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                .foregroundColor(GlassTokens.Colors.textPrimary)
+            
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                Text("Alias Name")
+                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
                     .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                TextField("e.g., b", text: $newAliasName)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
+                    .padding(GlassTokens.Spacing.sm)
+                    .background(GlassTokens.Colors.backgroundSecondary)
+                    .cornerRadius(GlassTokens.Radius.sm)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: GlassTokens.Radius.sm)
+                            .stroke(GlassTokens.Colors.divider, lineWidth: GlassTokens.Stroke.thin)
+                    )
             }
             
             VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                Text("HTTP Proxy")
+                Text("Command")
                     .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
                 
-                TextField("http://proxy.example.com:8080", text: Binding(
-                    get: { viewModel.config?.proxySettings?.httpProxy ?? "" },
-                    set: { value in
-                        var proxy = viewModel.config?.proxySettings ?? ProjectCargoConfig.ProxySettings()
-                        proxy.httpProxy = value.isEmpty ? nil : value
-                        viewModel.updateProxySettings(proxy)
-                    }
-                ))
-                .textFieldStyle(.plain)
-                .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
-                .padding(GlassTokens.Spacing.sm)
-                .background(GlassTokens.Colors.backgroundSecondary)
-                .cornerRadius(GlassTokens.Radius.sm)
-                .overlay(
-                    RoundedRectangle(cornerRadius: GlassTokens.Radius.sm)
-                        .stroke(GlassTokens.Colors.divider, lineWidth: GlassTokens.Stroke.thin)
-                )
+                TextField("e.g., build", text: $newAliasCommand)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
+                    .padding(GlassTokens.Spacing.sm)
+                    .background(GlassTokens.Colors.backgroundSecondary)
+                    .cornerRadius(GlassTokens.Radius.sm)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: GlassTokens.Radius.sm)
+                            .stroke(GlassTokens.Colors.divider, lineWidth: GlassTokens.Stroke.thin)
+                    )
             }
             
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                Text("HTTPS Proxy")
-                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+            Spacer()
+            
+            HStack(spacing: GlassTokens.Spacing.md) {
+                Button("Cancel") {
+                    showingAddAlias = false
+                    newAliasName = ""
+                    newAliasCommand = ""
+                }
+                .font(.system(size: GlassTokens.Typography.bodySize))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
+                .buttonStyle(.plain)
                 
-                TextField("https://proxy.example.com:8080", text: Binding(
-                    get: { viewModel.config?.proxySettings?.httpsProxy ?? "" },
-                    set: { value in
-                        var proxy = viewModel.config?.proxySettings ?? ProjectCargoConfig.ProxySettings()
-                        proxy.httpsProxy = value.isEmpty ? nil : value
-                        viewModel.updateProxySettings(proxy)
+                Spacer()
+                
+                Button("Add") {
+                    if !newAliasName.isEmpty && !newAliasCommand.isEmpty {
+                        viewModel.addAlias(name: newAliasName, command: newAliasCommand)
+                        showingAddAlias = false
+                        newAliasName = ""
+                        newAliasCommand = ""
                     }
-                ))
-                .textFieldStyle(.plain)
-                .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
-                .padding(GlassTokens.Spacing.sm)
-                .background(GlassTokens.Colors.backgroundSecondary)
-                .cornerRadius(GlassTokens.Radius.sm)
-                .overlay(
-                    RoundedRectangle(cornerRadius: GlassTokens.Radius.sm)
-                        .stroke(GlassTokens.Colors.divider, lineWidth: GlassTokens.Stroke.thin)
-                )
+                }
+                .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, GlassTokens.Spacing.lg)
+                .padding(.vertical, GlassTokens.Spacing.md)
+                .background(GlassTokens.Colors.accent)
+                .cornerRadius(GlassTokens.Radius.md)
+                .buttonStyle(.plain)
+                .disabled(newAliasName.isEmpty || newAliasCommand.isEmpty)
             }
         }
+        .padding(GlassTokens.Spacing.xxl)
+        .frame(width: 500, height: 300)
     }
     
-    // MARK: - Save Button
+    // MARK: - Status Bar
     
     @ViewBuilder
-    private var saveButton: some View {
-        Button {
-            Task {
-                do {
-                    try await viewModel.saveConfig()
-                } catch {
-                    // Error is handled by viewModel.error
+    private var statusBar: some View {
+        SettingsStatusBar(
+            hasChanges: hasUnsavedChanges(),
+            changeCount: countChanges(),
+            statusMessage: hasUnsavedChanges() ? nil : "All systems operational!",
+            isLoading: viewModel.isLoading,
+            onDiscard: {
+                discardChanges()
+            },
+            onSave: {
+                Task {
+                    do {
+                        try await viewModel.saveConfig()
+                        originalConfig = viewModel.config
+                    } catch {
+                        // Error is handled by viewModel.error
+                    }
                 }
             }
-        } label: {
-            Text("Save Configuration")
-                .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
-                .frame(maxWidth: .infinity)
-                .padding(GlassTokens.Spacing.md)
+        )
+    }
+    
+    // MARK: - Change Tracking
+    
+    private func hasUnsavedChanges() -> Bool {
+        guard let current = viewModel.config, let original = originalConfig else {
+            return false
         }
-        .primaryGlassButtonStyle()
-        .disabled(viewModel.isLoading)
+        return current != original
+    }
+    
+    private func countChanges() -> Int {
+        guard let current = viewModel.config, let original = originalConfig else {
+            return 0
+        }
+        
+        var count = 0
+        
+        if current.registryMirror != original.registryMirror {
+            count += 1
+        }
+        if current.aliases != original.aliases {
+            count += 1
+        }
+        if current.linker != original.linker {
+            count += 1
+        }
+        if current.stripSymbols != original.stripSymbols {
+            count += 1
+        }
+        if current.rustflags != original.rustflags {
+            count += 1
+        }
+        
+        return count
+    }
+    
+    private func discardChanges() {
+        viewModel.config = originalConfig
     }
     
     // MARK: - Error Banner

@@ -8,25 +8,28 @@
 import Foundation
 
 /// Represents Cargo build configuration for a project, stored in .cargo/config.toml
-struct ProjectCargoConfig: Codable, Sendable {
+struct ProjectCargoConfig: Codable, Sendable, Equatable {
     var registryMirror: RegistryMirror?
     var aliases: [String: String]
     var linker: LinkerOption?
     var rustflags: String?
     var proxySettings: ProxySettings?
+    var stripSymbols: Bool?
     
     init(
         registryMirror: RegistryMirror? = nil,
         aliases: [String: String] = [:],
         linker: LinkerOption? = nil,
         rustflags: String? = nil,
-        proxySettings: ProxySettings? = nil
+        proxySettings: ProxySettings? = nil,
+        stripSymbols: Bool? = nil
     ) {
         self.registryMirror = registryMirror
         self.aliases = aliases
         self.linker = linker
         self.rustflags = rustflags
         self.proxySettings = proxySettings
+        self.stripSymbols = stripSymbols
     }
     
     enum RegistryMirror: String, Codable, Sendable {
@@ -37,10 +40,19 @@ struct ProjectCargoConfig: Codable, Sendable {
         
         var displayText: String {
             switch self {
-            case .cratesIo: return "Crates.io (Default)"
+            case .cratesIo: return "Crates.io"
             case .tsinghua: return "Tsinghua"
             case .ustc: return "USTC"
             case .byteDance: return "ByteDance"
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .cratesIo: return "globe"
+            case .tsinghua: return "server.rack"
+            case .ustc: return "graduationcap"
+            case .byteDance: return "building.2"
             }
         }
         
@@ -68,7 +80,7 @@ struct ProjectCargoConfig: Codable, Sendable {
         }
     }
     
-    struct ProxySettings: Codable, Sendable {
+    struct ProxySettings: Codable, Sendable, Equatable {
         var httpProxy: String?
         var httpsProxy: String?
         

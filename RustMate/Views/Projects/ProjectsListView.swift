@@ -138,29 +138,7 @@ struct ProjectsListView: View {
 
     @ViewBuilder
     private var projectsList: some View {
-        VStack(spacing: 0) {
-            // Top header with logo and title
-            VStack(spacing: GlassTokens.Spacing.sm) {
-                HStack(spacing: GlassTokens.Spacing.md) {
-                    Image(systemName: "wrench.and.screwdriver.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.orange)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Rust Manager")
-                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .bold))
-                            .foregroundColor(GlassTokens.Colors.textPrimary)
-                        Text("Workspace v2.0")
-                            .font(.system(size: GlassTokens.Typography.captionSize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                    }
-                }
-                .padding(.horizontal, GlassTokens.Spacing.md)
-                .padding(.top, GlassTokens.Spacing.md)
-                
-                Divider()
-            }
-            
+        VStack(spacing: 0) {    
             // PROJECTS section header
             VStack(spacing: GlassTokens.Spacing.sm) {
                 HStack {
@@ -168,12 +146,14 @@ struct ProjectsListView: View {
                         .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
                         .foregroundColor(GlassTokens.Colors.textSecondary)
                         .tracking(0.5)
-                    
+
                     Spacer()
                 }
                 .padding(.horizontal, GlassTokens.Spacing.md)
                 .padding(.top, GlassTokens.Spacing.md)
             }
+            .padding(.horizontal, GlassTokens.Spacing.md)
+            .padding(.vertical, GlassTokens.Spacing.md)
 
             // Project list
             List(filteredProjects, selection: $viewModel.selectedProject) { project in
@@ -182,7 +162,7 @@ struct ProjectsListView: View {
                     Circle()
                         .fill(healthStatusColor(for: project))
                         .frame(width: 10, height: 10)
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text(project.displayName)
                             .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
