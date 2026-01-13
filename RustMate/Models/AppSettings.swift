@@ -8,7 +8,9 @@ struct AppSettings: Codable, Sendable {
     var overrideStrategy: OverrideStrategy
     var authorizedDirectories: [AuthorizedDirectory]
     var autoRefreshOnActivation: Bool
+    var refreshIntervalSeconds: Int
     var enableTaskNotifications: Bool
+    var enableToolchainUpdateNotifications: Bool
     
     // T006: Update channel preference (stable/beta)
     var updateChannel: UpdateChannel
@@ -19,7 +21,9 @@ struct AppSettings: Codable, Sendable {
         overrideStrategy: OverrideStrategy = .toolchainFile,
         authorizedDirectories: [AuthorizedDirectory] = [],
         autoRefreshOnActivation: Bool = true,
+        refreshIntervalSeconds: Int = 30,
         enableTaskNotifications: Bool = true,
+        enableToolchainUpdateNotifications: Bool = false,
         updateChannel: UpdateChannel = .stable
     ) {
         self.rustupPath = rustupPath
@@ -27,7 +31,9 @@ struct AppSettings: Codable, Sendable {
         self.overrideStrategy = overrideStrategy
         self.authorizedDirectories = authorizedDirectories
         self.autoRefreshOnActivation = autoRefreshOnActivation
+        self.refreshIntervalSeconds = refreshIntervalSeconds
         self.enableTaskNotifications = enableTaskNotifications
+        self.enableToolchainUpdateNotifications = enableToolchainUpdateNotifications
         self.updateChannel = updateChannel
     }
 

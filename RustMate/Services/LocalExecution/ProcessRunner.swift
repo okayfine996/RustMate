@@ -23,7 +23,7 @@ struct ProcessResult {
 }
 
 /// Async process runner that captures output and enforces truncation
-actor ProcessRunner {
+actor ProcessRunner: ProcessRunnerProtocol {
 
     /// Runs a command asynchronously and returns structured output
     /// - Parameters:

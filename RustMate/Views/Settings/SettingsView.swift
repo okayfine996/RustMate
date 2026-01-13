@@ -208,7 +208,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var pageHeaderView: some View {
         VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-            Text("\(selectedSection.rawValue) Settings")
+            Text(pageTitle)
                 .font(.system(size: GlassTokens.Typography.titleSize, weight: .bold))
                 .foregroundColor(GlassTokens.Colors.textPrimary)
             
@@ -221,11 +221,22 @@ struct SettingsView: View {
     private var pageDescription: String {
         switch selectedSection {
         case .general:
-            return "Configure your local Rust environment, toolchains, and UI preferences."
+            return "Manage your environment configuration, UI preferences, and system notifications."
         case .permissions:
             return "Manage file access permissions for RustMate to access required directories."
         case .advanced:
-            return "Advanced settings and system configuration options."
+            return "Manage application update channels, version control, and reset configurations."
+        }
+    }
+    
+    private var pageTitle: String {
+        switch selectedSection {
+        case .general:
+            return "General Settings"
+        case .permissions:
+            return "\(selectedSection.rawValue) Settings"
+        case .advanced:
+            return "Advanced & Updates"
         }
     }
 
@@ -253,9 +264,6 @@ struct SettingsView: View {
             // Application Updates
             updatesSection
             
-            // Project Override Strategy
-            projectOverrideSection
-            
             // Danger Zone
             dangerZoneSection
         }
@@ -265,95 +273,90 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var rustupConfigurationSection: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
-                // Header with icon
-                HStack(spacing: GlassTokens.Spacing.md) {
-                    Image(systemName: "terminal")
-                        .font(.system(size: GlassTokens.Typography.titleSize))
-                        .foregroundColor(GlassTokens.Colors.accent)
-                    
-                    Text("Rustup Configuration")
-                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
-                }
-                
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                    // Default Toolchain (simplified - using rustup path as fallback)
-                    settingRow(
-                        label: "Default Toolchain",
-                        description: "The toolchain to use when no override is set.",
-                        content: {
-                            if let version = viewModel.rustupVersion {
-                                Text(version)
-                                    .font(.system(size: GlassTokens.Typography.bodySize))
-                                    .foregroundColor(GlassTokens.Colors.textSecondary)
-                            } else {
-                                Text("Auto-detect")
-                                    .font(.system(size: GlassTokens.Typography.bodySize))
-                                    .foregroundColor(GlassTokens.Colors.textSecondary)
-                            }
-                        }
-                    )
-                    
-                    // Installation Profile (placeholder for future feature)
-                    settingRow(
-                        label: "Installation Profile",
-                        description: "Set of components installed by default.",
-                        content: {
-                            Text("Default (Recommended)")
-                                .font(.system(size: GlassTokens.Typography.bodySize))
-                                .foregroundColor(GlassTokens.Colors.textSecondary)
-                        }
-                    )
-                    
-                    // Auto-update Toolchains
-                    settingRow(
-                        label: "Auto-update Toolchains",
-                        description: "Automatically check for updates on startup.",
-                        content: {
-                            Toggle("", isOn: .constant(true))
-                                .toggleStyle(.switch)
-                        }
-                    )
-                    
-                    Divider()
-                        .padding(.vertical, GlassTokens.Spacing.xs)
-                    
-                    // Rustup Path (advanced)
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+            // Header with icon (outside card)
+            HStack(spacing: GlassTokens.Spacing.md) {                
+                Text("Rustup Configuration")
+                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+            }
+            
+            GlassCard {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+                    // Rustup Binary Path
                     VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                        Text("Rustup Path:")
-                            .font(.system(size: GlassTokens.Typography.calloutSize, weight: .semibold))
+                        Text("Rustup Binary Path")
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
                             .foregroundColor(GlassTokens.Colors.textPrimary)
                         
                         HStack(spacing: GlassTokens.Spacing.sm) {
-                            TextField("Auto-detect", text: $viewModel.rustupPath)
-                                .textFieldStyle(.roundedBorder)
-                                .disabled(true)
+                            TextField("", text: $viewModel.rustupPath)
+                                .textFieldStyle(.plain)
+                                .padding(GlassTokens.Spacing.sm)
+                                .background(GlassTokens.Colors.backgroundSecondary)
+                                .cornerRadius(GlassTokens.Radius.md)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: GlassTokens.Radius.md)
+                                        .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+                                )
                             
-                            Button("Browse...") {
+                            Button {
                                 viewModel.browseForRustup()
+                            } label: {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: GlassTokens.Typography.bodySize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
                             }
-                            .secondaryGlassButtonStyle()
+                            .buttonStyle(.plain)
                         }
                     }
                     
-                    // Version info
-                    if let version = viewModel.rustupVersion {
-                        VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
-                            Text("Version: \(version)")
-                                .font(.system(size: GlassTokens.Typography.bodySize))
-                                .foregroundColor(GlassTokens.Colors.textSecondary)
+                    // Rustup Version and Check for Updates button
+                    HStack {
+                        // Rustup Version
+                        if let rustupVersion = viewModel.rustupVersion {
+                            HStack(spacing: GlassTokens.Spacing.sm) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: GlassTokens.Typography.bodySize))
+                                    .foregroundColor(.green)
+                                
+                                Text("Rustup: \(rustupVersion)")
+                                    .font(.system(size: GlassTokens.Typography.bodySize))
+                                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                            }
                         }
-                    }
-                    
-                    Button("Validate Environment") {
-                        Task {
-                            await viewModel.validateEnvironment()
+                        
+                        Spacer()
+                        
+                        // Check for Updates button
+                        Button {
+                            viewModel.checkForRustupUpdates()
+                        } label: {
+                            HStack(spacing: GlassTokens.Spacing.xs) {
+                                if viewModel.isCheckingUpdates {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                        .progressViewStyle(.circular)
+                                        .tint(.white)
+                                        .frame(width: 16, height: 16)
+                                } else {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.system(size: GlassTokens.Typography.bodySize))
+                                        .frame(width: 16, height: 16)
+                                }
+                                Text("Check for Updates")
+                                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, GlassTokens.Spacing.lg)
+                            .padding(.vertical, GlassTokens.Spacing.md)
+                            .background(GlassTokens.Colors.accent)
+                            .cornerRadius(GlassTokens.Radius.md)
+                            .frame(minWidth: 160)
                         }
+                        .buttonStyle(.plain)
+                        .disabled(viewModel.isCheckingUpdates)
                     }
-                    .primaryGlassButtonStyle()
-                    .padding(.top, GlassTokens.Spacing.xs)
                 }
             }
         }
@@ -411,64 +414,114 @@ struct SettingsView: View {
     private var uiPreferencesWithNotificationsSection: some View {
         VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
             // UI Preferences
-            GlassCard {
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
-                    // Header with icon
-                    HStack(spacing: GlassTokens.Spacing.md) {
-                        Image(systemName: "display")
-                            .font(.system(size: GlassTokens.Typography.titleSize))
-                            .foregroundColor(GlassTokens.Colors.accent)
-                        
-                        Text("UI Preferences")
-                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
-                            .foregroundColor(GlassTokens.Colors.textPrimary)
-                    }
-                    
-                    settingRow(
-                        label: "Auto-refresh Dashboard",
-                        description: "Keep project lists and statuses up to date in the background.",
-                        content: {
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+
+                Text("UI Preferences")
+                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                GlassCard {
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+                        // Auto-refresh Dashboard
+                        HStack {
+                            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                                Text("Auto-refresh Dashboard")
+                                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                                
+                                Text("Automatically reload project status periodically.")
+                                    .font(.system(size: GlassTokens.Typography.captionSize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                            }
+                            
+                            Spacer()
+                            
                             Toggle("", isOn: $viewModel.autoRefresh)
                                 .toggleStyle(.switch)
+                                .onChange(of: viewModel.autoRefresh) { _ in
+                                    viewModel.saveSettings()
+                                }
                         }
-                    )
+                        
+                        // Refresh Interval
+                        VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                            Text("Refresh Interval (seconds)")
+                                .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                                .foregroundColor(GlassTokens.Colors.textPrimary)
+                            
+                            HStack(spacing: GlassTokens.Spacing.sm) {
+                                TextField("", value: $viewModel.refreshIntervalSeconds, format: .number)
+                                    .textFieldStyle(.plain)
+                                    .frame(width: 80)
+                                    .padding(GlassTokens.Spacing.sm)
+                                    .background(GlassTokens.Colors.backgroundSecondary)
+                                    .cornerRadius(GlassTokens.Radius.md)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: GlassTokens.Radius.md)
+                                            .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+                                    )
+                                    .onChange(of: viewModel.refreshIntervalSeconds) { _ in
+                                        viewModel.saveSettings()
+                                    }
+                                
+                                Text("sec")
+                                    .font(.system(size: GlassTokens.Typography.bodySize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                            }
+                        }
+                    }
                 }
             }
             
             // Notifications
-            GlassCard {
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
-                    // Header with icon
-                    HStack(spacing: GlassTokens.Spacing.md) {
-                        Image(systemName: "bell")
-                            .font(.system(size: GlassTokens.Typography.titleSize))
-                            .foregroundColor(GlassTokens.Colors.accent)
-                        
-                        Text("Notifications")
-                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
-                            .foregroundColor(GlassTokens.Colors.textPrimary)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                        // Build Failures
-                        settingRow(
-                            label: "Build Failures",
-                            description: "Notify me when a background build fails.",
-                            content: {
-                                Toggle("", isOn: $viewModel.enableTaskNotifications)
-                                    .toggleStyle(.switch)
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+                Text("Notifications")
+                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                        .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                GlassCard {
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+                        // Build Failure
+                        HStack {
+                            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                                Text("Build Failure")
+                                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                                
+                                Text("Get notified immediately when a compilation fails.")
+                                    .font(.system(size: GlassTokens.Typography.captionSize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
                             }
-                        )
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: $viewModel.enableTaskNotifications)
+                                .toggleStyle(.switch)
+                                .onChange(of: viewModel.enableTaskNotifications) { _ in
+                                    viewModel.saveSettings()
+                                }
+                        }
                         
-                        // Toolchain Updates Available
-                        settingRow(
-                            label: "Toolchain Updates Available",
-                            description: "Notify when a new stable version is released.",
-                            content: {
-                                Toggle("", isOn: .constant(false))
-                                    .toggleStyle(.switch)
+                        // Toolchain Updates
+                        HStack {
+                            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                                Text("Toolchain Updates")
+                                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                                
+                                Text("Receive alerts when new stable Rust versions are released.")
+                                    .font(.system(size: GlassTokens.Typography.captionSize))
+                                    .foregroundColor(GlassTokens.Colors.textSecondary)
                             }
-                        )
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: $viewModel.enableToolchainUpdateNotifications)
+                                .toggleStyle(.switch)
+                                .onChange(of: viewModel.enableToolchainUpdateNotifications) { _ in
+                                    viewModel.saveSettings()
+                                }
+                        }
                     }
                 }
             }
@@ -479,24 +532,48 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var permissionsSection: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                    Text("File Access Permissions")
-                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
+            // Information Box
+            HStack(alignment: .top, spacing: GlassTokens.Spacing.md) {
+                // Info Icon
+                ZStack {
+                    Circle()
+                        .fill(GlassTokens.Colors.accent)
+                        .frame(width: 32, height: 32)
+                    
+                    Text("i")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                
+                // Info Content
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                    Text("Why are these permissions required?")
+                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
                         .foregroundColor(GlassTokens.Colors.textPrimary)
-
-                    Text("RustMate uses Security-Scoped Bookmarks to access files within the macOS App Sandbox.")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
+                    
+                    Text("This application needs read/write access to your local Rust toolchain directories for toolchain configuration and management. These permissions are required for the GUI to execute rustup commands safely on your behalf.")
+                        .font(.system(size: GlassTokens.Typography.bodySize))
                         .foregroundColor(GlassTokens.Colors.textSecondary)
                 }
+            }
+            .padding(GlassTokens.Spacing.lg)
+            .background(GlassTokens.Colors.backgroundSecondary)
+            .cornerRadius(GlassTokens.Radius.lg)
+            
+            // Section Header
+            Text("CRITICAL DIRECTORIES")
+                .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
+                .foregroundColor(GlassTokens.Colors.textSecondary)
+                .tracking(0.5)
+                .padding(.top, GlassTokens.Spacing.md)
 
-                VStack(spacing: GlassTokens.Spacing.md) {
+            VStack(spacing: GlassTokens.Spacing.md) {
                     // Rustup Executable Directory
                     permissionRow(
-                        title: "Rustup Executable Directory",
+                        title: "Rustup Bin Directory",
                         description: "Required to run rustup and cargo executables",
-                        path: "~/.cargo/bin",
+                        path: viewModel.settings.authorizedDirectory(for: .rustupExecutableDir)?.path ?? "~/.cargo/bin",
                         isAuthorized: viewModel.hasRustupExecutableDir,
                         state: viewModel.authorizationStates[.rustupExecutableDir] ?? .missing,
                         purpose: .rustupExecutableDir,
@@ -510,9 +587,9 @@ struct SettingsView: View {
 
                     // Cargo Home
                     permissionRow(
-                        title: "Cargo Home Directory",
+                        title: "Cargo Home",
                         description: "Required for Cargo configuration and cache",
-                        path: "~/.cargo",
+                        path: viewModel.settings.authorizedDirectory(for: .cargoHome)?.path ?? "~/.cargo",
                         isAuthorized: viewModel.hasCargoHome,
                         state: viewModel.authorizationStates[.cargoHome] ?? .missing,
                         purpose: .cargoHome,
@@ -526,9 +603,9 @@ struct SettingsView: View {
 
                     // Rustup Home
                     permissionRow(
-                        title: "Rustup Home Directory",
+                        title: "Rustup Home",
                         description: "Required to access installed toolchains",
-                        path: "~/.rustup",
+                        path: viewModel.settings.authorizedDirectory(for: .rustupHome)?.path ?? "~/.rustup",
                         isAuthorized: viewModel.hasRustupHome,
                         state: viewModel.authorizationStates[.rustupHome] ?? .missing,
                         purpose: .rustupHome,
@@ -539,7 +616,6 @@ struct SettingsView: View {
                             viewModel.removeBookmark(purpose: .rustupHome)
                         }
                     )
-                }
             }
         }
     }
@@ -555,55 +631,57 @@ struct SettingsView: View {
         authorizeAction: @escaping () -> Void,
         removeAction: @escaping () -> Void
     ) -> some View {
-        GlassCard(elevation: 2) {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                HStack(spacing: GlassTokens.Spacing.md) {
-                    Image(systemName: state.iconName)
-                        .font(.system(size: GlassTokens.Typography.titleSize))
-                        .foregroundColor(colorForState(state))
-
-                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
-                        HStack(spacing: GlassTokens.Spacing.sm) {
-                            Text(title)
-                                .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
-                                .foregroundColor(GlassTokens.Colors.textPrimary)
-
-                            // Status badge
-                            StatusBadgeView(status: badgeStatusForState(state), text: state.displayText)
-                        }
-
-                        Text(description)
-                            .font(.system(size: GlassTokens.Typography.captionSize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                    }
-
-                    Spacer()
-
-                    if isAuthorized {
-                        if state == .stale || state == .invalid {
-                            Button("Re-authorize...") {
-                                authorizeAction()
+        GlassCard {
+            HStack(spacing: GlassTokens.Spacing.md) {
+                // Icon
+                Image(systemName: "folder.fill.badge.gearshape")
+                    .font(.system(size: 20))
+                    .foregroundColor(GlassTokens.Colors.accent)
+                
+                // Title, Status, and Path
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                    // Title and Status Badge
+                    HStack(spacing: GlassTokens.Spacing.sm) {
+                        Text(title)
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                        
+                        if isAuthorized && state == .authorized {
+                            HStack(spacing: GlassTokens.Spacing.xs) {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.green)
+                                Text("Authorized")
+                                    .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
+                                    .foregroundColor(.green)
                             }
-                            .primaryGlassButtonStyle()
-                        } else {
-                            Button("Remove") {
-                                removeAction()
-                            }
-                            .secondaryGlassButtonStyle()
+                            .padding(.horizontal, GlassTokens.Spacing.sm)
+                            .padding(.vertical, GlassTokens.Spacing.xs)
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(GlassTokens.Radius.pill)
                         }
-                    } else {
-                        Button("Authorize...") {
-                            authorizeAction()
-                        }
-                        .primaryGlassButtonStyle()
                     }
+                    
+                    // Path in gray rounded rectangle
+                    Text(path)
+                        .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                        .padding(GlassTokens.Spacing.sm)
+                        .background(GlassTokens.Colors.backgroundSecondary)
+                        .cornerRadius(GlassTokens.Radius.md)
                 }
-
-                Text("Path: \(path)")
-                    .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
-                    .foregroundColor(GlassTokens.Colors.textSecondary)
-                    .padding(.leading, GlassTokens.Spacing.xxxl)
+                
+                Spacer()
+                
+                // Change Path button
+                Button("Change Path...") {
+                    authorizeAction()
+                }
+                .font(.system(size: GlassTokens.Typography.bodySize))
+                .foregroundColor(GlassTokens.Colors.accent)
+                .buttonStyle(.plain)
             }
+            .padding(GlassTokens.Spacing.md)
         }
     }
 
@@ -625,162 +703,189 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Updates Section (T012, T014)
+    // MARK: - Updates Section
 
     @ViewBuilder
     private var updatesSection: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                    Text("Application Updates")
-                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
-                    
-                    Text("Automatically check for and download updates")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                }
-                
-                // T015/T018: Beta channel toggle with current channel display
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                    Toggle("Receive Beta Updates", isOn: Binding(
-                        get: { updateService.currentChannel == .beta },
-                        set: { isBeta in
-                            let newChannel: AppSettings.UpdateChannel = isBeta ? .beta : .stable
-                            // T016: Update channel preference in settings
-                            viewModel.settings.updateChannel = newChannel
-                            // T017: Switch update service to new channel (this will trigger UI update via @Published)
-                            updateService.switchChannel(to: newChannel)
-                        }
-                    ))
-                    .toggleStyle(.switch)
-                    
-                    // T018: Display current channel
-                    HStack(spacing: GlassTokens.Spacing.xs) {
-                        Text("Current channel:")
-                            .font(.system(size: GlassTokens.Typography.captionSize))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+                // Header with status badge
+                HStack {
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                        Text("Application Updates")
+                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
                         
-                        Text(updateService.currentChannel.displayText)
-                            .font(.system(size: GlassTokens.Typography.captionSize, weight: .semibold))
-                            .foregroundColor(updateService.currentChannel == .beta ? GlassTokens.Colors.warning : GlassTokens.Colors.success)
+                        Text("Configure how and when the app updates.")
+                            .font(.system(size: GlassTokens.Typography.bodySize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
                     }
-                    
-                    Text(updateService.currentChannel == .beta 
-                        ? "You'll receive early access to new features and improvements"
-                        : "You'll receive stable, tested releases")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                }
-                
-                Divider()
-                
-                // T014: Display update state
-                HStack(spacing: GlassTokens.Spacing.md) {
-                    updateStateIndicator
                     
                     Spacer()
                     
-                    // T012: Check for Updates button
-                    Button("Check for Updates") {
-                        updateService.checkForUpdates()
+                    // Status badge
+                    if updateService.updateState == .idle || updateService.updateState == .noUpdate {
+                        HStack(spacing: GlassTokens.Spacing.xs) {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 6, height: 6)
+                            Text("Up to date")
+                                .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
+                                .foregroundColor(GlassTokens.Colors.textPrimary)
+                        }
+                        .padding(.horizontal, GlassTokens.Spacing.sm)
+                        .padding(.vertical, GlassTokens.Spacing.xs)
+                        .background(Color.green.opacity(0.1))
+                        .cornerRadius(GlassTokens.Radius.pill)
                     }
-                    .primaryGlassButtonStyle()
-                    .disabled(updateService.isUpdating)
                 }
                 
-                // T014: Show detailed state information
-                if case .updateAvailable(let info) = updateService.updateState {
-                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
-                        Text("Version \(info.version) is available")
-                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
-                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                // Current Version and Check for Updates
+                HStack(spacing: GlassTokens.Spacing.lg) {
+                    // Current Version box
+                    HStack(spacing: GlassTokens.Spacing.sm) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(GlassTokens.Colors.accent)
                         
-                        if let size = info.formattedSize {
-                            Text("Download size: \(size)")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Current Version")
+                                .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                                .foregroundColor(GlassTokens.Colors.textPrimary)
+                            
+                            Text("v\(currentAppVersion) (\(updateService.currentChannel.displayText))")
                                 .font(.system(size: GlassTokens.Typography.captionSize))
                                 .foregroundColor(GlassTokens.Colors.textSecondary)
                         }
-                        
-                        if let notesURL = info.releaseNotesURL {
-                            Link("View Release Notes", destination: notesURL)
-                                .font(.system(size: GlassTokens.Typography.captionSize))
-                        }
                     }
-                    .padding(.top, GlassTokens.Spacing.sm)
+                    .padding(GlassTokens.Spacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(GlassTokens.Colors.backgroundSecondary)
+                    .cornerRadius(GlassTokens.Radius.md)
+                    
+                    // Check for Updates button
+                    Button {
+                        updateService.checkForUpdates()
+                    } label: {
+                        HStack(spacing: GlassTokens.Spacing.xs) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: GlassTokens.Typography.bodySize))
+                            Text("Check for Updates")
+                                .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, GlassTokens.Spacing.lg)
+                        .padding(.vertical, GlassTokens.Spacing.md)
+                        .background(GlassTokens.Colors.accent)
+                        .cornerRadius(GlassTokens.Radius.md)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(updateService.isUpdating)
                 }
                 
-                // T014/T020: Show error details with retry option
-                if case .failed(let error) = updateService.updateState {
-                    ErrorCalloutView(
-                        title: error.userMessage,
-                        message: error.recoverySuggestion,
-                        retryAction: {
-                            updateService.checkForUpdates()
-                        },
-                        errorDetails: error.debugContext?.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
-                    )
-                    .padding(.top, GlassTokens.Spacing.sm)
+                // Update Channel and Auto-download
+                HStack(alignment: .top, spacing: GlassTokens.Spacing.lg) {
+                    // Update Channel
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                        Text("Update Channel")
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                        
+                        Picker("", selection: Binding(
+                            get: { updateService.currentChannel },
+                            set: { newChannel in
+                                viewModel.settings.updateChannel = newChannel
+                                updateService.switchChannel(to: newChannel)
+                            }
+                        )) {
+                            Text("Stable (Recommended)").tag(AppSettings.UpdateChannel.stable)
+                            Text("Beta").tag(AppSettings.UpdateChannel.beta)
+                        }
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .labelsHidden()
+                        
+                        Text("Beta builds may be unstable but offer the latest Rust tooling features.")
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    // Auto-download
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                        Text("Auto-download")
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+                        
+                        Toggle("", isOn: Binding(
+                            get: { updateService.automaticallyDownloadsUpdates },
+                            set: { updateService.automaticallyDownloadsUpdates = $0 }
+                        ))
+                        .toggleStyle(.switch)
+                        
+                        Text("Automatically download updates")
+                            .font(.system(size: GlassTokens.Typography.captionSize))
+                            .foregroundColor(GlassTokens.Colors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
     }
     
-    @ViewBuilder
-    private var updateStateIndicator: some View {
-        HStack(spacing: GlassTokens.Spacing.sm) {
-            // State icon
-            Group {
-                switch updateService.updateState {
-                case .idle, .noUpdate:
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(GlassTokens.Colors.success)
-                case .checking:
-                    ProgressView()
-                        .scaleEffect(0.8)
-                case .updateAvailable:
-                    Image(systemName: "arrow.down.circle.fill")
-                        .foregroundColor(GlassTokens.Colors.warning)
-                case .downloading:
-                    ProgressView()
-                        .scaleEffect(0.8)
-                case .readyToInstall:
-                    Image(systemName: "arrow.clockwise.circle.fill")
-                        .foregroundColor(GlassTokens.Colors.success)
-                case .failed:
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(GlassTokens.Colors.error)
-                }
-            }
-            .font(.system(size: GlassTokens.Typography.titleSize))
-            
-            // State text
-            Text(updateService.stateDisplayText)
-                .font(.system(size: GlassTokens.Typography.bodySize))
-                .foregroundColor(GlassTokens.Colors.textPrimary)
+    // MARK: - Helper Properties
+    
+    private var currentAppVersion: String {
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            return version
         }
+        return "1.0.0"
     }
 
     // MARK: - Danger Zone Section
 
     @ViewBuilder
     private var dangerZoneSection: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
-                    Text("Danger Zone")
-                        .font(.system(size: GlassTokens.Typography.headlineSize, weight: GlassTokens.Typography.headlineWeight))
+        VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
+            // Header
+            HStack(spacing: GlassTokens.Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: GlassTokens.Typography.headlineSize))
+                    .foregroundColor(.red)
+                
+                Text("Danger Zone")
+                    .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+            }
+            
+            // Reset Application subsection
+            HStack(alignment: .top, spacing: GlassTokens.Spacing.lg) {
+                VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                    Text("Reset Application")
+                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
                         .foregroundColor(GlassTokens.Colors.textPrimary)
-
-                    Text("Caution: This action cannot be undone")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.error)
+                    
+                    Text("This will delete all local configuration files and reset project defaults to their original state.")
+                        .font(.system(size: GlassTokens.Typography.bodySize))
+                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                    
+                    Text("This action is irreversible.")
+                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                        .foregroundColor(.red)
                 }
-
+                
+                Spacer()
+                
                 Button("Reset All Settings") {
                     viewModel.showResetConfirmation = true
                 }
-                .destructiveGlassButtonStyle()
+                .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, GlassTokens.Spacing.lg)
+                .padding(.vertical, GlassTokens.Spacing.md)
+                .background(Color.red)
+                .cornerRadius(GlassTokens.Radius.md)
+                .buttonStyle(.plain)
                 .confirmationDialog(
                     "Reset all settings and permissions?",
                     isPresented: $viewModel.showResetConfirmation,
@@ -793,6 +898,13 @@ struct SettingsView: View {
                 }
             }
         }
+        .padding(GlassTokens.Spacing.lg)
+        .background(Color.red.opacity(0.05))
+        .cornerRadius(GlassTokens.Radius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: GlassTokens.Radius.lg)
+                .stroke(Color.red.opacity(0.2), lineWidth: GlassTokens.Stroke.thin)
+        )
     }
 }
 

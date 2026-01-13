@@ -24,6 +24,16 @@ class AppUpdateService: NSObject, ObservableObject {
     @Published private(set) var updateState: UpdateState = .idle
     @Published private(set) var currentChannel: AppSettings.UpdateChannel = .stable
     
+    var automaticallyDownloadsUpdates: Bool {
+        get {
+            updaterController.updater.automaticallyDownloadsUpdates
+        }
+        set {
+            updaterController.updater.automaticallyDownloadsUpdates = newValue
+            objectWillChange.send()
+        }
+    }
+    
     // MARK: - Private Properties
     
     private var updaterController: SPUStandardUpdaterController

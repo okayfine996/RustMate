@@ -10,13 +10,18 @@ import Foundation
 
 /// Local implementation of RustToolchainServiceProtocol using direct process execution
 class LocalRustupToolchainService: RustToolchainServiceProtocol {
-    private let processRunner = ProcessRunner()
+    private let processRunner: ProcessRunnerProtocol
     private let authService: AuthorizationService
     private var settings: AppSettings
 
-    init(settings: AppSettings = .default, authService: AuthorizationService = AuthorizationService()) {
+    init(
+        settings: AppSettings = .default,
+        authService: AuthorizationService = AuthorizationService(),
+        processRunner: ProcessRunnerProtocol = ProcessRunner()
+    ) {
         self.settings = settings
         self.authService = authService
+        self.processRunner = processRunner
     }
 
     // MARK: - Toolchain Operations
@@ -51,7 +56,8 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
                 command: "rustup toolchain list",
                 exitCode: result.exitCode,
                 stderr: result.stderr,
-                suggestedFix: "Check that rustup is working correctly. Try running 'rustup --version' in Terminal."
+                suggestedFix:
+                    "Check that rustup is working correctly. Try running 'rustup --version' in Terminal."
             )
         }
 
@@ -68,41 +74,46 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
     }
 
     func installToolchain(name: String) async throws -> TaskResult {
-        return try await executeToolchainCommand(
+        return try await executeCommand(
             operation: "install",
             toolchainName: name,
+            scope: .toolchainOperations,
             arguments: ["toolchain", "install", name]
         )
     }
 
     func uninstallToolchain(name: String) async throws -> TaskResult {
-        return try await executeToolchainCommand(
+        return try await executeCommand(
             operation: "uninstall",
             toolchainName: name,
+            scope: .toolchainOperations,
             arguments: ["toolchain", "uninstall", name]
         )
     }
 
     func setDefaultToolchain(name: String) async throws -> TaskResult {
-        return try await executeToolchainCommand(
+        return try await executeCommand(
             operation: "set-default",
             toolchainName: name,
+            scope: .toolchainOperations,
             arguments: ["default", name]
         )
     }
 
     func updateAllToolchains() async throws -> TaskResult {
-        return try await executeToolchainCommand(
+        return try await executeCommand(
             operation: "update-all",
             toolchainName: nil,
+            scope: .toolchainOperations,
             arguments: ["update"]
         )
     }
 
     func updateToolchain(name: String) async throws -> TaskResult {
-        return try await executeToolchainCommand(
+        return try await executeCommand(
             operation: "update",
             toolchainName: name,
+            scope: .toolchainOperations,
             arguments: ["toolchain", "install", name, "--force"]
         )
     }
@@ -160,19 +171,19 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
     }
 
     func addComponent(componentName: String, toolchainName: String) async throws -> TaskResult {
-        return try await executeComponentCommand(
-            operation: "add",
-            componentName: componentName,
+        return try await executeCommand(
+            operation: "add-component-\(componentName)",
             toolchainName: toolchainName,
+            scope: .componentOperations,
             arguments: ["component", "add", componentName, "--toolchain", toolchainName]
         )
     }
 
     func removeComponent(componentName: String, toolchainName: String) async throws -> TaskResult {
-        return try await executeComponentCommand(
-            operation: "remove",
-            componentName: componentName,
+        return try await executeCommand(
+            operation: "remove-component-\(componentName)",
             toolchainName: toolchainName,
+            scope: .componentOperations,
             arguments: ["component", "remove", componentName, "--toolchain", toolchainName]
         )
     }
@@ -215,28 +226,29 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
     }
 
     func addTarget(targetTriple: String, toolchainName: String) async throws -> TaskResult {
-        return try await executeTargetCommand(
-            operation: "add",
-            targetTriple: targetTriple,
+        return try await executeCommand(
+            operation: "add-target-\(targetTriple)",
             toolchainName: toolchainName,
+            scope: .targetOperations,
             arguments: ["target", "add", targetTriple, "--toolchain", toolchainName]
         )
     }
 
     func removeTarget(targetTriple: String, toolchainName: String) async throws -> TaskResult {
-        return try await executeTargetCommand(
-            operation: "remove",
-            targetTriple: targetTriple,
+        return try await executeCommand(
+            operation: "remove-target-\(targetTriple)",
             toolchainName: toolchainName,
+            scope: .targetOperations,
             arguments: ["target", "remove", targetTriple, "--toolchain", toolchainName]
         )
     }
 
     // MARK: - Private Helpers
 
-    private func executeToolchainCommand(
+    private func executeCommand(
         operation: String,
         toolchainName: String?,
+        scope: AuthorizationScope,
         arguments: [String]
     ) async throws -> TaskResult {
         let taskId = UUID()
@@ -253,7 +265,7 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
         )
 
         let resources = try authService.validateAndResolve(
-            scope: .toolchainOperations,
+            scope: scope,
             settings: settings
         )
         defer { authService.stopAccessing(resources) }
@@ -276,101 +288,8 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
             exitCode: Int(result.exitCode),
             stdoutSnippet: result.stdout.isEmpty ? nil : result.stdout,
             stderrSnippet: result.stderr.isEmpty ? nil : result.stderr,
-            errorMessage: result.wasSuccessful ? nil : "Command failed with exit code \(result.exitCode)"
-        )
-    }
-
-    private func executeComponentCommand(
-        operation: String,
-        componentName: String,
-        toolchainName: String,
-        arguments: [String]
-    ) async throws -> TaskResult {
-        let taskId = UUID()
-        let startTime = Date()
-
-        let rustupPath = try RustupCommandResolver.resolveRustupPath(
-            settings: settings,
-            authService: authService
-        )
-
-        let env = try RustupCommandResolver.buildEnvironment(
-            settings: settings,
-            authService: authService
-        )
-
-        let resources = try authService.validateAndResolve(
-            scope: .componentOperations,
-            settings: settings
-        )
-        defer { authService.stopAccessing(resources) }
-
-        let result = try await processRunner.runRustup(
-            at: rustupPath,
-            arguments: arguments,
-            environment: env
-        )
-
-        let endTime = Date()
-
-        return TaskResult(
-            taskId: taskId,
-            toolchainName: toolchainName,
-            operation: "\(operation)-component-\(componentName)",
-            status: result.wasSuccessful ? .success : .failed,
-            startTime: startTime,
-            endTime: endTime,
-            exitCode: Int(result.exitCode),
-            stdoutSnippet: result.stdout.isEmpty ? nil : result.stdout,
-            stderrSnippet: result.stderr.isEmpty ? nil : result.stderr,
-            errorMessage: result.wasSuccessful ? nil : "Command failed with exit code \(result.exitCode)"
-        )
-    }
-
-    private func executeTargetCommand(
-        operation: String,
-        targetTriple: String,
-        toolchainName: String,
-        arguments: [String]
-    ) async throws -> TaskResult {
-        let taskId = UUID()
-        let startTime = Date()
-
-        let rustupPath = try RustupCommandResolver.resolveRustupPath(
-            settings: settings,
-            authService: authService
-        )
-
-        let env = try RustupCommandResolver.buildEnvironment(
-            settings: settings,
-            authService: authService
-        )
-
-        let resources = try authService.validateAndResolve(
-            scope: .targetOperations,
-            settings: settings
-        )
-        defer { authService.stopAccessing(resources) }
-
-        let result = try await processRunner.runRustup(
-            at: rustupPath,
-            arguments: arguments,
-            environment: env
-        )
-
-        let endTime = Date()
-
-        return TaskResult(
-            taskId: taskId,
-            toolchainName: toolchainName,
-            operation: "\(operation)-target-\(targetTriple)",
-            status: result.wasSuccessful ? .success : .failed,
-            startTime: startTime,
-            endTime: endTime,
-            exitCode: Int(result.exitCode),
-            stdoutSnippet: result.stdout.isEmpty ? nil : result.stdout,
-            stderrSnippet: result.stderr.isEmpty ? nil : result.stderr,
-            errorMessage: result.wasSuccessful ? nil : "Command failed with exit code \(result.exitCode)"
+            errorMessage: result.wasSuccessful
+                ? nil : "Command failed with exit code \(result.exitCode)"
         )
     }
 }

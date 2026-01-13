@@ -21,6 +21,8 @@ class SettingsViewModel: ObservableObject {
     }
     
     @Published var rustupVersion: String?
+    @Published var currentToolchainVersion: String?
+    @Published var isCheckingUpdates = false
     @Published var showResetConfirmation = false
 
     // Error handling
@@ -31,7 +33,9 @@ class SettingsViewModel: ObservableObject {
     @Published var rustupPath: String
     @Published var overrideStrategy: AppSettings.OverrideStrategy
     @Published var autoRefresh: Bool
+    @Published var refreshIntervalSeconds: Int
     @Published var enableTaskNotifications: Bool
+    @Published var enableToolchainUpdateNotifications: Bool
 
     // T048: Authorization state for new purposes
     @Published var authorizationStates: [AuthorizedDirectory.DirectoryPurpose: AuthorizationState] = [:]
@@ -101,10 +105,13 @@ class SettingsViewModel: ObservableObject {
         self.rustupPath = settings.rustupPath ?? ""
         self.overrideStrategy = settings.overrideStrategy
         self.autoRefresh = settings.autoRefreshOnActivation
+        self.refreshIntervalSeconds = settings.refreshIntervalSeconds
         self.enableTaskNotifications = settings.enableTaskNotifications
+        self.enableToolchainUpdateNotifications = settings.enableToolchainUpdateNotifications
 
         Task {
             await validateEnvironment()
+            await loadCurrentToolchainVersion()
             await validateAuthorizationStates() // T053
         }
     }
@@ -118,6 +125,80 @@ class SettingsViewModel: ObservableObject {
         if let path = result.rustupPath {
             rustupPath = path
             settings.rustupPath = path
+        }
+    }
+    
+    // MARK: - Current Toolchain Version
+    
+    func loadCurrentToolchainVersion() async {
+        // Get default toolchain version from rustup show
+        do {
+            let rustupPath = try RustupCommandResolver.resolveRustupPath(
+                settings: settings,
+                authService: authService
+            )
+            
+            let env = try RustupCommandResolver.buildEnvironment(
+                settings: settings,
+                authService: authService
+            )
+            
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: rustupPath)
+            process.arguments = ["show"]
+            
+            if !env.isEmpty {
+                var processEnv = ProcessInfo.processInfo.environment
+                for (key, value) in env {
+                    processEnv[key] = value
+                }
+                process.environment = processEnv
+            }
+            
+            let stdoutPipe = Pipe()
+            process.standardOutput = stdoutPipe
+            
+            try process.run()
+            process.waitUntilExit()
+            
+            if process.terminationStatus == 0 {
+                let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                let output = String(data: stdoutData, encoding: .utf8) ?? ""
+                
+                // Parse toolchain version from output
+                // Look for patterns like "stable-aarch64-apple-darwin (default)" and "rustc 1.75.0"
+                if let rustcRange = output.range(of: #"rustc\s+(\d+\.\d+\.\d+)"#, options: .regularExpression) {
+                    let match = String(output[rustcRange])
+                    if let versionRange = match.range(of: #"\d+\.\d+\.\d+"#, options: .regularExpression) {
+                        let version = String(match[versionRange])
+                        // Extract channel from toolchain name
+                        var channel = "stable"
+                        if let toolchainLine = output.components(separatedBy: "\n").first(where: { $0.contains("(default)") }) {
+                            if toolchainLine.contains("beta") {
+                                channel = "beta"
+                            } else if toolchainLine.contains("nightly") {
+                                channel = "nightly"
+                            } else if let versionMatch = toolchainLine.range(of: #"\d+\.\d+\.\d+"#, options: .regularExpression) {
+                                channel = String(toolchainLine[versionMatch])
+                            }
+                        }
+                        currentToolchainVersion = "\(version) \(channel)"
+                    }
+                }
+            }
+        } catch {
+            print("⚠️ SettingsViewModel: Failed to load current toolchain version: \(error)")
+        }
+    }
+    
+    func checkForRustupUpdates() {
+        Task {
+            isCheckingUpdates = true
+            defer { isCheckingUpdates = false }
+            
+            // Refresh both rustup version and toolchain version
+            await validateEnvironment()
+            await loadCurrentToolchainVersion()
         }
     }
 
@@ -303,7 +384,9 @@ class SettingsViewModel: ObservableObject {
         // T004/T005: Write back to binding (which triggers AppState persistence)
         settings.overrideStrategy = overrideStrategy
         settings.autoRefreshOnActivation = autoRefresh
+        settings.refreshIntervalSeconds = refreshIntervalSeconds
         settings.enableTaskNotifications = enableTaskNotifications
+        settings.enableToolchainUpdateNotifications = enableToolchainUpdateNotifications
         // Binding automatically propagates changes to AppState
     }
 

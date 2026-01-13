@@ -139,60 +139,46 @@ struct ProjectsListView: View {
     @ViewBuilder
     private var projectsList: some View {
         VStack(spacing: 0) {    
-            // PROJECTS section header
-            VStack(spacing: GlassTokens.Spacing.sm) {
-                HStack {
-                    Text("PROJECTS")
-                        .font(.system(size: GlassTokens.Typography.captionSize, weight: .bold))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
-                        .tracking(0.5)
+            // Header
+            VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {
+                Text("Projects")
+                    .font(.system(size: GlassTokens.Typography.titleSize, weight: .bold))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
 
-                    Spacer()
-                }
-                .padding(.horizontal, GlassTokens.Spacing.md)
-                .padding(.top, GlassTokens.Spacing.md)
+                Text("Select a project to configure")
+                    .font(.system(size: GlassTokens.Typography.captionSize))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
             }
-            .padding(.horizontal, GlassTokens.Spacing.md)
-            .padding(.vertical, GlassTokens.Spacing.md)
+            .padding(.horizontal, GlassTokens.Spacing.lg)
+            .padding(.top, GlassTokens.Spacing.xl)
+            .padding(.bottom, GlassTokens.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Divider()
 
             // Project list
-            List(filteredProjects, selection: $viewModel.selectedProject) { project in
-                HStack(spacing: GlassTokens.Spacing.md) {
-                    // Health status indicator
-                    Circle()
-                        .fill(healthStatusColor(for: project))
-                        .frame(width: 10, height: 10)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(project.displayName)
-                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                            .foregroundColor(GlassTokens.Colors.textPrimary)
-
-                        Text(shortenPath(project.path))
-                            .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
-                            .foregroundColor(GlassTokens.Colors.textSecondary)
-                            .lineLimit(1)
-                    }
-
-                    Spacer()
-
-                    // Right arrow icon
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary.opacity(0.5))
-                }
-                .padding(.vertical, GlassTokens.Spacing.xs)
-                .tag(project)
-                .contextMenu {
-                    Button("Remove") {
-                        viewModel.removeBookmark(project)
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(filteredProjects) { project in
+                        ProjectTableRow(
+                            project: project,
+                            isSelected: viewModel.selectedProject?.id == project.id,
+                            healthStatusColor: healthStatusColor(for: project),
+                            shortenedPath: shortenPath(project.path),
+                            onSelect: {
+                                viewModel.selectedProject = project
+                            },
+                            onRemove: {
+                                viewModel.removeBookmark(project)
+                            }
+                        )
+                        Divider()
                     }
                 }
             }
-            .listStyle(.sidebar)
-            // Remove default gray background of sidebar list
-            .scrollContentBackground(.hidden)
-            .background(GlassTokens.Colors.cardBackground)
+            .background(Color.white)
+            
+            Divider()
             
             // Bottom add button
             VStack(spacing: 0) {
@@ -375,6 +361,57 @@ struct ProjectsListView: View {
         }
 
         return []
+    }
+}
+
+// MARK: - Project Table Row
+
+struct ProjectTableRow: View {
+    let project: ProjectBookmark
+    let isSelected: Bool
+    let healthStatusColor: Color
+    let shortenedPath: String
+    let onSelect: () -> Void
+    let onRemove: () -> Void
+    
+    var body: some View {
+        HStack(spacing: GlassTokens.Spacing.md) {
+            // Health status indicator
+            Circle()
+                .fill(healthStatusColor)
+                .frame(width: 10, height: 10)
+            
+            // Project name and path
+            VStack(alignment: .leading, spacing: 2) {
+                Text(project.displayName)
+                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                    .foregroundColor(GlassTokens.Colors.textPrimary)
+                
+                Text(shortenedPath)
+                    .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
+                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+            
+            // Right arrow icon
+            Image(systemName: "chevron.right")
+                .font(.system(size: GlassTokens.Typography.captionSize))
+                .foregroundColor(GlassTokens.Colors.textSecondary.opacity(0.5))
+        }
+        .padding(.horizontal, GlassTokens.Spacing.lg)
+        .padding(.vertical, GlassTokens.Spacing.md)
+        .background(isSelected ? GlassTokens.Colors.accentSubtle.opacity(0.3) : Color.clear)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onSelect()
+        }
+        .contextMenu {
+            Button("Remove") {
+                onRemove()
+            }
+        }
     }
 }
 

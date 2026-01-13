@@ -6,7 +6,8 @@
 //
 
 import XCTest
-@testable import RustMateXPC
+
+@testable import RustMate
 
 final class ComponentParserTests: XCTestCase {
 
@@ -14,14 +15,14 @@ final class ComponentParserTests: XCTestCase {
 
     func testParseBasicComponents() throws {
         let input = """
-        cargo-aarch64-apple-darwin (installed)
-        clippy-aarch64-apple-darwin
-        llvm-tools-preview-aarch64-apple-darwin
-        rust-docs-aarch64-apple-darwin (installed)
-        rust-std-aarch64-apple-darwin (installed)
-        rustc-aarch64-apple-darwin (installed)
-        rustfmt-preview-aarch64-apple-darwin
-        """
+            cargo-aarch64-apple-darwin (installed)
+            clippy-aarch64-apple-darwin
+            llvm-tools-preview-aarch64-apple-darwin
+            rust-docs-aarch64-apple-darwin (installed)
+            rust-std-aarch64-apple-darwin (installed)
+            rustc-aarch64-apple-darwin (installed)
+            rustfmt-preview-aarch64-apple-darwin
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -38,10 +39,10 @@ final class ComponentParserTests: XCTestCase {
 
     func testParseAllInstalled() throws {
         let input = """
-        cargo-aarch64-apple-darwin (installed)
-        clippy-aarch64-apple-darwin (installed)
-        rustfmt-preview-aarch64-apple-darwin (installed)
-        """
+            cargo-aarch64-apple-darwin (installed)
+            clippy-aarch64-apple-darwin (installed)
+            rustfmt-preview-aarch64-apple-darwin (installed)
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -51,10 +52,10 @@ final class ComponentParserTests: XCTestCase {
 
     func testParseNoneInstalled() throws {
         let input = """
-        cargo-aarch64-apple-darwin
-        clippy-aarch64-apple-darwin
-        rustfmt-preview-aarch64-apple-darwin
-        """
+            cargo-aarch64-apple-darwin
+            clippy-aarch64-apple-darwin
+            rustfmt-preview-aarch64-apple-darwin
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -106,7 +107,7 @@ final class ComponentParserTests: XCTestCase {
 
 
 
-        """
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -115,9 +116,9 @@ final class ComponentParserTests: XCTestCase {
 
     func testParseWithTrailingWhitespace() throws {
         let input = """
-        cargo-aarch64-apple-darwin (installed)
-        clippy-aarch64-apple-darwin
-        """
+            cargo-aarch64-apple-darwin (installed)
+            clippy-aarch64-apple-darwin
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -137,10 +138,10 @@ final class ComponentParserTests: XCTestCase {
 
     func testParseLinuxComponents() throws {
         let input = """
-        cargo-x86_64-unknown-linux-gnu (installed)
-        clippy-x86_64-unknown-linux-gnu (installed)
-        rustfmt-preview-x86_64-unknown-linux-gnu
-        """
+            cargo-x86_64-unknown-linux-gnu (installed)
+            clippy-x86_64-unknown-linux-gnu (installed)
+            rustfmt-preview-x86_64-unknown-linux-gnu
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -152,10 +153,10 @@ final class ComponentParserTests: XCTestCase {
 
     func testParseWindowsComponents() throws {
         let input = """
-        cargo-x86_64-pc-windows-msvc (installed)
-        clippy-x86_64-pc-windows-msvc
-        rustfmt-preview-x86_64-pc-windows-msvc (installed)
-        """
+            cargo-x86_64-pc-windows-msvc (installed)
+            clippy-x86_64-pc-windows-msvc
+            rustfmt-preview-x86_64-pc-windows-msvc (installed)
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -169,10 +170,10 @@ final class ComponentParserTests: XCTestCase {
 
     func testParseNightlyComponents() throws {
         let input = """
-        miri-aarch64-apple-darwin (installed)
-        rust-analyzer-aarch64-apple-darwin (installed)
-        rustc-dev-aarch64-apple-darwin
-        """
+            miri-aarch64-apple-darwin (installed)
+            rust-analyzer-aarch64-apple-darwin (installed)
+            rustc-dev-aarch64-apple-darwin
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -192,11 +193,11 @@ final class ComponentParserTests: XCTestCase {
 
     func testIdentifyCommonComponents() throws {
         let input = """
-        clippy-aarch64-apple-darwin (installed)
-        rustfmt-preview-aarch64-apple-darwin (installed)
-        rust-src (installed)
-        llvm-tools-preview-aarch64-apple-darwin
-        """
+            clippy-aarch64-apple-darwin (installed)
+            rustfmt-preview-aarch64-apple-darwin (installed)
+            rust-src (installed)
+            llvm-tools-preview-aarch64-apple-darwin
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -212,11 +213,11 @@ final class ComponentParserTests: XCTestCase {
 
     func testParseDoesNotIncludeMalformedLines() throws {
         let input = """
-        cargo-aarch64-apple-darwin (installed)
-        this-is-not-a-component
-        clippy-aarch64-apple-darwin
-        some random text
-        """
+            cargo-aarch64-apple-darwin (installed)
+            this-is-not-a-component
+            clippy-aarch64-apple-darwin
+            some random text
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -228,10 +229,10 @@ final class ComponentParserTests: XCTestCase {
 
     func testParseHandlesCaseVariations() throws {
         let input = """
-        clippy-aarch64-apple-darwin (INSTALLED)
-        rustfmt-preview-aarch64-apple-darwin (Installed)
-        rust-src (installed)
-        """
+            clippy-aarch64-apple-darwin (INSTALLED)
+            rustfmt-preview-aarch64-apple-darwin (Installed)
+            rust-src (installed)
+            """
 
         let result = ComponentParser.parse(input)
 
@@ -244,17 +245,18 @@ final class ComponentParserTests: XCTestCase {
 
     func testComponentDescriptions() throws {
         let input = """
-        clippy-aarch64-apple-darwin (installed)
-        rustfmt-preview-aarch64-apple-darwin
-        rust-src (installed)
-        llvm-tools-preview-aarch64-apple-darwin
-        """
+            clippy-aarch64-apple-darwin (installed)
+            rustfmt-preview-aarch64-apple-darwin
+            rust-src (installed)
+            llvm-tools-preview-aarch64-apple-darwin
+            """
 
         let result = ComponentParser.parse(input)
 
         // Verify descriptions are populated
         for component in result {
-            XCTAssertNotNil(component.description, "Component \(component.displayName) should have description")
+            XCTAssertNotNil(
+                component.description, "Component \(component.displayName) should have description")
             XCTAssertFalse(component.description?.isEmpty ?? true)
         }
     }

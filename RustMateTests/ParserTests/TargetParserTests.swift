@@ -6,7 +6,8 @@
 //
 
 import XCTest
-@testable import RustMateXPC
+
+@testable import RustMate
 
 final class TargetParserTests: XCTestCase {
 
@@ -14,12 +15,12 @@ final class TargetParserTests: XCTestCase {
 
     func testParseBasicTargets() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        aarch64-apple-ios
-        aarch64-unknown-linux-gnu
-        wasm32-unknown-unknown
-        x86_64-apple-darwin
-        """
+            aarch64-apple-darwin (installed)
+            aarch64-apple-ios
+            aarch64-unknown-linux-gnu
+            wasm32-unknown-unknown
+            x86_64-apple-darwin
+            """
 
         let result = TargetParser.parse(input)
 
@@ -36,11 +37,11 @@ final class TargetParserTests: XCTestCase {
 
     func testParseMultipleInstalled() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        aarch64-unknown-linux-gnu (installed)
-        wasm32-unknown-unknown (installed)
-        x86_64-apple-darwin
-        """
+            aarch64-apple-darwin (installed)
+            aarch64-unknown-linux-gnu (installed)
+            wasm32-unknown-unknown (installed)
+            x86_64-apple-darwin
+            """
 
         let result = TargetParser.parse(input)
 
@@ -63,10 +64,10 @@ final class TargetParserTests: XCTestCase {
 
     func testExtractArchitecture() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        x86_64-apple-darwin
-        i686-pc-windows-msvc
-        """
+            aarch64-apple-darwin (installed)
+            x86_64-apple-darwin
+            i686-pc-windows-msvc
+            """
 
         let result = TargetParser.parse(input)
 
@@ -82,10 +83,10 @@ final class TargetParserTests: XCTestCase {
 
     func testExtractVendor() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        x86_64-pc-windows-msvc
-        aarch64-unknown-linux-gnu
-        """
+            aarch64-apple-darwin (installed)
+            x86_64-pc-windows-msvc
+            aarch64-unknown-linux-gnu
+            """
 
         let result = TargetParser.parse(input)
 
@@ -101,10 +102,10 @@ final class TargetParserTests: XCTestCase {
 
     func testExtractOS() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        x86_64-unknown-linux-gnu
-        x86_64-pc-windows-msvc
-        """
+            aarch64-apple-darwin (installed)
+            x86_64-unknown-linux-gnu
+            x86_64-pc-windows-msvc
+            """
 
         let result = TargetParser.parse(input)
 
@@ -122,11 +123,11 @@ final class TargetParserTests: XCTestCase {
 
     func testParseLinuxTargets() throws {
         let input = """
-        x86_64-unknown-linux-gnu (installed)
-        aarch64-unknown-linux-gnu
-        i686-unknown-linux-gnu
-        x86_64-unknown-linux-musl
-        """
+            x86_64-unknown-linux-gnu (installed)
+            aarch64-unknown-linux-gnu
+            i686-unknown-linux-gnu
+            x86_64-unknown-linux-musl
+            """
 
         let result = TargetParser.parse(input)
 
@@ -136,10 +137,10 @@ final class TargetParserTests: XCTestCase {
 
     func testParseWindowsTargets() throws {
         let input = """
-        x86_64-pc-windows-msvc (installed)
-        aarch64-pc-windows-msvc
-        i686-pc-windows-gnu
-        """
+            x86_64-pc-windows-msvc (installed)
+            aarch64-pc-windows-msvc
+            i686-pc-windows-gnu
+            """
 
         let result = TargetParser.parse(input)
 
@@ -149,11 +150,11 @@ final class TargetParserTests: XCTestCase {
 
     func testParseMobileTargets() throws {
         let input = """
-        aarch64-apple-ios
-        aarch64-apple-ios-sim
-        aarch64-linux-android
-        armv7-linux-androideabi
-        """
+            aarch64-apple-ios
+            aarch64-apple-ios-sim
+            aarch64-linux-android
+            armv7-linux-androideabi
+            """
 
         let result = TargetParser.parse(input)
 
@@ -170,10 +171,10 @@ final class TargetParserTests: XCTestCase {
 
     func testParseWebAssemblyTargets() throws {
         let input = """
-        wasm32-unknown-emscripten
-        wasm32-unknown-unknown (installed)
-        wasm32-wasi
-        """
+            wasm32-unknown-emscripten
+            wasm32-unknown-unknown (installed)
+            wasm32-wasi
+            """
 
         let result = TargetParser.parse(input)
 
@@ -187,10 +188,10 @@ final class TargetParserTests: XCTestCase {
 
     func testParseEmbeddedTargets() throws {
         let input = """
-        thumbv7em-none-eabihf
-        thumbv7m-none-eabi
-        riscv32i-unknown-none-elf
-        """
+            thumbv7em-none-eabihf
+            thumbv7m-none-eabi
+            riscv32i-unknown-none-elf
+            """
 
         let result = TargetParser.parse(input)
 
@@ -218,7 +219,7 @@ final class TargetParserTests: XCTestCase {
 
 
 
-        """
+            """
 
         let result = TargetParser.parse(input)
 
@@ -227,9 +228,9 @@ final class TargetParserTests: XCTestCase {
 
     func testParseWithTrailingWhitespace() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        x86_64-apple-darwin
-        """
+            aarch64-apple-darwin (installed)
+            x86_64-apple-darwin
+            """
 
         let result = TargetParser.parse(input)
 
@@ -238,10 +239,10 @@ final class TargetParserTests: XCTestCase {
 
     func testParseAllInstalled() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        wasm32-unknown-unknown (installed)
-        x86_64-apple-darwin (installed)
-        """
+            aarch64-apple-darwin (installed)
+            wasm32-unknown-unknown (installed)
+            x86_64-apple-darwin (installed)
+            """
 
         let result = TargetParser.parse(input)
 
@@ -253,12 +254,12 @@ final class TargetParserTests: XCTestCase {
 
     func testIdentifyCommonTargets() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        wasm32-unknown-unknown
-        x86_64-apple-darwin
-        x86_64-unknown-linux-gnu
-        x86_64-pc-windows-msvc
-        """
+            aarch64-apple-darwin (installed)
+            wasm32-unknown-unknown
+            x86_64-apple-darwin
+            x86_64-unknown-linux-gnu
+            x86_64-pc-windows-msvc
+            """
 
         let result = TargetParser.parse(input)
 
@@ -268,7 +269,7 @@ final class TargetParserTests: XCTestCase {
             "wasm32-unknown-unknown",
             "x86_64-apple-darwin",
             "x86_64-unknown-linux-gnu",
-            "x86_64-pc-windows-msvc"
+            "x86_64-pc-windows-msvc",
         ]
 
         let foundCommon = result.filter { commonTargets.contains($0.triple) }
@@ -279,11 +280,11 @@ final class TargetParserTests: XCTestCase {
 
     func testParseHandlesMalformedLines() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        this-is-not-a-target
-        x86_64-apple-darwin
-        some random text
-        """
+            aarch64-apple-darwin (installed)
+            this-is-not-a-target
+            x86_64-apple-darwin
+            some random text
+            """
 
         let result = TargetParser.parse(input)
 
@@ -295,10 +296,10 @@ final class TargetParserTests: XCTestCase {
 
     func testParseHandlesCaseVariations() throws {
         let input = """
-        aarch64-apple-darwin (INSTALLED)
-        x86_64-apple-darwin (Installed)
-        wasm32-unknown-unknown (installed)
-        """
+            aarch64-apple-darwin (INSTALLED)
+            x86_64-apple-darwin (Installed)
+            wasm32-unknown-unknown (installed)
+            """
 
         let result = TargetParser.parse(input)
 
@@ -311,17 +312,20 @@ final class TargetParserTests: XCTestCase {
 
     func testTargetDescriptions() throws {
         let input = """
-        aarch64-apple-darwin (installed)
-        wasm32-unknown-unknown
-        x86_64-pc-windows-msvc
-        """
+            aarch64-apple-darwin (installed)
+            wasm32-unknown-unknown
+            x86_64-pc-windows-msvc
+            """
 
         let result = TargetParser.parse(input)
 
         // Verify descriptions are populated for common targets
         for target in result {
-            if ["aarch64-apple-darwin", "wasm32-unknown-unknown", "x86_64-pc-windows-msvc"].contains(target.triple) {
-                XCTAssertNotNil(target.description, "Target \(target.triple) should have description")
+            if ["aarch64-apple-darwin", "wasm32-unknown-unknown", "x86_64-pc-windows-msvc"]
+                .contains(target.triple)
+            {
+                XCTAssertNotNil(
+                    target.description, "Target \(target.triple) should have description")
             }
         }
     }

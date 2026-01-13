@@ -6,7 +6,8 @@
 //
 
 import XCTest
-@testable import RustMateXPC
+
+@testable import RustMate
 
 final class ToolchainParserTests: XCTestCase {
 
@@ -14,9 +15,9 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseBasicOutput() throws {
         let input = """
-        stable-aarch64-apple-darwin (default)
-        nightly-aarch64-apple-darwin
-        """
+            stable-aarch64-apple-darwin (default)
+            nightly-aarch64-apple-darwin
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -35,11 +36,11 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseMultipleToolchains() throws {
         let input = """
-        stable-aarch64-apple-darwin
-        beta-aarch64-apple-darwin
-        nightly-aarch64-apple-darwin (default)
-        1.75.0-aarch64-apple-darwin
-        """
+            stable-aarch64-apple-darwin
+            beta-aarch64-apple-darwin
+            nightly-aarch64-apple-darwin (default)
+            1.75.0-aarch64-apple-darwin
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -64,9 +65,9 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseNoDefaultMarker() throws {
         let input = """
-        stable-aarch64-apple-darwin
-        nightly-aarch64-apple-darwin
-        """
+            stable-aarch64-apple-darwin
+            nightly-aarch64-apple-darwin
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -90,7 +91,7 @@ final class ToolchainParserTests: XCTestCase {
 
 
 
-        """
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -99,9 +100,9 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseWithTrailingWhitespace() throws {
         let input = """
-        stable-aarch64-apple-darwin (default)
-        nightly-aarch64-apple-darwin
-        """
+            stable-aarch64-apple-darwin (default)
+            nightly-aarch64-apple-darwin
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -113,10 +114,10 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseCustomToolchain() throws {
         let input = """
-        stable-aarch64-apple-darwin (default)
-        nightly-2024-01-15-aarch64-apple-darwin
-        my-custom-toolchain
-        """
+            stable-aarch64-apple-darwin (default)
+            nightly-2024-01-15-aarch64-apple-darwin
+            my-custom-toolchain
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -128,10 +129,10 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseVersionedToolchains() throws {
         let input = """
-        1.74.0-aarch64-apple-darwin (default)
-        1.75.0-aarch64-apple-darwin
-        1.76.0-beta.4-aarch64-apple-darwin
-        """
+            1.74.0-aarch64-apple-darwin (default)
+            1.75.0-aarch64-apple-darwin
+            1.76.0-beta.4-aarch64-apple-darwin
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -146,10 +147,10 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseLinuxHost() throws {
         let input = """
-        stable-x86_64-unknown-linux-gnu (default)
-        beta-x86_64-unknown-linux-gnu
-        nightly-x86_64-unknown-linux-gnu
-        """
+            stable-x86_64-unknown-linux-gnu (default)
+            beta-x86_64-unknown-linux-gnu
+            nightly-x86_64-unknown-linux-gnu
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -161,9 +162,9 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseWindowsHost() throws {
         let input = """
-        stable-x86_64-pc-windows-msvc (default)
-        nightly-x86_64-pc-windows-msvc
-        """
+            stable-x86_64-pc-windows-msvc (default)
+            nightly-x86_64-pc-windows-msvc
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -175,10 +176,10 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseMixedArchitectures() throws {
         let input = """
-        stable-aarch64-apple-darwin (default)
-        stable-x86_64-apple-darwin
-        stable-aarch64-unknown-linux-gnu
-        """
+            stable-aarch64-apple-darwin (default)
+            stable-x86_64-apple-darwin
+            stable-aarch64-unknown-linux-gnu
+            """
 
         let result = ToolchainParser.parse(input)
 
@@ -195,10 +196,10 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseDoesNotFailOnUnexpectedFormat() {
         let input = """
-        some-random-text
-        not-a-toolchain-format
-        stable-aarch64-apple-darwin (default)
-        """
+            some-random-text
+            not-a-toolchain-format
+            stable-aarch64-apple-darwin (default)
+            """
 
         // Should not crash, should extract valid toolchain
         let result = ToolchainParser.parse(input)
@@ -210,10 +211,10 @@ final class ToolchainParserTests: XCTestCase {
 
     func testParseHandlesMalformedDefaultMarker() throws {
         let input = """
-        stable-aarch64-apple-darwin (default
-        nightly-aarch64-apple-darwin (DEFAULT)
-        beta-aarch64-apple-darwin (Default)
-        """
+            stable-aarch64-apple-darwin (default
+            nightly-aarch64-apple-darwin (DEFAULT)
+            beta-aarch64-apple-darwin (Default)
+            """
 
         let result = ToolchainParser.parse(input)
 
