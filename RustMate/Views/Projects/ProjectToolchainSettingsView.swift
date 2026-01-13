@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct ProjectToolchainSettingsView: View {
     @StateObject private var viewModel: ProjectToolchainViewModel
@@ -128,7 +129,7 @@ struct ProjectToolchainSettingsView: View {
                 Spacer()
                 
                 Button {
-                    // View distribution history
+                    openDistributionHistory()
                 } label: {
                     Text("View distribution history")
                         .font(.system(size: GlassTokens.Typography.captionSize))
@@ -589,6 +590,15 @@ struct ProjectToolchainSettingsView: View {
             RoundedRectangle(cornerRadius: GlassTokens.Radius.md)
                 .stroke(GlassTokens.Colors.error.opacity(0.3), lineWidth: GlassTokens.Stroke.thin)
         )
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func openDistributionHistory() {
+        guard let url = URL(string: "https://doc.rust-lang.org/beta/releases.html") else {
+            return
+        }
+        NSWorkspace.shared.open(url)
     }
     
     // MARK: - Version Mismatch Banner

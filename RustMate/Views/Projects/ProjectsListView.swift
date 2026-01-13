@@ -190,6 +190,9 @@ struct ProjectsListView: View {
                 }
             }
             .listStyle(.sidebar)
+            // Remove default gray background of sidebar list
+            .scrollContentBackground(.hidden)
+            .background(GlassTokens.Colors.cardBackground)
             
             // Bottom add button
             VStack(spacing: 0) {
