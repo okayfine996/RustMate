@@ -48,7 +48,8 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
         let result = try await processRunner.runRustup(
             at: rustupPath,
             arguments: ["toolchain", "list"],
-            environment: env
+            environment: env,
+            currentDirectoryURL: nil
         )
 
         guard result.wasSuccessful else {
@@ -140,7 +141,8 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
         let result = try await processRunner.runRustup(
             at: rustupPath,
             arguments: ["component", "list", "--toolchain", toolchainName],
-            environment: env
+            environment: env,
+            currentDirectoryURL: nil
         )
 
         guard result.wasSuccessful else {
@@ -210,7 +212,8 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
         let result = try await processRunner.runRustup(
             at: rustupPath,
             arguments: ["target", "list", "--toolchain", toolchainName],
-            environment: env
+            environment: env,
+            currentDirectoryURL: nil
         )
 
         guard result.wasSuccessful else {
@@ -273,7 +276,8 @@ class LocalRustupToolchainService: RustToolchainServiceProtocol {
         let result = try await processRunner.runRustup(
             at: rustupPath,
             arguments: arguments,
-            environment: env
+            environment: env,
+            currentDirectoryURL: nil
         )
 
         let endTime = Date()

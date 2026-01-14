@@ -38,46 +38,26 @@ class LocalProjectContextService: ProjectContextServiceProtocol {
         defer { authService.stopAccessing(resources) }
 
         // Execute rustup show in the project directory
-        // Note: We need to set working directory to projectPath
-        // Since ProcessRunner doesn't support currentDirectoryURL yet, we'll use Process directly
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: rustupPath)
-        process.arguments = ["show"]
-        process.currentDirectoryURL = URL(fileURLWithPath: projectPath)
+        // Use ProcessRunner to execute on background thread
+        let processRunner = ProcessRunner()
+        let result = try await processRunner.runRustup(
+            at: rustupPath,
+            arguments: ["show"],
+            environment: env,
+            currentDirectoryURL: URL(fileURLWithPath: projectPath)
+        )
 
-        if !env.isEmpty {
-            var processEnv = ProcessInfo.processInfo.environment
-            for (key, value) in env {
-                processEnv[key] = value
-            }
-            process.environment = processEnv
-        }
-
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
-        process.standardOutput = stdoutPipe
-        process.standardError = stderrPipe
-
-        try process.run()
-        process.waitUntilExit()
-
-        let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-
-        let stdout = ProcessOutputLimiter.truncateStdout(stdoutData)
-        let stderr = ProcessOutputLimiter.truncateStderr(stderrData)
-
-        guard process.terminationStatus == 0 else {
+        guard result.wasSuccessful else {
             throw RustupExecutionError.executionFailed(
                 command: "rustup show",
-                exitCode: process.terminationStatus,
-                stderr: stderr,
+                exitCode: result.exitCode,
+                stderr: result.stderr,
                 suggestedFix: "Check that rustup is working correctly and the project path is valid."
             )
         }
 
         // Parse output
-        return ShowParser.parse(stdout, projectPath: projectPath)
+        return ShowParser.parse(result.stdout, projectPath: projectPath)
     }
 
     func setProjectOverride(projectPath: String, toolchainName: String, mode: String) async throws -> TaskResult {
@@ -262,7 +242,8 @@ class LocalProjectContextService: ProjectContextServiceProtocol {
         let result = try await processRunner.runRustup(
             at: rustupPath,
             arguments: ["override", "set", toolchainName, "--path", projectPath],
-            environment: env
+            environment: env,
+            currentDirectoryURL: nil
         )
 
         return TaskResult(
@@ -303,7 +284,8 @@ class LocalProjectContextService: ProjectContextServiceProtocol {
         let result = try await processRunner.runRustup(
             at: rustupPath,
             arguments: ["override", "unset", "--path", projectPath],
-            environment: env
+            environment: env,
+            currentDirectoryURL: nil
         )
 
         return TaskResult(

@@ -69,7 +69,9 @@ class ProjectDiagnosticsService: DiagnosticsService {
         let msrvViolation = try await checkMSRV(projectPath: projectPath, toolchainVersion: actualVersion)
         
         // Determine toolchain source priority
-        let toolchainSource = determineToolchainSource(
+        // We need to run rustup show again to get the full context info
+        let toolchainSource = try await determineToolchainSource(
+            projectPath: projectPath,
             hasOverride: overrideVersion != nil,
             hasConfigFile: configuredVersion != nil
         )
@@ -123,33 +125,16 @@ class ProjectDiagnosticsService: DiagnosticsService {
             authService: authService
         )
         
-        // Use Process directly to set working directory
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: rustupPath)
-        process.arguments = ["override", "unset"]
-        process.currentDirectoryURL = projectURL
+        // Use ProcessRunner to execute on background thread
+        let result = try await processRunner.runRustup(
+            at: rustupPath,
+            arguments: ["override", "unset"],
+            environment: env,
+            currentDirectoryURL: projectURL
+        )
         
-        if !env.isEmpty {
-            var processEnv = ProcessInfo.processInfo.environment
-            for (key, value) in env {
-                processEnv[key] = value
-            }
-            process.environment = processEnv
-        }
-        
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
-        process.standardOutput = stdoutPipe
-        process.standardError = stderrPipe
-        
-        try process.run()
-        process.waitUntilExit()
-        
-        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-        let stderr = String(data: stderrData, encoding: .utf8) ?? ""
-        
-        if process.terminationStatus != 0 {
-            throw DiagnosticsError.commandError(stderr)
+        if !result.wasSuccessful {
+            throw DiagnosticsError.commandError(result.stderr)
         }
     }
     
@@ -182,34 +167,19 @@ class ProjectDiagnosticsService: DiagnosticsService {
         )
         
         // Run rustup show to get active toolchain, then extract version
-        // Use Process directly to set working directory
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: rustupPath)
-        process.arguments = ["show"]
-        process.currentDirectoryURL = projectURL
+        // Use ProcessRunner to execute on background thread
+        let result = try await processRunner.runRustup(
+            at: rustupPath,
+            arguments: ["show"],
+            environment: env,
+            currentDirectoryURL: projectURL
+        )
         
-        if !env.isEmpty {
-            var processEnv = ProcessInfo.processInfo.environment
-            for (key, value) in env {
-                processEnv[key] = value
-            }
-            process.environment = processEnv
-        }
-        
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
-        process.standardOutput = stdoutPipe
-        process.standardError = stderrPipe
-        
-        try process.run()
-        process.waitUntilExit()
-        
-        if process.terminationStatus != 0 {
+        if !result.wasSuccessful {
             return nil
         }
         
-        let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: stdoutData, encoding: .utf8) ?? ""
+        let output = result.stdout
         
         // Parse version from rustup show output
         // Look for "rustc 1.75.0" pattern in the output
@@ -227,9 +197,91 @@ class ProjectDiagnosticsService: DiagnosticsService {
     // MARK: - Helper Methods
     
     private func getOverrideVersion(projectPath: String) async throws -> String? {
+        // Validate Security-Scoped Bookmark access for rustup operations
+        let resources = try authService.validateAndResolve(
+            scope: .projectContext,
+            settings: settings
+        )
+        defer { authService.stopAccessing(resources) }
+        
+        // Project path should be validated via ProjectBookmark in the ViewModel
+        // For service layer, we assume the path is already authorized
+        let projectURL = URL(fileURLWithPath: projectPath)
+        
+        // Verify path is accessible (basic check)
+        guard FileManager.default.fileExists(atPath: projectPath) else {
+            return nil
+        }
+        
+        // Resolve rustup path
+        let rustupPath = try RustupCommandResolver.resolveRustupPath(
+            settings: settings,
+            authService: authService
+        )
+        
+        let env = try RustupCommandResolver.buildEnvironment(
+            settings: settings,
+            authService: authService
+        )
+        
         // Run rustup show to get override information
-        // This is a simplified implementation - full implementation would parse rustup show output
-        // For now, return nil (no override detected)
+        // Use ProcessRunner to execute on background thread
+        let result = try await processRunner.runRustup(
+            at: rustupPath,
+            arguments: ["show"],
+            environment: env,
+            currentDirectoryURL: projectURL
+        )
+        
+        guard result.wasSuccessful else {
+            return nil
+        }
+        
+        // Parse output using ShowParser
+        let contextInfo = ShowParser.parse(result.stdout, projectPath: projectPath)
+        
+        // Check if there's a directory override (not toolchain file override)
+        // Override means rustup override set, not rust-toolchain.toml
+        guard contextInfo.reason == .override else {
+            return nil
+        }
+        
+        let toolchainName = contextInfo.activeToolchain
+        
+        // Extract version from toolchain name or rustc output
+        // Priority: 
+        // 1. Try to extract version number from toolchain name (e.g., "1.75.0-aarch64-apple-darwin")
+        // 2. Extract rustc version from output (for channel-based toolchains like stable/beta/nightly)
+        
+        // Pattern 1: Toolchain name starts with version number
+        // Example: "1.75.0-aarch64-apple-darwin" -> "1.75.0"
+        if let versionRange = toolchainName.range(of: #"^\d+\.\d+\.\d+"#, options: .regularExpression) {
+            return String(toolchainName[versionRange])
+        }
+        
+        // Pattern 2: Extract rustc version from output
+        // This works for channel-based toolchains (stable, beta, nightly)
+        // Example output: "rustc 1.75.0 (82e1608df 2023-12-21)"
+        if let rustcVersionRange = result.stdout.range(of: #"rustc\s+(\d+\.\d+\.\d+)"#, options: .regularExpression) {
+            let match = String(result.stdout[rustcVersionRange])
+            if let versionMatch = match.range(of: #"\d+\.\d+\.\d+"#, options: .regularExpression) {
+                let version = String(match[versionMatch])
+                // For nightly/beta, we might want to include the channel info
+                // But for now, return just the version number
+                return version
+            }
+        }
+        
+        // Pattern 3: For nightly with date, extract the date
+        // Example: "nightly-2024-01-01-aarch64-apple-darwin" -> "nightly-2024-01-01"
+        if toolchainName.contains("nightly-") {
+            if let nightlyRange = toolchainName.range(of: #"nightly-\d{4}-\d{2}-\d{2}"#, options: .regularExpression) {
+                return String(toolchainName[nightlyRange])
+            }
+        }
+        
+        // If we can't extract a specific version, return nil
+        // This indicates override exists but version couldn't be determined
         return nil
     }
     
@@ -285,16 +337,70 @@ class ProjectDiagnosticsService: DiagnosticsService {
         return nil
     }
     
-    private func determineToolchainSource(hasOverride: Bool, hasConfigFile: Bool) -> ProjectDiagnostics.ToolchainSource {
+    private func determineToolchainSource(
+        projectPath: String,
+        hasOverride: Bool,
+        hasConfigFile: Bool
+    ) async throws -> ProjectDiagnostics.ToolchainSource {
         // Priority: env → toolchainFile → override → default
-        // For now, simplified logic
-        if hasConfigFile {
+        // We need to check the actual rustup show output to determine the source
+        
+        // Validate Security-Scoped Bookmark access
+        let resources = try authService.validateAndResolve(
+            scope: .projectContext,
+            settings: settings
+        )
+        defer { authService.stopAccessing(resources) }
+        
+        let projectURL = URL(fileURLWithPath: projectPath)
+        
+        // Resolve rustup path
+        let rustupPath = try RustupCommandResolver.resolveRustupPath(
+            settings: settings,
+            authService: authService
+        )
+        
+        let env = try RustupCommandResolver.buildEnvironment(
+            settings: settings,
+            authService: authService
+        )
+        
+        // Run rustup show to get context info
+        let result = try await processRunner.runRustup(
+            at: rustupPath,
+            arguments: ["show"],
+            environment: env,
+            currentDirectoryURL: projectURL
+        )
+        
+        guard result.wasSuccessful else {
+            // Fallback to default if we can't determine
+            return .default
+        }
+        
+        // Parse output using ShowParser
+        let contextInfo = ShowParser.parse(result.stdout, projectPath: projectPath)
+        
+        // Map ShowParser's ToolchainReason to ProjectDiagnostics.ToolchainSource
+        switch contextInfo.reason {
+        case .environment:
+            return .environment
+        case .toolchainFile:
             return .toolchainFile
-        }
-        if hasOverride {
+        case .override:
             return .override
+        case .default:
+            return .default
+        case .unknown:
+            // Fallback logic based on what we know
+            if hasConfigFile {
+                return .toolchainFile
+            }
+            if hasOverride {
+                return .override
+            }
+            return .default
         }
-        return .default
     }
     
     // MARK: - Helper Methods

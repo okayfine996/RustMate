@@ -45,6 +45,10 @@ struct SettingsStatusBar: View {
         self.onSave = onSave
     }
     
+    private var isDisabled: Bool {
+        !hasChanges || isLoading || isSaveDisabled
+    }
+    
     var body: some View {
         HStack(spacing: GlassTokens.Spacing.md) {
             // Left: Status indicator
@@ -96,16 +100,16 @@ struct SettingsStatusBar: View {
                                 .font(.system(size: GlassTokens.Typography.bodySize))
                         }
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(isDisabled ? GlassTokens.Colors.textSecondary : .white)
                     .padding(.horizontal, GlassTokens.Spacing.sm)
                     .padding(.vertical, GlassTokens.Spacing.sm)
-                    .background(GlassTokens.Colors.accent)
+                    .background(isDisabled ? GlassTokens.Colors.backgroundSecondary : GlassTokens.Colors.accent)
                     .cornerRadius(GlassTokens.Radius.md)
                 }
                 .frame(height: 25)
                 .padding(.horizontal, GlassTokens.Spacing.md)
                 .buttonStyle(.plain)
-                .disabled(isLoading || isSaveDisabled)
+                .disabled(isDisabled)
             }
         }
         .frame(height: 44)

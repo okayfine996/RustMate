@@ -113,7 +113,8 @@ class EnvironmentValidator {
                 return try await processRunner.run(
                     executable: rustupPath,
                     arguments: ["--version"],
-                    environment: nil
+                    environment: nil,
+                    currentDirectoryURL: nil
                 )
             } catch {
                 print("⚠️ EnvironmentValidator: Bookmark resolution failed: \(error)")
@@ -125,7 +126,8 @@ class EnvironmentValidator {
         return try await processRunner.run(
             executable: rustupPath,
             arguments: ["--version"],
-            environment: nil
+            environment: nil,
+            currentDirectoryURL: nil
         )
     }
 

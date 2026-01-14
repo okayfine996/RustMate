@@ -143,27 +143,17 @@ class SettingsViewModel: ObservableObject {
                 authService: authService
             )
             
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: rustupPath)
-            process.arguments = ["show"]
+            // Use ProcessRunner to execute on background thread
+            let processRunner = ProcessRunner()
+            let result = try await processRunner.runRustup(
+                at: rustupPath,
+                arguments: ["show"],
+                environment: env,
+                currentDirectoryURL: nil
+            )
             
-            if !env.isEmpty {
-                var processEnv = ProcessInfo.processInfo.environment
-                for (key, value) in env {
-                    processEnv[key] = value
-                }
-                process.environment = processEnv
-            }
-            
-            let stdoutPipe = Pipe()
-            process.standardOutput = stdoutPipe
-            
-            try process.run()
-            process.waitUntilExit()
-            
-            if process.terminationStatus == 0 {
-                let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: stdoutData, encoding: .utf8) ?? ""
+            if result.wasSuccessful {
+                let output = result.stdout
                 
                 // Parse toolchain version from output
                 // Look for patterns like "stable-aarch64-apple-darwin (default)" and "rustc 1.75.0"

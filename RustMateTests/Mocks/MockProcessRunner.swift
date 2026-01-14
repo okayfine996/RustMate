@@ -10,7 +10,7 @@ import Foundation
 @testable import RustMate
 
 class MockProcessRunner: ProcessRunnerProtocol {
-    var runCalls: [(executable: String, arguments: [String], environment: [String: String]?)] = []
+    var runCalls: [(executable: String, arguments: [String], environment: [String: String]?, currentDirectoryURL: URL?)] = []
 
     // Configurable results
     var nextResult: ProcessResult?
@@ -19,9 +19,10 @@ class MockProcessRunner: ProcessRunnerProtocol {
     func run(
         executable: String,
         arguments: [String],
-        environment: [String: String]?
+        environment: [String: String]?,
+        currentDirectoryURL: URL?
     ) async throws -> ProcessResult {
-        runCalls.append((executable, arguments, environment))
+        runCalls.append((executable, arguments, environment, currentDirectoryURL))
 
         if let error = nextError {
             throw error
@@ -33,8 +34,9 @@ class MockProcessRunner: ProcessRunnerProtocol {
     func runRustup(
         at rustupPath: String,
         arguments: [String],
-        environment: [String: String]?
+        environment: [String: String]?,
+        currentDirectoryURL: URL?
     ) async throws -> ProcessResult {
-        return try await run(executable: rustupPath, arguments: arguments, environment: environment)
+        return try await run(executable: rustupPath, arguments: arguments, environment: environment, currentDirectoryURL: currentDirectoryURL)
     }
 }
