@@ -25,7 +25,7 @@ struct ProjectToolchainSettingsView: View {
     @State private var originalConfig: ProjectToolchainConfig?
     
     var body: some View {
-        ZStack(alignment: .bottom) {
+        VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
                     // Error display
@@ -55,21 +55,14 @@ struct ProjectToolchainSettingsView: View {
                     
                     // Profile
                     profileSection
-                    
-                    // Bottom padding to account for fixed status bar
-                    Spacer()
-                        .frame(height: 100)
                 }
                 .padding(GlassTokens.Spacing.xxl)
             }
             
             // Fixed status bar at bottom
-            VStack {
-                Spacer()
-                saveButton
-                    .padding(.horizontal, GlassTokens.Spacing.xxl)
-                    .padding(.bottom, GlassTokens.Spacing.lg)
-            }
+            Divider()
+            saveButton
+                .background(GlassTokens.Colors.backgroundPrimary)
         }
         .task {
             await viewModel.loadConfig(projectPath: projectPath)

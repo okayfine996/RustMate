@@ -19,7 +19,7 @@ struct ProjectDiagnosticsView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .bottom) {
+        VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
                     // Error display
@@ -55,21 +55,33 @@ struct ProjectDiagnosticsView: View {
                         // Resolution Path Section
                         resolutionPathSection(diagnostics: diagnostics)
                     }
-                    
-                    // Bottom padding to account for fixed status bar
-                    Spacer()
-                        .frame(height: 100)
                 }
                 .padding(GlassTokens.Spacing.xxl)
             }
             
             // Fixed status bar at bottom
-            VStack {
-                Spacer()
-                statusBar
-                    .padding(.horizontal, GlassTokens.Spacing.xxl)
-                    .padding(.bottom, GlassTokens.Spacing.lg)
-            }
+            Divider()
+            SettingsStatusBar(
+                hasChanges: false,
+                statusMessage: "Diagnostics updated just now",
+                isLoading: viewModel.isLoading,
+                discardButtonTitle: "Rescan",
+                saveButtonTitle: "Apply Fixes",
+                saveButtonIcon: "wrench.and.screwdriver",
+                isSaveDisabled: viewModel.diagnostics?.hasMismatch != true,
+                onDiscard: {
+                    Task {
+                        await viewModel.loadDiagnostics(projectPath: projectPath)
+                    }
+                },
+                onSave: {
+                    if let diagnostics = viewModel.diagnostics, diagnostics.hasMismatch {
+                        Task {
+                            try? await viewModel.fixMismatch()
+                        }
+                    }
+                }
+            )
         }
         .task {
             await viewModel.loadDiagnostics(projectPath: projectPath)
@@ -432,63 +444,6 @@ struct ProjectDiagnosticsView: View {
                     .padding(.leading, 40)
             }
         }
-    }
-    
-    // MARK: - Status Bar
-    
-    @ViewBuilder
-    private var statusBar: some View {
-        HStack(spacing: GlassTokens.Spacing.md) {
-            // Left: Status indicator
-            HStack(spacing: GlassTokens.Spacing.sm) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-                
-                Text("Diagnostics updated just now")
-                    .font(.system(size: GlassTokens.Typography.bodySize))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-            }
-            
-            Spacer()
-            
-            // Right: Action buttons
-            HStack(spacing: GlassTokens.Spacing.md) {
-                Button("Rescan") {
-                    Task {
-                        await viewModel.loadDiagnostics(projectPath: projectPath)
-                    }
-                }
-                .font(.system(size: GlassTokens.Typography.bodySize))
-                .foregroundColor(GlassTokens.Colors.textSecondary)
-                .buttonStyle(.plain)
-                
-                Button {
-                    // Apply fixes
-                    if let diagnostics = viewModel.diagnostics, diagnostics.hasMismatch {
-                        Task {
-                            try? await viewModel.fixMismatch()
-                        }
-                    }
-                } label: {
-                    HStack(spacing: GlassTokens.Spacing.xs) {
-                        Image(systemName: "wrench.and.screwdriver")
-                            .font(.system(size: GlassTokens.Typography.bodySize))
-                        Text("Apply Fixes")
-                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, GlassTokens.Spacing.lg)
-                    .padding(.vertical, GlassTokens.Spacing.md)
-                    .background(GlassTokens.Colors.accent)
-                    .cornerRadius(GlassTokens.Radius.md)
-                }
-                .buttonStyle(.plain)
-                .disabled(viewModel.isLoading || viewModel.diagnostics?.hasMismatch != true)
-            }
-        }
-        .padding(GlassTokens.Spacing.lg)
-        .background(GlassTokens.Colors.backgroundTertiary)
-        .cornerRadius(GlassTokens.Radius.md)
     }
     
     // MARK: - Error Banner

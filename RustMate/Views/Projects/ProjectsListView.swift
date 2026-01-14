@@ -149,6 +149,7 @@ struct ProjectsListView: View {
                     .font(.system(size: GlassTokens.Typography.captionSize))
                     .foregroundColor(GlassTokens.Colors.textSecondary)
             }
+            .background(GlassTokens.Colors.backgroundPrimary)
             .padding(.horizontal, GlassTokens.Spacing.lg)
             .padding(.top, GlassTokens.Spacing.xl)
             .padding(.bottom, GlassTokens.Spacing.md)
@@ -178,8 +179,6 @@ struct ProjectsListView: View {
             }
             .background(Color.white)
             
-            Divider()
-            
             // Bottom add button
             VStack(spacing: 0) {
                 Divider()
@@ -195,7 +194,7 @@ struct ProjectsListView: View {
                     }
                     .foregroundColor(GlassTokens.Colors.accent)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, GlassTokens.Spacing.md)
+                    .frame(height: 44)
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, GlassTokens.Spacing.md)
@@ -400,8 +399,8 @@ struct ProjectTableRow: View {
                 .font(.system(size: GlassTokens.Typography.captionSize))
                 .foregroundColor(GlassTokens.Colors.textSecondary.opacity(0.5))
         }
-        .padding(.horizontal, GlassTokens.Spacing.lg)
-        .padding(.vertical, GlassTokens.Spacing.md)
+        .padding(.horizontal, GlassTokens.Spacing.md)
+        .frame(height: 44)
         .background(isSelected ? GlassTokens.Colors.accentSubtle.opacity(0.3) : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture {

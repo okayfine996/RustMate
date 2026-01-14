@@ -363,12 +363,10 @@ struct ToolchainListView: View {
                         await viewModel.updateToolchain(toolchain)
                     }
                 } label: {
-                    Image(systemName: "arrow.down.circle")
+                    Image(systemName: "arrow.down.circle.fill")
                         .font(.system(size: GlassTokens.Typography.calloutSize))
-                        .foregroundColor(GlassTokens.Colors.textPrimary)
+                        .foregroundColor(GlassTokens.Colors.accent)
                         .frame(width: 28, height: 28)
-                        .background(GlassTokens.Colors.cardBackground)
-                        .cornerRadius(GlassTokens.Radius.sm)
                 }
                 .buttonStyle(.plain)
                 .help("Update toolchain")
@@ -380,12 +378,10 @@ struct ToolchainListView: View {
                             await viewModel.setDefaultToolchain(toolchain)
                         }
                     } label: {
-                        Image(systemName: "pin.fill")
+                        Image(systemName: "pin.circle.fill")
                             .font(.system(size: GlassTokens.Typography.calloutSize))
                             .foregroundColor(GlassTokens.Colors.accent)
                             .frame(width: 28, height: 28)
-                            .background(GlassTokens.Colors.cardBackground)
-                            .cornerRadius(GlassTokens.Radius.sm)
                     }
                     .buttonStyle(.plain)
                     .help("Set as default toolchain")
@@ -395,12 +391,10 @@ struct ToolchainListView: View {
                         toolchainToDelete = toolchain
                         showDeleteConfirmation = true
                     } label: {
-                        Image(systemName: "trash")
+                        Image(systemName: "trash.circle.fill")
                             .font(.system(size: GlassTokens.Typography.calloutSize))
                             .foregroundColor(GlassTokens.Colors.error)
                             .frame(width: 28, height: 28)
-                            .background(GlassTokens.Colors.cardBackground)
-                            .cornerRadius(GlassTokens.Radius.sm)
                     }
                     .buttonStyle(.plain)
                     .help("Uninstall toolchain")

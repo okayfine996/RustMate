@@ -15,11 +15,21 @@ struct SettingsStatusBar: View {
     let onDiscard: () -> Void
     let onSave: () -> Void
     
+    // Optional custom button labels and icons
+    let discardButtonTitle: String?
+    let saveButtonTitle: String?
+    let saveButtonIcon: String?
+    let isSaveDisabled: Bool
+    
     init(
         hasChanges: Bool,
         changeCount: Int = 0,
         statusMessage: String? = nil,
         isLoading: Bool = false,
+        discardButtonTitle: String? = nil,
+        saveButtonTitle: String? = nil,
+        saveButtonIcon: String? = nil,
+        isSaveDisabled: Bool = false,
         onDiscard: @escaping () -> Void,
         onSave: @escaping () -> Void
     ) {
@@ -27,6 +37,10 @@ struct SettingsStatusBar: View {
         self.changeCount = changeCount
         self.statusMessage = statusMessage
         self.isLoading = isLoading
+        self.discardButtonTitle = discardButtonTitle
+        self.saveButtonTitle = saveButtonTitle
+        self.saveButtonIcon = saveButtonIcon
+        self.isSaveDisabled = isSaveDisabled
         self.onDiscard = onDiscard
         self.onSave = onSave
     }
@@ -61,8 +75,8 @@ struct SettingsStatusBar: View {
             
             // Right: Action buttons
             HStack(spacing: GlassTokens.Spacing.md) {
-                if hasChanges {
-                    Button("Discard Changes") {
+                if hasChanges || discardButtonTitle != nil {
+                    Button(discardButtonTitle ?? "Discard Changes") {
                         onDiscard()
                     }
                     .font(.system(size: GlassTokens.Typography.bodySize))
@@ -74,24 +88,73 @@ struct SettingsStatusBar: View {
                     onSave()
                 } label: {
                     HStack(spacing: GlassTokens.Spacing.xs) {
-                        Text("Save & Sync")
+                        Text(saveButtonTitle ?? "Save & Sync")
                             .font(.system(size: GlassTokens.Typography.bodySize, weight: .semibold))
                         
-                        Image(systemName: "cloud.fill")
-                            .font(.system(size: GlassTokens.Typography.bodySize))
+                        if let icon = saveButtonIcon {
+                            Image(systemName: icon)
+                                .font(.system(size: GlassTokens.Typography.bodySize))
+                        }
                     }
                     .foregroundColor(.white)
-                    .padding(.horizontal, GlassTokens.Spacing.lg)
-                    .padding(.vertical, GlassTokens.Spacing.md)
+                    .padding(.horizontal, GlassTokens.Spacing.sm)
+                    .padding(.vertical, GlassTokens.Spacing.sm)
                     .background(GlassTokens.Colors.accent)
                     .cornerRadius(GlassTokens.Radius.md)
                 }
+                .frame(height: 25)
+                .padding(.horizontal, GlassTokens.Spacing.md)
                 .buttonStyle(.plain)
-                .disabled(isLoading)
+                .disabled(isLoading || isSaveDisabled)
             }
         }
-        .padding(GlassTokens.Spacing.lg)
-        .background(GlassTokens.Colors.backgroundTertiary)
-        .cornerRadius(GlassTokens.Radius.md)
+        .frame(height: 44)
+        .padding(.horizontal, GlassTokens.Spacing.lg)
     }
+}
+
+// MARK: - Previews
+
+#Preview("With Changes") {
+    SettingsStatusBar(
+        hasChanges: true,
+        changeCount: 3,
+        onDiscard: {},
+        onSave: {}
+    )
+    .frame(width: 800)
+    .background(GlassTokens.Colors.backgroundPrimary)
+}
+
+#Preview("No Changes - Status Message") {
+    SettingsStatusBar(
+        hasChanges: false,
+        statusMessage: "All systems operational!",
+        onDiscard: {},
+        onSave: {}
+    )
+    .frame(width: 800)
+    .background(GlassTokens.Colors.backgroundPrimary)
+}
+
+#Preview("No Changes - Empty") {
+    SettingsStatusBar(
+        hasChanges: false,
+        onDiscard: {},
+        onSave: {}
+    )
+    .frame(width: 800)
+    .background(GlassTokens.Colors.backgroundPrimary)
+}
+
+#Preview("Loading") {
+    SettingsStatusBar(
+        hasChanges: true,
+        changeCount: 1,
+        isLoading: true,
+        onDiscard: {},
+        onSave: {}
+    )
+    .frame(width: 800)
+    .background(GlassTokens.Colors.backgroundPrimary)
 }

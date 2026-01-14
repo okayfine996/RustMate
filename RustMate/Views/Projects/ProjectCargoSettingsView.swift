@@ -22,30 +22,12 @@ struct ProjectCargoSettingsView: View {
     @State private var newAliasCommand = ""
     
     var body: some View {
-        ZStack(alignment: .bottom) {
+        VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: GlassTokens.Spacing.xl) {
                     // Error display
                     if let error = viewModel.error {
                         errorBanner(error)
-                    }
-                    
-                    // Page Title
-                    HStack {
-                        Text("Cargo Configuration")
-                            .font(.system(size: GlassTokens.Typography.displaySize, weight: .bold))
-                            .foregroundColor(GlassTokens.Colors.textPrimary)
-                        
-                        Spacer()
-                        
-                        // File indicator
-                        Text(".cargo/config.toml")
-                            .font(.system(size: GlassTokens.Typography.captionSize, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, GlassTokens.Spacing.sm)
-                            .padding(.vertical, GlassTokens.Spacing.xs)
-                            .background(GlassTokens.Colors.accent)
-                            .cornerRadius(GlassTokens.Radius.sm)
                     }
                     
                     // Registry Mirror Section
@@ -77,21 +59,10 @@ struct ProjectCargoSettingsView: View {
                         aliasesSection
                     }
                     
-                    // Build & Linker Settings Section
-                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-                        Text("Build & Linker Settings")
-                            .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
-                            .foregroundColor(GlassTokens.Colors.textPrimary)
-                        
-                        buildLinkerSection
-                    }
                     
                     // Rustflags Section
                     VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
                         HStack(spacing: GlassTokens.Spacing.sm) {
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: GlassTokens.Typography.headlineSize))
-                                .foregroundColor(GlassTokens.Colors.accent)
                             Text("Rustflags")
                                 .font(.system(size: GlassTokens.Typography.headlineSize, weight: .semibold))
                                 .foregroundColor(GlassTokens.Colors.textPrimary)
@@ -99,21 +70,14 @@ struct ProjectCargoSettingsView: View {
                         
                         rustflagsSection
                     }
-                    
-                    // Bottom padding to account for fixed status bar
-                    Spacer()
-                        .frame(height: 100)
                 }
                 .padding(GlassTokens.Spacing.xxl)
             }
             
             // Fixed status bar at bottom
-            VStack {
-                Spacer()
-                statusBar
-                    .padding(.horizontal, GlassTokens.Spacing.xxl)
-                    .padding(.bottom, GlassTokens.Spacing.lg)
-            }
+            Divider()
+            statusBar
+                .background(GlassTokens.Colors.backgroundPrimary)
         }
         .task {
             await viewModel.loadConfig(projectPath: projectPath)
@@ -245,44 +209,6 @@ struct ProjectCargoSettingsView: View {
                     .foregroundColor(GlassTokens.Colors.textSecondary)
                     .padding(GlassTokens.Spacing.md)
             }
-        }
-        .padding(GlassTokens.Spacing.lg)
-        .background(GlassTokens.Colors.cardBackground)
-        .cornerRadius(GlassTokens.Radius.lg)
-        .overlay(
-            RoundedRectangle(cornerRadius: GlassTokens.Radius.lg)
-                .stroke(GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
-        )
-    }
-    
-    // MARK: - Build & Linker Settings Section
-    
-    @ViewBuilder
-    private var buildLinkerSection: some View {
-        VStack(alignment: .leading, spacing: GlassTokens.Spacing.md) {
-            // Use Mold Linker
-            buildSettingCard(
-                icon: "checkmark.square.fill",
-                iconColor: GlassTokens.Colors.accent,
-                title: "Use Mold Linker",
-                description: "Enable the high-performance mold linker on Linux systems. Significantly reduces linking time.",
-                isEnabled: viewModel.config?.linker == .mold,
-                onToggle: { enabled in
-                    viewModel.updateLinker(enabled ? .mold : nil)
-                }
-            )
-            
-            // Strip Symbols
-            buildSettingCard(
-                icon: "scissors",
-                iconColor: .brown,
-                title: "Strip Symbols",
-                description: "Remove debug symbols from release builds to reduce binary size.",
-                isEnabled: viewModel.config?.stripSymbols == true,
-                onToggle: { enabled in
-                    viewModel.updateStripSymbols(enabled ? true : nil)
-                }
-            )
         }
         .padding(GlassTokens.Spacing.lg)
         .background(GlassTokens.Colors.cardBackground)
