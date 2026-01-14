@@ -177,7 +177,7 @@ struct ProjectsListView: View {
                     }
                 }
             }
-            .background(Color.white)
+            .background(GlassTokens.Colors.cardBackground)
             
             // Bottom add button
             VStack(spacing: 0) {

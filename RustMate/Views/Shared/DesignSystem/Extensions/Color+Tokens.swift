@@ -7,8 +7,36 @@
 //
 
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 extension Color {
+    /// Creates a color that adapts to the current appearance.
+    /// - Parameters:
+    ///   - light: The color to use in light mode.
+    ///   - dark: The color to use in dark mode.
+    init(light: Color, dark: Color) {
+        #if os(macOS)
+        self.init(nsColor: NSColor(name: nil) { appearance in
+            switch appearance.name {
+            case .darkAqua, .vibrantDark, .accessibilityHighContrastDarkAqua, .accessibilityHighContrastVibrantDark:
+                return NSColor(dark)
+            default:
+                return NSColor(light)
+            }
+        })
+        #else
+        self.init(uiColor: UIColor { traitCollection in
+            switch traitCollection.userInterfaceStyle {
+            case .dark:
+                return UIColor(dark)
+            default:
+                return UIColor(light)
+            }
+        })
+        #endif
+    }
     // MARK: - Semantic Colors from Tokens
 
     static var glassBackground: Color {

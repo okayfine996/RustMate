@@ -51,7 +51,7 @@ struct SettingsStatusBar: View {
             if hasChanges {
                 HStack(spacing: GlassTokens.Spacing.sm) {
                     Circle()
-                        .fill(Color.orange)
+                        .fill(GlassTokens.Colors.warning)
                         .frame(width: 8, height: 8)
                     
                     Text("\(changeCount) change\(changeCount == 1 ? "" : "s") pending...")
@@ -61,7 +61,7 @@ struct SettingsStatusBar: View {
             } else if let message = statusMessage {
                 HStack(spacing: GlassTokens.Spacing.sm) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+                        .foregroundColor(GlassTokens.Colors.success)
                     
                     Text(message)
                         .font(.system(size: GlassTokens.Typography.bodySize))
