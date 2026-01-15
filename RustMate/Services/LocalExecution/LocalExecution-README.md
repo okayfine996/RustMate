@@ -4,7 +4,7 @@ This directory contains the local (in-app) execution layer for running rustup co
 
 ## Purpose
 
-Replace XPC-based execution with direct process execution in the sandboxed main app.
+Provides direct process execution for rustup commands in the sandboxed main app.
 
 ## Components
 

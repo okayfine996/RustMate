@@ -3,7 +3,6 @@
 //  RustMate
 //
 //  Parser for `rustup toolchain list` command output
-//  (Extracted from XPC service for local execution)
 //
 
 import Foundation

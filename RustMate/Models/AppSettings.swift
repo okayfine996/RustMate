@@ -73,9 +73,7 @@ struct AppSettings: Codable, Sendable {
 
     /// Default settings - loads from UserDefaults if available
     static var `default`: AppSettings {
-        let settingsKey = "RustMate.AppSettings"
-
-        guard let data = UserDefaults.standard.data(forKey: settingsKey) else {
+        guard let data = UserDefaults.standard.data(forKey: Constants.UserDefaultsKeys.appSettings) else {
             print("📂 AppSettings.default: No saved settings found, returning empty defaults")
             return AppSettings(
                 rustupPath: nil,

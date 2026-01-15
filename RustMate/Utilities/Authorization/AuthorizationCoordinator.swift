@@ -11,7 +11,7 @@ import Foundation
 struct AuthorizationCoordinator {
 
     /// Notification name for requesting authorization
-    static let authorizationRequestedNotification = Notification.Name("RustMate.AuthorizationRequested")
+    static let authorizationRequestedNotification = Constants.Notifications.authorizationRequested
 
     /// Key for AuthorizationScope in notification userInfo
     static let scopeKey = "scope"

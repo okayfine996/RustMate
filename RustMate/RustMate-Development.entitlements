@@ -10,12 +10,6 @@
 	<key>com.apple.security.network.client</key>
 	<true/>
 
-	<!-- XPC 连接 -->
-	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
-	<array>
-		<string>com.finefine.RustMateXPC</string>
-	</array>
-
 	<!-- ⚠️ 开发专用：直接访问 cargo/rustup 目录 -->
 	<!-- 注意：这些例外会导致 App Store 拒绝上架 -->
 	<key>com.apple.security.temporary-exception.files.absolute-path.read-write</key>

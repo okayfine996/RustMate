@@ -95,7 +95,7 @@ struct RustMateApp: App {
         // Set up notification observer for opening main window
         // This needs to be at app level to ensure it's always active
         NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("OpenMainWindow"),
+            forName: Constants.Notifications.openMainWindow,
             object: nil,
             queue: .main
         ) { _ in
@@ -120,7 +120,7 @@ struct RustMateApp: App {
                         updateService.switchChannel(to: userChannel)
                     }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenMainWindow"))) { _ in
+                .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.openMainWindow)) { _ in
                     print("🔔 RootView: Received OpenMainWindow in SwiftUI context")
                     // Window already exists if this code runs, just bring it to front
                     activateMainWindow()
@@ -161,8 +161,8 @@ class AppState: ObservableObject {
     @Published var showSettings = false
     @Published var needsSetup = false
 
-    private let firstLaunchKey = "RustMate.hasCompletedFirstLaunch"
-    private let settingsKey = "RustMate.AppSettings"
+    private let firstLaunchKey = Constants.UserDefaultsKeys.hasCompletedFirstLaunch
+    private let settingsKey = Constants.UserDefaultsKeys.appSettings
 
     init() {
         loadSettings()
@@ -170,7 +170,7 @@ class AppState: ObservableObject {
 
         // Listen for settings reset notification
         NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("SettingsReset"),
+            forName: Constants.Notifications.settingsReset,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -272,7 +272,7 @@ struct RootView: View {
         Group {
             if appState.needsSetup {
                 SetupView()
-                    .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SetupCompleted"))) { _ in
+                    .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.setupCompleted)) { _ in
                         appState.completeSetup()
                     }
             } else {
@@ -296,15 +296,15 @@ struct RootView: View {
             handleAuthorizationRequest(notification)
         }
         // Handle authorization completion to process queue
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AuthorizationCompleted"))) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.authorizationCompleted)) { _ in
             processAuthorizationQueue()
         }
         // Handle "Open Settings" notifications
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenSettings"))) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.openSettings)) { _ in
             appState.showSettings = true
         }
         // Handle "Authorization Required" notifications - switch to setup flow
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AuthorizationRequired"))) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.authorizationRequired)) { _ in
             print("🔐 RootView: Authorization required, switching to setup flow")
             appState.needsSetup = true
             appState.showSettings = false
@@ -342,7 +342,7 @@ struct RootView: View {
                 print("📢 RootView: Authorization queue completed, posting AllAuthorizationsCompleted notification")
                 // Post notification that all authorizations are complete
                 NotificationCenter.default.post(
-                    name: NSNotification.Name("AllAuthorizationsCompleted"),
+                    name: Constants.Notifications.allAuthorizationsCompleted,
                     object: nil
                 )
             }

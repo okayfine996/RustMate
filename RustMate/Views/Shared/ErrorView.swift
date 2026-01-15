@@ -113,10 +113,10 @@ extension ErrorView {
 
 #Preview("Basic Error") {
     ErrorView(
-        message: "Failed to connect to XPC service",
+        message: "Failed to execute rustup command",
         hints: [
-            "Check that RustMateXPC.xpc is properly installed",
-            "Try restarting the application"
+            "Check that rustup is properly installed",
+            "Try running 'rustup --version' in Terminal"
         ]
     )
 }

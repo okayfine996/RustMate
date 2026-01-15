@@ -3,7 +3,6 @@
 //  RustMate
 //
 //  Parser for rustup show output to extract project context
-//  (Extracted from XPC service for local execution)
 //
 
 import Foundation

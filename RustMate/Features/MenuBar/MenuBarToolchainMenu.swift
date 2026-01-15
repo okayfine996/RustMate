@@ -83,7 +83,7 @@ struct MenuBarToolchainMenu: View {
 
             if viewModel.requiresAuthorization {
                 Button("Open Settings") {
-                    NotificationCenter.default.post(name: NSNotification.Name("OpenSettings"), object: nil)
+                    NotificationCenter.default.post(name: Constants.Notifications.openSettings, object: nil)
                 }
             }
         }

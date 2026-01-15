@@ -1,6 +1,6 @@
 # Rustup Output Parsers
 
-This directory contains parsers for rustup command output, extracted from the XPC service for reuse in local execution.
+This directory contains parsers for rustup command output.
 
 ## Parsers
 

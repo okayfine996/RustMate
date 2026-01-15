@@ -10,7 +10,7 @@ import Combine
 
 @MainActor
 class ProjectsViewModel: ObservableObject {
-    private var service: LocalProjectContextService  // T054: Replaced XPC with local execution
+    private var service: LocalProjectContextService
     private let taskManager = TaskManager.shared
     private let diagnosticsService = ProjectDiagnosticsService()
     private let toolchainConfigService: ToolchainConfigService = LocalToolchainConfigService()
@@ -25,10 +25,10 @@ class ProjectsViewModel: ObservableObject {
     // Override mode setting (from UserDefaults)
     var overrideMode: String {
         get {
-            UserDefaults.standard.string(forKey: "overrideMode") ?? "toolchainFile"
+            UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.overrideMode) ?? Constants.Defaults.overrideMode
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: "overrideMode")
+            UserDefaults.standard.set(newValue, forKey: Constants.UserDefaultsKeys.overrideMode)
         }
     }
 
@@ -48,7 +48,7 @@ class ProjectsViewModel: ObservableObject {
     // MARK: - Bookmark Management
 
     func loadBookmarks() {
-        if let data = UserDefaults.standard.data(forKey: "projectBookmarks"),
+        if let data = UserDefaults.standard.data(forKey: Constants.UserDefaultsKeys.projectBookmarks),
            let decoded = try? JSONDecoder().decode([ProjectBookmark].self, from: data) {
             projects = decoded
             // Don't auto-select here - let the view handle it after it's ready
@@ -63,7 +63,7 @@ class ProjectsViewModel: ObservableObject {
 
     func saveBookmarks() {
         if let encoded = try? JSONEncoder().encode(projects) {
-            UserDefaults.standard.set(encoded, forKey: "projectBookmarks")
+            UserDefaults.standard.set(encoded, forKey: Constants.UserDefaultsKeys.projectBookmarks)
         }
     }
 

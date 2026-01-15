@@ -529,7 +529,7 @@ struct ToolchainListView: View {
                 onOpenSettings: {
                     // Open Settings window
                     NotificationCenter.default.post(
-                        name: NSNotification.Name("OpenSettings"),
+                        name: Constants.Notifications.openSettings,
                         object: nil
                     )
                 }

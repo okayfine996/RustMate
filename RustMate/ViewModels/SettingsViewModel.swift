@@ -255,7 +255,7 @@ class SettingsViewModel: ObservableObject {
 
                     // Notify that authorization completed
                     NotificationCenter.default.post(
-                        name: NSNotification.Name("AuthorizationCompleted"),
+                        name: Constants.Notifications.authorizationCompleted,
                         object: nil,
                         userInfo: ["purpose": purpose]
                     )
@@ -451,6 +451,6 @@ class SettingsViewModel: ObservableObject {
         authorizationStates = [:]
 
         // Trigger setup flow by posting notification
-        NotificationCenter.default.post(name: NSNotification.Name("SettingsReset"), object: nil)
+        NotificationCenter.default.post(name: Constants.Notifications.settingsReset, object: nil)
     }
 }

@@ -55,7 +55,7 @@ struct ProjectsListView: View {
             }
         }
         .navigationTitle("Projects")
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AllAuthorizationsCompleted"))) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.allAuthorizationsCompleted)) { _ in
             // When all authorizations complete, refresh settings and retry loading project
             print("📢 ProjectsListView: Received AllAuthorizationsCompleted, refreshing settings and retrying")
             viewModel.refreshSettings()
@@ -122,7 +122,7 @@ struct ProjectsListView: View {
             }
             Button("Open Settings") {
                 NotificationCenter.default.post(
-                    name: NSNotification.Name("OpenSettings"),
+                    name: Constants.Notifications.openSettings,
                     object: nil
                 )
                 viewModel.error = nil
