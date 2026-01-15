@@ -18,6 +18,7 @@ class ToolchainViewModel: ObservableObject {
     @Published var runningTasks: [UUID: TaskRecord] = [:]
 
     private let service: RustToolchainServiceProtocol
+    private let taskCoordinator = TaskCoordinator()
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Structured Error Surface (T039)
@@ -138,337 +139,96 @@ class ToolchainViewModel: ObservableObject {
             return
         }
 
-        // Create initial running task record
-        let taskId = UUID()
-        let runningTask = TaskRecord(
-            id: taskId,
+        let result = await taskCoordinator.execute(
             operation: "install",
-            target: name,
-            status: .running,
-            startTime: Date()
-        )
+            target: name
+        ) {
+            try await service.installToolchain(name: name)
+        }
 
-        // Track and notify task started
-        await trackTaskStarted(runningTask)
-
-        do {
-            let result = try await service.installToolchain(name: name)
-
-            // Create updated task with the same taskId
-            let completedTask = TaskRecord(
-                id: taskId, // Use the same taskId we created earlier
-                operation: "install",
-                target: name,
-                status: result.status,
-                startTime: runningTask.startTime,
-                endTime: result.endTime ?? Date(),
-                exitCode: result.exitCode,
-                stdoutSnippet: result.stdoutSnippet,
-                stderrSnippet: result.stderrSnippet,
-                errorMessage: result.errorMessage,
-                suggestedFix: TaskResult.suggestFix(for: result.stderrSnippet ?? "")
-            )
-
-            await trackTaskCompleted(completedTask)
-
-            // Refresh list after completion
-            if result.status == .success {
-                await loadToolchains()
-            }
-        } catch {
-            self.error = error
-            print("Failed to install toolchain: \(error)")
-
-            // Track failure with the same taskId
-            let failedTask = TaskRecord(
-                id: taskId,
-                operation: "install",
-                target: name,
-                status: .failed,
-                startTime: runningTask.startTime,
-                endTime: Date(),
-                exitCode: -1,
-                errorMessage: error.localizedDescription
-            )
-            await trackTaskCompleted(failedTask)
+        // Handle result
+        if result.status != .success {
+            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: result.errorMessage ?? "Installation failed"
+            ])
+        } else {
+            await loadToolchains()
         }
     }
 
     func uninstallToolchain(_ toolchain: ToolchainInfo) async {
-        // Create initial running task record
-        let taskId = UUID()
-        let runningTask = TaskRecord(
-            id: taskId,
+        let result = await taskCoordinator.execute(
             operation: "uninstall",
-            target: toolchain.name,
-            status: .running,
-            startTime: Date()
-        )
+            target: toolchain.name
+        ) {
+            try await service.uninstallToolchain(name: toolchain.name)
+        }
 
-        // Track and notify task started
-        await trackTaskStarted(runningTask)
-
-        do {
-            let result = try await service.uninstallToolchain(name: toolchain.name)
-
-            // Create updated task with the same taskId
-            let completedTask = TaskRecord(
-                id: taskId,
-                operation: "uninstall",
-                target: toolchain.name,
-                status: result.status,
-                startTime: runningTask.startTime,
-                endTime: result.endTime ?? Date(),
-                exitCode: result.exitCode,
-                stdoutSnippet: result.stdoutSnippet,
-                stderrSnippet: result.stderrSnippet,
-                errorMessage: result.errorMessage,
-                suggestedFix: TaskResult.suggestFix(for: result.stderrSnippet ?? "")
-            )
-
-            await trackTaskCompleted(completedTask)
-
-            // Refresh list after completion
-            if result.status == .success {
-                await loadToolchains()
-            }
-        } catch {
-            self.error = error
-            print("Failed to uninstall toolchain: \(error)")
-
-            // Track failure with the same taskId
-            let failedTask = TaskRecord(
-                id: taskId,
-                operation: "uninstall",
-                target: toolchain.name,
-                status: .failed,
-                startTime: runningTask.startTime,
-                endTime: Date(),
-                exitCode: -1,
-                errorMessage: error.localizedDescription
-            )
-            await trackTaskCompleted(failedTask)
+        // Handle result
+        if result.status != .success {
+            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: result.errorMessage ?? "Uninstallation failed"
+            ])
+        } else {
+            await loadToolchains()
         }
     }
 
     func setDefaultToolchain(_ toolchain: ToolchainInfo) async {
-        // Create initial running task record
-        let taskId = UUID()
-        let runningTask = TaskRecord(
-            id: taskId,
+        let result = await taskCoordinator.execute(
             operation: "setDefault",
-            target: toolchain.name,
-            status: .running,
-            startTime: Date()
-        )
+            target: toolchain.name
+        ) {
+            try await service.setDefaultToolchain(name: toolchain.name)
+        }
 
-        // Track and notify task started
-        await trackTaskStarted(runningTask)
-
-        do {
-            let result = try await service.setDefaultToolchain(name: toolchain.name)
-
-            // Create updated task with the same taskId
-            let completedTask = TaskRecord(
-                id: taskId,
-                operation: "setDefault",
-                target: toolchain.name,
-                status: result.status,
-                startTime: runningTask.startTime,
-                endTime: result.endTime ?? Date(),
-                exitCode: result.exitCode,
-                stdoutSnippet: result.stdoutSnippet,
-                stderrSnippet: result.stderrSnippet,
-                errorMessage: result.errorMessage,
-                suggestedFix: TaskResult.suggestFix(for: result.stderrSnippet ?? "")
-            )
-
-            await trackTaskCompleted(completedTask)
-
-            // Refresh list after completion
-            if result.status == .success {
-                await loadToolchains()
-            }
-        } catch {
-            self.error = error
-            print("Failed to set default toolchain: \(error)")
-
-            // Track failure with the same taskId
-            let failedTask = TaskRecord(
-                id: taskId,
-                operation: "setDefault",
-                target: toolchain.name,
-                status: .failed,
-                startTime: runningTask.startTime,
-                endTime: Date(),
-                exitCode: -1,
-                errorMessage: error.localizedDescription
-            )
-            await trackTaskCompleted(failedTask)
+        // Handle result
+        if result.status != .success {
+            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: result.errorMessage ?? "Setting default failed"
+            ])
+        } else {
+            await loadToolchains()
         }
     }
 
     func updateToolchain(_ toolchain: ToolchainInfo) async {
-        // Create initial running task record
-        let taskId = UUID()
-        let runningTask = TaskRecord(
-            id: taskId,
+        let result = await taskCoordinator.execute(
             operation: "update",
-            target: toolchain.name,
-            status: .running,
-            startTime: Date()
-        )
+            target: toolchain.name
+        ) {
+            try await service.updateToolchain(name: toolchain.name)
+        }
 
-        // Track and notify task started
-        await trackTaskStarted(runningTask)
-
-        do {
-            let result = try await service.updateToolchain(name: toolchain.name)
-
-            // Create updated task with the same taskId
-            let completedTask = TaskRecord(
-                id: taskId,
-                operation: "update",
-                target: toolchain.name,
-                status: result.status,
-                startTime: runningTask.startTime,
-                endTime: result.endTime ?? Date(),
-                exitCode: result.exitCode,
-                stdoutSnippet: result.stdoutSnippet,
-                stderrSnippet: result.stderrSnippet,
-                errorMessage: result.errorMessage,
-                suggestedFix: TaskResult.suggestFix(for: result.stderrSnippet ?? "")
-            )
-
-            await trackTaskCompleted(completedTask)
-
-            // Refresh list after completion
-            if result.status == .success {
-                await loadToolchains()
-            }
-        } catch {
-            self.error = error
-            print("Failed to update toolchain: \(error)")
-
-            // Track failure with the same taskId
-            let failedTask = TaskRecord(
-                id: taskId,
-                operation: "update",
-                target: toolchain.name,
-                status: .failed,
-                startTime: runningTask.startTime,
-                endTime: Date(),
-                exitCode: -1,
-                errorMessage: error.localizedDescription
-            )
-            await trackTaskCompleted(failedTask)
+        // Handle result
+        if result.status != .success {
+            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: result.errorMessage ?? "Update failed"
+            ])
+        } else {
+            await loadToolchains()
         }
     }
 
     func updateAllToolchains() async {
-        // Create initial running task record
-        let taskId = UUID()
-        let runningTask = TaskRecord(
-            id: taskId,
+        let result = await taskCoordinator.execute(
             operation: "updateAll",
-            target: nil,
-            status: .running,
-            startTime: Date()
-        )
+            target: nil
+        ) {
+            try await service.updateAllToolchains()
+        }
 
-        // Track and notify task started
-        await trackTaskStarted(runningTask)
-
-        do {
-            let result = try await service.updateAllToolchains()
-
-            // Create updated task with the same taskId
-            let completedTask = TaskRecord(
-                id: taskId,
-                operation: "updateAll",
-                target: nil,
-                status: result.status,
-                startTime: runningTask.startTime,
-                endTime: result.endTime ?? Date(),
-                exitCode: result.exitCode,
-                stdoutSnippet: result.stdoutSnippet,
-                stderrSnippet: result.stderrSnippet,
-                errorMessage: result.errorMessage,
-                suggestedFix: TaskResult.suggestFix(for: result.stderrSnippet ?? "")
-            )
-
-            await trackTaskCompleted(completedTask)
-
-            // Refresh list after completion
-            if result.status == .success {
-                await loadToolchains()
-            }
-        } catch {
-            self.error = error
-            print("Failed to update all toolchains: \(error)")
-
-            // Track failure with the same taskId
-            let failedTask = TaskRecord(
-                id: taskId,
-                operation: "updateAll",
-                target: nil,
-                status: .failed,
-                startTime: runningTask.startTime,
-                endTime: Date(),
-                exitCode: -1,
-                errorMessage: error.localizedDescription
-            )
-            await trackTaskCompleted(failedTask)
+        // Handle result
+        if result.status != .success {
+            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: result.errorMessage ?? "Update all failed"
+            ])
+        } else {
+            await loadToolchains()
         }
     }
 
     // MARK: - Task Management
-
-    private func trackTaskStarted(_ task: TaskRecord) async {
-        // Track locally for UI badges
-        runningTasks[task.id] = task
-
-        // Broadcast to TaskManager for global task list
-        TaskManager.shared.addTask(task)
-
-        // Send notification
-        await TaskNotificationManager.shared.notifyTaskStarted(task)
-    }
-
-    private func trackTaskCompleted(_ record: TaskRecord) async {
-        // Update local tracking
-        runningTasks[record.id] = record
-
-        // Broadcast to TaskManager
-        TaskManager.shared.addTask(record)
-
-        // Send completion notification
-        await TaskNotificationManager.shared.notifyTaskCompleted(record)
-
-        // Remove completed tasks after a delay
-        Task {
-            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
-            runningTasks.removeValue(forKey: record.id)
-        }
-    }
-
-    private func trackTask(_ result: TaskResult) {
-        if let record = result.taskRecord {
-            // Track locally for UI badges
-            runningTasks[record.id] = record
-
-            // Broadcast to TaskManager for global task list
-            TaskManager.shared.addTask(record)
-
-            // Remove completed tasks after a delay
-            if record.status != .running {
-                Task {
-                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
-                    runningTasks.removeValue(forKey: record.id)
-                }
-            }
-        }
-    }
 
     func clearTask(_ taskId: UUID) {
         runningTasks.removeValue(forKey: taskId)

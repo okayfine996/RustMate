@@ -18,6 +18,7 @@ class TargetsViewModel: ObservableObject {
     @Published var runningTasks: [UUID: TaskRecord] = [:]
 
     private let service: RustToolchainServiceProtocol
+    private let taskCoordinator = TaskCoordinator()
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Structured Error Surface (T040)
@@ -95,174 +96,51 @@ class TargetsViewModel: ObservableObject {
     func installTarget(_ target: TargetInfo) async {
         guard let toolchain = selectedToolchain else { return }
 
-        // Create initial running task record
-        let taskId = UUID()
-        let runningTask = TaskRecord(
-            id: taskId,
+        let result = await taskCoordinator.execute(
             operation: "addTarget",
-            target: "\(target.triple) (\(toolchain.name))",
-            status: .running,
-            startTime: Date()
-        )
-
-        // Track and notify task started
-        await trackTaskStarted(runningTask)
-
-        do {
-            let result = try await service.addTarget(
+            target: "\(target.triple) (\(toolchain.name))"
+        ) {
+            try await service.addTarget(
                 targetTriple: target.triple,
                 toolchainName: toolchain.name
             )
+        }
 
-            // Create updated task with the same taskId
-            let completedTask = TaskRecord(
-                id: taskId,
-                operation: "addTarget",
-                target: "\(target.triple) (\(toolchain.name))",
-                status: result.status,
-                startTime: runningTask.startTime,
-                endTime: result.endTime ?? Date(),
-                exitCode: result.exitCode,
-                stdoutSnippet: result.stdoutSnippet,
-                stderrSnippet: result.stderrSnippet,
-                errorMessage: result.errorMessage,
-                suggestedFix: TaskResult.suggestFix(for: result.stderrSnippet ?? "")
-            )
-
-            await trackTaskCompleted(completedTask)
-
-            // Refresh list after completion
-            if result.status == .success {
-                await loadTargets()
-            }
-        } catch {
-            self.error = error
-            print("Failed to install target: \(error)")
-
-            // Track failure with the same taskId
-            let failedTask = TaskRecord(
-                id: taskId,
-                operation: "addTarget",
-                target: "\(target.triple) (\(toolchain.name))",
-                status: .failed,
-                startTime: runningTask.startTime,
-                endTime: Date(),
-                exitCode: -1,
-                errorMessage: error.localizedDescription
-            )
-            await trackTaskCompleted(failedTask)
+        // Handle result
+        if result.status != .success {
+            error = NSError(domain: "TargetsViewModel", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: result.errorMessage ?? "Installation failed"
+            ])
+        } else {
+            await loadTargets()
         }
     }
 
     func uninstallTarget(_ target: TargetInfo) async {
         guard let toolchain = selectedToolchain else { return }
 
-        // Create initial running task record
-        let taskId = UUID()
-        let runningTask = TaskRecord(
-            id: taskId,
+        let result = await taskCoordinator.execute(
             operation: "removeTarget",
-            target: "\(target.triple) (\(toolchain.name))",
-            status: .running,
-            startTime: Date()
-        )
-
-        // Track and notify task started
-        await trackTaskStarted(runningTask)
-
-        do {
-            let result = try await service.removeTarget(
+            target: "\(target.triple) (\(toolchain.name))"
+        ) {
+            try await service.removeTarget(
                 targetTriple: target.triple,
                 toolchainName: toolchain.name
             )
+        }
 
-            // Create updated task with the same taskId
-            let completedTask = TaskRecord(
-                id: taskId,
-                operation: "removeTarget",
-                target: "\(target.triple) (\(toolchain.name))",
-                status: result.status,
-                startTime: runningTask.startTime,
-                endTime: result.endTime ?? Date(),
-                exitCode: result.exitCode,
-                stdoutSnippet: result.stdoutSnippet,
-                stderrSnippet: result.stderrSnippet,
-                errorMessage: result.errorMessage,
-                suggestedFix: TaskResult.suggestFix(for: result.stderrSnippet ?? "")
-            )
-
-            await trackTaskCompleted(completedTask)
-
-            // Refresh list after completion
-            if result.status == .success {
-                await loadTargets()
-            }
-        } catch {
-            self.error = error
-            print("Failed to uninstall target: \(error)")
-
-            // Track failure with the same taskId
-            let failedTask = TaskRecord(
-                id: taskId,
-                operation: "removeTarget",
-                target: "\(target.triple) (\(toolchain.name))",
-                status: .failed,
-                startTime: runningTask.startTime,
-                endTime: Date(),
-                exitCode: -1,
-                errorMessage: error.localizedDescription
-            )
-            await trackTaskCompleted(failedTask)
+        // Handle result
+        if result.status != .success {
+            error = NSError(domain: "TargetsViewModel", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: result.errorMessage ?? "Uninstallation failed"
+            ])
+        } else {
+            await loadTargets()
         }
     }
 
     // MARK: - Task Management
-
-    private func trackTaskStarted(_ task: TaskRecord) async {
-        // Track locally for UI badges
-        runningTasks[task.id] = task
-
-        // Broadcast to TaskManager for global task list
-        TaskManager.shared.addTask(task)
-
-        // Send notification
-        await TaskNotificationManager.shared.notifyTaskStarted(task)
-    }
-
-    private func trackTaskCompleted(_ record: TaskRecord) async {
-        // Update local tracking
-        runningTasks[record.id] = record
-
-        // Broadcast to TaskManager
-        TaskManager.shared.addTask(record)
-
-        // Send completion notification
-        await TaskNotificationManager.shared.notifyTaskCompleted(record)
-
-        // Remove completed tasks after a delay
-        Task {
-            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
-            runningTasks.removeValue(forKey: record.id)
-        }
-    }
-
-    private func trackTask(_ result: TaskResult) {
-        if let record = result.taskRecord {
-            // Track locally for UI badges
-            runningTasks[record.id] = record
-
-            // Broadcast to TaskManager for global task list
-            TaskManager.shared.addTask(record)
-
-            // Remove completed tasks after a delay
-            if record.status != .running {
-                Task {
-                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
-                    runningTasks.removeValue(forKey: record.id)
-                }
-            }
-        }
-    }
+    // (Task tracking now handled by TaskCoordinator)
 
     // MARK: - Suggestions
 
