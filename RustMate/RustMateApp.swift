@@ -137,7 +137,11 @@ struct RustMateApp: App {
             if menuBarViewModel.status == .loading {
                 Image(systemName: "arrow.clockwise")
             } else {
-                Image(systemName: "wrench.and.screwdriver.fill")
+                Image("MenuBarIcon")
+                    .renderingMode(.template)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 18, height: 18)
             }
         }
         #endif
