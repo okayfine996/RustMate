@@ -123,22 +123,44 @@ struct MenuBarToolchainMenu: View {
 
     private func openMainWindow() {
         print("📢 MenuBar: Opening main window via SwiftUI")
-
-        // First, try to use SwiftUI's openWindow to open/create the window
-        openWindow(id: "main")
-
-        // Then activate the app and bring window to front
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            NSApp.activate(ignoringOtherApps: true)
-
-            // Find and activate the main window (not the menu bar window)
-            for window in NSApp.windows {
-                let className = String(describing: type(of: window))
-                if !className.contains("StatusBar") && window.canBecomeKey {
-                    window.makeKeyAndOrderFront(nil)
-                    window.orderFrontRegardless()
-                    print("✅ MenuBar: Main window activated")
-                    return
+        
+        // Activate the app first
+        NSApp.activate(ignoringOtherApps: true)
+        
+        // Check if main window already exists
+        var mainWindowExists = false
+        for window in NSApp.windows {
+            let className = String(describing: type(of: window))
+            // Check if this is the main window (not menu bar or status bar windows)
+            if !className.contains("MenuBar") && !className.contains("StatusBar") && !className.contains("NSStatusBar") && window.canBecomeKey {
+                mainWindowExists = true
+                print("✅ MenuBar: Main window already exists, activating it")
+                
+                // Activate existing window
+                if window.isMiniaturized {
+                    window.deminiaturize(nil)
+                }
+                window.makeKeyAndOrderFront(nil)
+                window.orderFrontRegardless()
+                return
+            }
+        }
+        
+        // If window doesn't exist, create a new one
+        if !mainWindowExists {
+            print("📢 MenuBar: Main window doesn't exist, creating new one")
+            openWindow(id: "main")
+            
+            // Wait a bit for window creation, then activate it
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                for window in NSApp.windows {
+                    let className = String(describing: type(of: window))
+                    if !className.contains("MenuBar") && !className.contains("StatusBar") && !className.contains("NSStatusBar") && window.canBecomeKey {
+                        window.makeKeyAndOrderFront(nil)
+                        window.orderFrontRegardless()
+                        print("✅ MenuBar: New main window activated")
+                        return
+                    }
                 }
             }
         }

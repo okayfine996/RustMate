@@ -128,60 +128,21 @@ struct RustMateApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 800, height: 600)
-        .commands {
-            CommandGroup(replacing: .appSettings) {
-                Button("Settings...") {
-                    appState.showSettings = true
-                }
-                .keyboardShortcut(",", modifiers: .command)
-            }
-        }
 
         #if os(macOS)
-        Settings {
-            // T004: Pass Binding to enable write-back to AppState
-            SettingsView(settingsBinding: $appState.settings)
-        }
-
-        // Menu bar entry with display space fallback
+        // Menu bar entry - always show icon
         MenuBarExtra {
             MenuBarToolchainMenu(viewModel: menuBarViewModel)
         } label: {
-            if let defaultToolchain = menuBarViewModel.currentDefaultToolchainId {
-                // Fallback strategy: show shortened version if too long
-                let displayName = shortenToolchainName(defaultToolchain)
-                Text(displayName)
-                    .font(.system(.caption, design: .monospaced))
-            } else if menuBarViewModel.status == .loading {
+            if menuBarViewModel.status == .loading {
                 Image(systemName: "arrow.clockwise")
             } else {
-                Image(systemName: "gearshape")
+                Image(systemName: "wrench.and.screwdriver.fill")
             }
         }
         #endif
     }
 
-    // MARK: - Helper Functions
-
-    /// Shorten toolchain name for menu bar display
-    /// - Parameter name: Full toolchain name
-    /// - Returns: Shortened name if too long
-    private func shortenToolchainName(_ name: String) -> String {
-        // If name is short enough, return as-is
-        if name.count <= 20 {
-            return name
-        }
-
-        // Try to extract the channel (stable, beta, nightly)
-        let components = name.split(separator: "-")
-        if let channel = components.first {
-            return String(channel)
-        }
-
-        // Fallback: truncate with ellipsis
-        let prefix = name.prefix(17)
-        return "\(prefix)..."
-    }
 }
 
 // MARK: - App State
