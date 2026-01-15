@@ -62,7 +62,7 @@ struct MenuBarToolchainMenu: View {
         } else if viewModel.status == .error {
             errorStateView
         } else if let defaultId = viewModel.currentDefaultToolchainId {
-            Text("Current: \(defaultId)")
+            Text("Global: \(defaultId)")
                 .font(.caption)
                 .foregroundColor(.secondary)
         } else {

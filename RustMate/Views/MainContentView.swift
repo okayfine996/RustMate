@@ -70,16 +70,10 @@ struct MainContentView: View {
     @ViewBuilder
     private var topNavigationBar: some View {
         HStack(spacing: GlassTokens.Spacing.xl) {
-            // Left: App logo and name
-            HStack(spacing: GlassTokens.Spacing.md) {
-                Image(systemName: "wrench.and.screwdriver.fill")
-                    .font(.system(size: GlassTokens.Typography.titleSize))
-                    .foregroundColor(GlassTokens.Colors.accent)
-
-                Text("RustMate")
-                    .font(.system(size: GlassTokens.Typography.titleSize, weight: .bold))
-                    .foregroundColor(GlassTokens.Colors.textPrimary)
-            }
+            // Left: App name
+            Text("RustMate")
+                .font(.system(size: GlassTokens.Typography.titleSize, weight: .bold))
+                .foregroundColor(GlassTokens.Colors.textPrimary)
 
             Spacer()
 
