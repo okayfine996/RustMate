@@ -528,10 +528,7 @@ struct ToolchainListView: View {
                 },
                 onOpenSettings: {
                     // Open Settings window
-                    NotificationCenter.default.post(
-                        name: Constants.Notifications.openSettings,
-                        object: nil
-                    )
+                    EventBus.shared.publishWithLegacy(.openSettings, notification: Constants.Notifications.openSettings)
                 }
             )
         }

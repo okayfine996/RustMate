@@ -197,12 +197,12 @@ class SetupViewModel: ObservableObject {
 
     func skipSetup() {
         setupCompleted = true
-        NotificationCenter.default.post(name: Constants.Notifications.setupCompleted, object: nil)
+        EventBus.shared.publishWithLegacy(.setupCompleted, notification: Constants.Notifications.setupCompleted)
     }
 
     func completeSetup() {
         guard hasRequiredBookmarks else { return }
         setupCompleted = true
-        NotificationCenter.default.post(name: Constants.Notifications.setupCompleted, object: nil)
+        EventBus.shared.publishWithLegacy(.setupCompleted, notification: Constants.Notifications.setupCompleted)
     }
 }

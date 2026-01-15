@@ -254,9 +254,9 @@ class SettingsViewModel: ObservableObject {
                     print("✅ SettingsViewModel: Authorized \(purpose.displayText) at \(url.path)")
 
                     // Notify that authorization completed
-                    NotificationCenter.default.post(
-                        name: Constants.Notifications.authorizationCompleted,
-                        object: nil,
+                    EventBus.shared.publishWithLegacy(
+                        .authorizationCompleted(purpose: purpose),
+                        notification: Constants.Notifications.authorizationCompleted,
                         userInfo: ["purpose": purpose]
                     )
                 } catch let error as BookmarkManager.BookmarkError {
@@ -451,6 +451,6 @@ class SettingsViewModel: ObservableObject {
         authorizationStates = [:]
 
         // Trigger setup flow by posting notification
-        NotificationCenter.default.post(name: Constants.Notifications.settingsReset, object: nil)
+        EventBus.shared.publishWithLegacy(.settingsReset, notification: Constants.Notifications.settingsReset)
     }
 }

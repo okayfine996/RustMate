@@ -32,9 +32,10 @@ struct AuthorizationCoordinator {
             missingPurposesKey: missingPurposes
         ]
 
-        NotificationCenter.default.post(
-            name: authorizationRequestedNotification,
-            object: nil,
+        // Use EventBus with legacy NotificationCenter support during migration
+        EventBus.shared.publishWithLegacy(
+            .authorizationRequested(purposes: missingPurposes, scope: scope.rawValue),
+            notification: authorizationRequestedNotification,
             userInfo: userInfo
         )
 
@@ -50,9 +51,10 @@ struct AuthorizationCoordinator {
             missingPurposesKey: purposes
         ]
 
-        NotificationCenter.default.post(
-            name: authorizationRequestedNotification,
-            object: nil,
+        // Use EventBus with legacy NotificationCenter support during migration
+        EventBus.shared.publishWithLegacy(
+            .authorizationRequested(purposes: purposes, scope: nil),
+            notification: authorizationRequestedNotification,
             userInfo: userInfo
         )
 

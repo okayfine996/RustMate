@@ -272,7 +272,7 @@ struct RootView: View {
         Group {
             if appState.needsSetup {
                 SetupView()
-                    .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.setupCompleted)) { _ in
+                    .onAppEvent(.setupCompleted) {
                         appState.completeSetup()
                     }
             } else {
@@ -296,15 +296,21 @@ struct RootView: View {
             handleAuthorizationRequest(notification)
         }
         // Handle authorization completion to process queue
-        .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.authorizationCompleted)) { _ in
+        .onAppEvent(matching: { event in
+            if case .authorizationCompleted = event { return true }
+            return false
+        }) { _ in
             processAuthorizationQueue()
         }
-        // Handle "Open Settings" notifications
-        .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.openSettings)) { _ in
+        // Handle "Open Settings" events
+        .onAppEvent(.openSettings) {
             appState.showSettings = true
         }
         // Handle "Authorization Required" notifications - switch to setup flow
-        .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.authorizationRequired)) { _ in
+        .onAppEvent(matching: { event in
+            if case .authorizationRequired = event { return true }
+            return false
+        }) { _ in
             print("🔐 RootView: Authorization required, switching to setup flow")
             appState.needsSetup = true
             appState.showSettings = false
@@ -341,10 +347,7 @@ struct RootView: View {
                 isProcessingAuthorizationQueue = false
                 print("📢 RootView: Authorization queue completed, posting AllAuthorizationsCompleted notification")
                 // Post notification that all authorizations are complete
-                NotificationCenter.default.post(
-                    name: Constants.Notifications.allAuthorizationsCompleted,
-                    object: nil
-                )
+                EventBus.shared.publishWithLegacy(.allAuthorizationsCompleted, notification: Constants.Notifications.allAuthorizationsCompleted)
             }
             return
         }

@@ -55,7 +55,7 @@ struct ProjectsListView: View {
             }
         }
         .navigationTitle("Projects")
-        .onReceive(NotificationCenter.default.publisher(for: Constants.Notifications.allAuthorizationsCompleted)) { _ in
+        .onAppEvent(.allAuthorizationsCompleted) {
             // When all authorizations complete, refresh settings and retry loading project
             print("📢 ProjectsListView: Received AllAuthorizationsCompleted, refreshing settings and retrying")
             viewModel.refreshSettings()
@@ -121,10 +121,7 @@ struct ProjectsListView: View {
                 handleAuthorizationError()
             }
             Button("Open Settings") {
-                NotificationCenter.default.post(
-                    name: Constants.Notifications.openSettings,
-                    object: nil
-                )
+                EventBus.shared.publishWithLegacy(.openSettings, notification: Constants.Notifications.openSettings)
                 viewModel.error = nil
             }
             Button("Cancel", role: .cancel) {

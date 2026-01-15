@@ -121,7 +121,7 @@ class ToolchainViewModel: ObservableObject {
             let category = ErrorPresentation.category(for: error)
             if category == .requiresAuthorization || category == .authorizationProblem {
                 print("🔐 ToolchainViewModel: Authorization error detected, triggering setup flow")
-                NotificationCenter.default.post(name: Constants.Notifications.authorizationRequired, object: nil)
+                EventBus.shared.publishWithLegacy(.authorizationRequired(purposes: []), notification: Constants.Notifications.authorizationRequired)
             }
         }
 
