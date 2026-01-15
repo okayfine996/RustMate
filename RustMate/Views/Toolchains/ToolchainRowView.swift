@@ -80,14 +80,16 @@ struct ToolchainRowView: View {
                         .controlSize(.small)
                     }
 
-                    Button {
-                        onUpdate()
-                    } label: {
-                        Label("Update", systemImage: "arrow.clockwise")
-                            .font(.system(size: GlassTokens.Typography.captionSize))
+                    if canUpdateToolchain(toolchain) {
+                        Button {
+                            onUpdate()
+                        } label: {
+                            Label("Update", systemImage: "arrow.clockwise")
+                                .font(.system(size: GlassTokens.Typography.captionSize))
+                        }
+                        .secondaryGlassButtonStyle()
+                        .controlSize(.small)
                     }
-                    .secondaryGlassButtonStyle()
-                    .controlSize(.small)
 
                     if !toolchain.isDefault {
                         Button {
@@ -121,10 +123,12 @@ struct ToolchainRowView: View {
                 }
             }
 
-            Button {
-                onUpdate()
-            } label: {
-                Label("Update", systemImage: "arrow.clockwise")
+            if canUpdateToolchain(toolchain) {
+                Button {
+                    onUpdate()
+                } label: {
+                    Label("Update", systemImage: "arrow.clockwise")
+                }
             }
 
             Divider()
@@ -143,6 +147,26 @@ struct ToolchainRowView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+    
+    /// Check if a toolchain can be updated
+    /// Fixed version toolchains (e.g., 1.75.0-aarch64-apple-darwin) cannot be updated
+    /// Only channel-based toolchains (stable, beta, nightly) can be updated
+    private func canUpdateToolchain(_ toolchain: ToolchainInfo) -> Bool {
+        let name = toolchain.name
+        let components = name.split(separator: "-")
+        guard !components.isEmpty else { return false }
+        
+        let firstComponent = String(components[0])
+        
+        // If the first component starts with a digit, it's a fixed version toolchain
+        // Fixed version toolchains cannot be updated
+        if firstComponent.first?.isNumber == true {
+            return false
+        }
+        
+        // Channel-based toolchains (stable, beta, nightly) can be updated
+        return firstComponent == "stable" || firstComponent == "beta" || firstComponent == "nightly"
     }
 }
 

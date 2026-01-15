@@ -81,6 +81,9 @@ struct ProjectsListView: View {
             // Load available toolchains for override picker
             await loadAvailableToolchains()
 
+            // Refresh health statuses for all projects
+            await viewModel.refreshHealthStatuses()
+
             // Auto-select first project after view is ready
             viewModel.autoSelectFirstIfNeeded()
         }
@@ -239,16 +242,16 @@ struct ProjectsListView: View {
     
     private func healthStatusColor(for project: ProjectBookmark) -> Color {
         guard let healthStatus = project.healthStatus else {
-            return .gray  // Unknown status
+            return GlassTokens.Colors.textTertiary  // Unknown status - use design token
         }
         
         switch healthStatus.indicatorColor {
         case .green:
-            return .green
+            return GlassTokens.Colors.success
         case .red:
-            return .red
+            return GlassTokens.Colors.error
         case .yellow:
-            return .yellow
+            return GlassTokens.Colors.warning
         }
     }
 

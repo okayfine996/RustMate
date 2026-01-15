@@ -199,8 +199,11 @@ class ProjectsViewModel: ObservableObject {
             // Compute diagnostics
             let diagnostics = try await diagnosticsService.computeDiagnostics(projectPath: projectPath)
             
-            // Check if toolchain is installed (simplified - check if actual version exists)
-            let toolchainInstalled = diagnostics.actualToolchainVersion != nil
+            // Check if toolchain is installed
+            // If actualToolchainVersion exists, definitely installed
+            // If toolchainSource is not .default, rustup show worked, so toolchain exists (version parsing may have failed)
+            let toolchainInstalled = diagnostics.actualToolchainVersion != nil || 
+                                   diagnostics.toolchainSource != .default
             
             // Check if components are available (simplified - assume true if toolchain is installed)
             // TODO: Implement proper component checking

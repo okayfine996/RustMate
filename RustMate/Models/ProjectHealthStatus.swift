@@ -67,12 +67,25 @@ struct ProjectHealthStatus: Codable, Sendable {
         toolchainInstalled: Bool,
         componentsAvailable: Bool
     ) -> ProjectHealthStatus {
+        // MSRV violation is the most critical issue - always red
+        if let msrv = diagnostics.msrvViolation, msrv.isViolation {
+            return ProjectHealthStatus(
+                status: .versionMismatch,
+                indicatorColor: .red,
+                lastChecked: Date(),
+                details: msrv.message
+            )
+        }
+        
+        // If toolchain is not installed (based on toolchainInstalled flag)
         if !toolchainInstalled {
+            // This means both actualToolchainVersion is nil AND toolchainSource is .default
+            // This likely means toolchain is not installed or rustup is not working
             return ProjectHealthStatus(
                 status: .missingComponents,
                 indicatorColor: .red,
                 lastChecked: Date(),
-                details: "Toolchain version not installed"
+                details: "Toolchain not installed or cannot be determined"
             )
         }
         
@@ -85,6 +98,21 @@ struct ProjectHealthStatus: Codable, Sendable {
             )
         }
         
+        // Check for override conflicts first (before version mismatch)
+        // Override conflicts occur when both rust-toolchain.toml and rustup override exist
+        let hasOverrideConflict = diagnostics.conflictDetails.contains(where: { $0.type == .overrideConflict })
+        if hasOverrideConflict {
+            // Use the message from conflictDetails if available
+            let conflictMessage = diagnostics.conflictDetails.first(where: { $0.type == .overrideConflict })?.message ?? "Override conflicts detected"
+            return ProjectHealthStatus(
+                status: .overrideConflict,
+                indicatorColor: .yellow,
+                lastChecked: Date(),
+                details: conflictMessage
+            )
+        }
+        
+        // Version mismatches are warnings (yellow), not errors
         if diagnostics.hasMismatch {
             return ProjectHealthStatus(
                 status: .versionMismatch,
@@ -94,24 +122,21 @@ struct ProjectHealthStatus: Codable, Sendable {
             )
         }
         
-        if diagnostics.conflictDetails.contains(where: { $0.type == .overrideConflict }) {
+        // If toolchain is installed but version cannot be parsed, show warning
+        // This should only happen if there are no other issues
+        if diagnostics.actualToolchainVersion == nil && diagnostics.toolchainSource != .default {
+            // Toolchain exists (source is not default), but version parsing failed
+            // This is a minor issue - toolchain works but we can't show version
+            // Since we've already checked for conflicts and mismatches above, this is safe
             return ProjectHealthStatus(
-                status: .overrideConflict,
-                indicatorColor: .yellow,
+                status: .healthy,
+                indicatorColor: .green,
                 lastChecked: Date(),
-                details: "Override conflicts detected"
+                details: "Toolchain is active (version parsing unavailable)"
             )
         }
         
-        if let msrv = diagnostics.msrvViolation, msrv.isViolation {
-            return ProjectHealthStatus(
-                status: .versionMismatch,
-                indicatorColor: .red,
-                lastChecked: Date(),
-                details: msrv.message
-            )
-        }
-        
+        // All checks passed - healthy
         return ProjectHealthStatus(
             status: .healthy,
             indicatorColor: .green,

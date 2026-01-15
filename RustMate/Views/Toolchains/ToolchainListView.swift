@@ -357,19 +357,22 @@ struct ToolchainListView: View {
 
             // Actions - inline buttons
             HStack(spacing: GlassTokens.Spacing.xs) {
-                // Update button
-                Button {
-                    Task {
-                        await viewModel.updateToolchain(toolchain)
+                // Update button - only show for channel-based toolchains (stable, beta, nightly)
+                // Fixed version toolchains (e.g., 1.75.0-aarch64-apple-darwin) cannot be updated
+                if canUpdateToolchain(toolchain) {
+                    Button {
+                        Task {
+                            await viewModel.updateToolchain(toolchain)
+                        }
+                    } label: {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: GlassTokens.Typography.calloutSize))
+                            .foregroundColor(GlassTokens.Colors.accent)
+                            .frame(width: 28, height: 28)
                     }
-                } label: {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .font(.system(size: GlassTokens.Typography.calloutSize))
-                        .foregroundColor(GlassTokens.Colors.accent)
-                        .frame(width: 28, height: 28)
+                    .buttonStyle(.plain)
+                    .help("Update toolchain")
                 }
-                .buttonStyle(.plain)
-                .help("Update toolchain")
 
                 if !toolchain.isDefault {
                     // Set Default button
@@ -487,6 +490,26 @@ struct ToolchainListView: View {
 
         // Return the channel name as version
         return firstComponent
+    }
+    
+    /// Check if a toolchain can be updated
+    /// Fixed version toolchains (e.g., 1.75.0-aarch64-apple-darwin) cannot be updated
+    /// Only channel-based toolchains (stable, beta, nightly) can be updated
+    private func canUpdateToolchain(_ toolchain: ToolchainInfo) -> Bool {
+        let name = toolchain.name
+        let components = name.split(separator: "-")
+        guard !components.isEmpty else { return false }
+        
+        let firstComponent = String(components[0])
+        
+        // If the first component starts with a digit, it's a fixed version toolchain
+        // Fixed version toolchains cannot be updated
+        if firstComponent.first?.isNumber == true {
+            return false
+        }
+        
+        // Channel-based toolchains (stable, beta, nightly) can be updated
+        return firstComponent == "stable" || firstComponent == "beta" || firstComponent == "nightly"
     }
 
     // MARK: - Authorization Required View (T044)

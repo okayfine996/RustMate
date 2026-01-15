@@ -105,22 +105,24 @@ struct ToolchainDetailView: View {
                             .buttonStyle(.plain)
                         }
 
-                        Button {
-                            onUpdate()
-                        } label: {
-                            HStack {
-                                Label("Update Toolchain", systemImage: "arrow.clockwise")
-                                    .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: GlassTokens.Typography.captionSize))
-                                    .foregroundColor(GlassTokens.Colors.textSecondary)
+                        if canUpdateToolchain(toolchain) {
+                            Button {
+                                onUpdate()
+                            } label: {
+                                HStack {
+                                    Label("Update Toolchain", systemImage: "arrow.clockwise")
+                                        .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: GlassTokens.Typography.captionSize))
+                                        .foregroundColor(GlassTokens.Colors.textSecondary)
+                                }
+                                .padding(GlassTokens.Spacing.md)
+                                .background(GlassTokens.Colors.successSubtle)
+                                .cornerRadius(GlassTokens.Radius.md)
                             }
-                            .padding(GlassTokens.Spacing.md)
-                            .background(GlassTokens.Colors.successSubtle)
-                            .cornerRadius(GlassTokens.Radius.md)
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
 
                         if !toolchain.isDefault {
                             Button {
@@ -218,6 +220,26 @@ struct ToolchainDetailView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+    
+    /// Check if a toolchain can be updated
+    /// Fixed version toolchains (e.g., 1.75.0-aarch64-apple-darwin) cannot be updated
+    /// Only channel-based toolchains (stable, beta, nightly) can be updated
+    private func canUpdateToolchain(_ toolchain: ToolchainInfo) -> Bool {
+        let name = toolchain.name
+        let components = name.split(separator: "-")
+        guard !components.isEmpty else { return false }
+        
+        let firstComponent = String(components[0])
+        
+        // If the first component starts with a digit, it's a fixed version toolchain
+        // Fixed version toolchains cannot be updated
+        if firstComponent.first?.isNumber == true {
+            return false
+        }
+        
+        // Channel-based toolchains (stable, beta, nightly) can be updated
+        return firstComponent == "stable" || firstComponent == "beta" || firstComponent == "nightly"
     }
 }
 

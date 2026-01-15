@@ -53,7 +53,9 @@ class ProjectDiagnosticsService: DiagnosticsService {
         }
         
         // Get override version from rustup show
+        // Also check if override exists even if it's being overridden by toolchainFile
         let overrideVersion = try await getOverrideVersion(projectPath: projectPath)
+        let hasOverride = try await checkOverrideExists(projectPath: projectPath)
         
         // Get actual version that would be used
         let actualVersion = try await getActualToolchainVersion(projectPath: projectPath)
@@ -83,6 +85,28 @@ class ProjectDiagnosticsService: DiagnosticsService {
                 type: .versionMismatch,
                 message: "Version mismatch: configured=\(configuredVersion ?? "none"), override=\(overrideVersion ?? "none"), actual=\(actualVersion ?? "none")",
                 suggestedFix: "Clear override or update configuration to match"
+            ))
+        }
+        
+        // Detect override conflict: both rust-toolchain.toml and rustup override exist
+        // When both exist, one will be ignored based on priority (toolchainFile > override)
+        // This is a conflict because having both is redundant and confusing
+        // Use hasOverride instead of overrideVersion != nil, because overrideVersion might be nil
+        // if the override is being overridden by toolchainFile
+        if configuredVersion != nil && hasOverride {
+            let message: String
+            if toolchainSource == .toolchainFile {
+                message = "Both rust-toolchain.toml and rustup override exist. The toolchain file takes priority, so the override is ignored."
+            } else if toolchainSource == .override {
+                message = "Both rust-toolchain.toml and rustup override exist. The override takes priority, so the toolchain file is ignored."
+            } else {
+                message = "Both rust-toolchain.toml and rustup override exist, but neither is active (unexpected state)."
+            }
+            
+            conflictDetails.append(ProjectDiagnostics.ConflictDetail(
+                type: .overrideConflict,
+                message: message,
+                suggestedFix: "Remove the rustup override with 'rustup override unset' or remove rust-toolchain.toml to use the override"
             ))
         }
         
@@ -283,6 +307,74 @@ class ProjectDiagnosticsService: DiagnosticsService {
         // If we can't extract a specific version, return nil
         // This indicates override exists but version couldn't be determined
         return nil
+    }
+    
+    /// Check if a rustup override exists for the project directory
+    /// This checks the override database directly, even if the override is being overridden by toolchainFile
+    private func checkOverrideExists(projectPath: String) async throws -> Bool {
+        // Validate Security-Scoped Bookmark access for rustup operations
+        let resources = try authService.validateAndResolve(
+            scope: .projectContext,
+            settings: settings
+        )
+        defer { authService.stopAccessing(resources) }
+        
+        let projectURL = URL(fileURLWithPath: projectPath)
+        
+        // Verify path is accessible
+        guard FileManager.default.fileExists(atPath: projectPath) else {
+            return false
+        }
+        
+        // Resolve rustup path
+        let rustupPath = try RustupCommandResolver.resolveRustupPath(
+            settings: settings,
+            authService: authService
+        )
+        
+        let env = try RustupCommandResolver.buildEnvironment(
+            settings: settings,
+            authService: authService
+        )
+        
+        // Run rustup override list to check if override exists for this directory
+        let result = try await processRunner.runRustup(
+            at: rustupPath,
+            arguments: ["override", "list"],
+            environment: env,
+            currentDirectoryURL: nil
+        )
+        
+        guard result.wasSuccessful else {
+            return false
+        }
+        
+        // Check if the project path appears in the override list
+        // rustup override list output format:
+        // /path/to/project    toolchain-name
+        let output = result.stdout
+        let normalizedProjectPath = (projectPath as NSString).standardizingPath
+        
+        // Check if the project path (or any parent) appears in the output
+        let lines = output.components(separatedBy: "\n")
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty { continue }
+            
+            // Extract the path from the line (first column)
+            let components = trimmed.components(separatedBy: .whitespaces)
+            if let overridePath = components.first {
+                let normalizedOverridePath = (overridePath as NSString).standardizingPath
+                
+                // Check if the project path matches or is a subdirectory of the override path
+                if normalizedProjectPath == normalizedOverridePath ||
+                   normalizedProjectPath.hasPrefix(normalizedOverridePath + "/") {
+                    return true
+                }
+            }
+        }
+        
+        return false
     }
     
     private func detectMismatch(configured: String?, override: String?, actual: String?) -> Bool {
