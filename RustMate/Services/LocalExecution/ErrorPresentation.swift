@@ -13,13 +13,42 @@ struct ErrorPresentation {
     /// Converts any error from local execution into a user-presentable format
     /// Returns (title, message, suggestedFix)
     static func present(error: Error) -> (title: String, message: String, suggestedFix: String?) {
-        if let authError = error as? AuthorizationError {
+        // Handle AppError first (unified error type)
+        if let appError = error as? AppError {
+            return presentAppError(appError)
+        } else if let authError = error as? AuthorizationError {
             return presentAuthorizationError(authError)
         } else if let execError = error as? RustupExecutionError {
             return presentExecutionError(execError)
         } else {
             return presentUnknownError(error)
         }
+    }
+
+    // MARK: - AppError (Unified Error Type)
+
+    private static func presentAppError(_ error: AppError) -> (String, String, String?) {
+        let title: String
+        let message: String = error.localizedDescription
+        let fix: String? = error.recoverySuggestion
+
+        // Determine title based on error category
+        switch error.category {
+        case .requiresAuthorization:
+            title = "Authorization Required"
+        case .authorizationProblem:
+            title = "Authorization Problem"
+        case .setupProblem:
+            title = "Setup Required"
+        case .executionProblem:
+            title = "Command Failed"
+        case .technicalProblem:
+            title = "Technical Error"
+        case .unknown:
+            title = "Error"
+        }
+
+        return (title, message, fix)
     }
 
     // MARK: - Authorization Errors
@@ -114,7 +143,10 @@ struct ErrorPresentation {
 
     /// Returns a simple category name for UI routing
     static func category(for error: Error) -> ErrorCategory {
-        if let authError = error as? AuthorizationError {
+        // Handle AppError first (unified error type)
+        if let appError = error as? AppError {
+            return appError.category
+        } else if let authError = error as? AuthorizationError {
             switch authError.category {
             case .missing, .stale:
                 return .requiresAuthorization
