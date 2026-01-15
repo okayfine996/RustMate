@@ -34,7 +34,7 @@ struct AuthorizationCoordinator {
 
         // Use EventBus with legacy NotificationCenter support during migration
         EventBus.shared.publishWithLegacy(
-            .authorizationRequested(purposes: missingPurposes, scope: scope.rawValue),
+            .authorizationRequested(purposes: missingPurposes, scope: String(describing: scope)),
             notification: authorizationRequestedNotification,
             userInfo: userInfo
         )
