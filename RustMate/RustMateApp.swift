@@ -181,29 +181,18 @@ class AppState: ObservableObject {
     // MARK: - Settings Persistence
 
     private func saveSettings() {
-        do {
-            let encoder = JSONEncoder()
-            let data = try encoder.encode(settings)
-            UserDefaults.standard.set(data, forKey: settingsKey)
-            print("💾 AppState: Saved settings, authorized directories count: \(settings.authorizedDirectories.count)")
-        } catch {
-            print("❌ AppState: Failed to save settings: \(error)")
-        }
+        AppUserDefaults.shared.appSettings = settings
+        print("💾 AppState: Saved settings, authorized directories count: \(settings.authorizedDirectories.count)")
     }
 
     private func loadSettings() {
-        guard let data = UserDefaults.standard.data(forKey: settingsKey) else {
+        guard let savedSettings = AppUserDefaults.shared.appSettings else {
             print("📂 AppState: No saved settings found, using defaults")
             return
         }
 
-        do {
-            let decoder = JSONDecoder()
-            settings = try decoder.decode(AppSettings.self, from: data)
-            print("📂 AppState: Loaded settings, authorized directories count: \(settings.authorizedDirectories.count)")
-        } catch {
-            print("❌ AppState: Failed to load settings: \(error)")
-        }
+        settings = savedSettings
+        print("📂 AppState: Loaded settings, authorized directories count: \(settings.authorizedDirectories.count)")
     }
 
     private func checkSetupStatus() {
@@ -219,7 +208,7 @@ class AppState: ObservableObject {
         }
 
         // Check if this is first launch
-        let hasCompletedFirstLaunch = UserDefaults.standard.bool(forKey: firstLaunchKey)
+        let hasCompletedFirstLaunch = AppUserDefaults.shared.hasCompletedFirstLaunch
 
         if !hasCompletedFirstLaunch {
             // First launch - need setup (even if authorizations exist somehow)
@@ -234,14 +223,14 @@ class AppState: ObservableObject {
 
     func completeSetup() {
         // Mark first launch as complete
-        UserDefaults.standard.set(true, forKey: firstLaunchKey)
+        AppUserDefaults.shared.hasCompletedFirstLaunch = true
         needsSetup = false
     }
 
     private func handleSettingsReset() {
         print("🔄 AppState: Settings reset detected, clearing first launch flag and triggering setup")
         // Clear first launch flag to force setup flow
-        UserDefaults.standard.set(false, forKey: firstLaunchKey)
+        AppUserDefaults.shared.hasCompletedFirstLaunch = false
         // Reload settings (will be empty after reset)
         loadSettings()
         // Force setup flow

@@ -65,7 +65,7 @@ class AppUpdateService: NSObject, ObservableObject {
         )
         
         // Sync channel preference to UserDefaults (used by delegate in background thread)
-        UserDefaults.standard.set(channel.rawValue, forKey: "updateChannel")
+        UserDefaults.standard.set(channel.rawValue, forKey: Constants.UserDefaultsKeys.updateChannel)
         
         // Configure the updater
         configureUpdater()
@@ -104,7 +104,7 @@ class AppUpdateService: NSObject, ObservableObject {
         print("🔍 AppUpdateService: Manually checking for updates...")
         
         // Sync channel preference to UserDefaults (used by delegate in background thread)
-        UserDefaults.standard.set(currentChannel.rawValue, forKey: "updateChannel")
+        UserDefaults.standard.set(currentChannel.rawValue, forKey: Constants.UserDefaultsKeys.updateChannel)
         
         updateState = .checking
         
@@ -127,7 +127,7 @@ class AppUpdateService: NSObject, ObservableObject {
         feedURL = feedConfig.url
         
         // Sync to UserDefaults (used by delegate in background thread)
-        UserDefaults.standard.set(channel.rawValue, forKey: "updateChannel")
+        UserDefaults.standard.set(channel.rawValue, forKey: Constants.UserDefaultsKeys.updateChannel)
         
         // Note: Sparkle 2's feedURL is read-only at runtime.
         // The new channel will be used on next update check via delegate method.
@@ -241,8 +241,8 @@ extension AppUpdateService: SPUUpdaterDelegate {
     /// This allows runtime channel switching without app restart
     nonisolated func feedURLString(for updater: SPUUpdater) -> String? {
         // Return the feed URL based on stored channel preference
-        // Note: This is called from Sparkle's background thread, so we use UserDefaults
-        let channelRawValue = UserDefaults.standard.string(forKey: "updateChannel") ?? "stable"
+        // Note: This is called from Sparkle's background thread, so we use UserDefaults.standard directly
+        let channelRawValue = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.updateChannel) ?? "stable"
         let channel = AppSettings.UpdateChannel(rawValue: channelRawValue) ?? .stable
         let config = UpdateFeedConfig.feed(for: channel)
         return config.url.absoluteString

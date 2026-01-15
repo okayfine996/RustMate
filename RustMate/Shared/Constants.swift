@@ -54,6 +54,9 @@ enum Constants {
 
         /// Key for storing the override mode preference (toolchainFile vs rustupOverride)
         static let overrideMode = "overrideMode"
+
+        /// Key for storing the app update channel preference (stable vs beta)
+        static let updateChannel = "updateChannel"
     }
 
     // MARK: - Keychain Identifiers

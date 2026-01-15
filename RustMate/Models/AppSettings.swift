@@ -73,23 +73,11 @@ struct AppSettings: Codable, Sendable {
 
     /// Default settings - loads from UserDefaults if available
     static var `default`: AppSettings {
-        guard let data = UserDefaults.standard.data(forKey: Constants.UserDefaultsKeys.appSettings) else {
+        if let savedSettings = AppUserDefaults.shared.appSettings {
+            print("📂 AppSettings.default: Loaded persisted settings, authorized directories count: \(savedSettings.authorizedDirectories.count)")
+            return savedSettings
+        } else {
             print("📂 AppSettings.default: No saved settings found, returning empty defaults")
-            return AppSettings(
-                rustupPath: nil,
-                cargoPath: nil,
-                overrideStrategy: .toolchainFile,
-                authorizedDirectories: []
-            )
-        }
-
-        do {
-            let decoder = JSONDecoder()
-            let settings = try decoder.decode(AppSettings.self, from: data)
-            print("📂 AppSettings.default: Loaded persisted settings, authorized directories count: \(settings.authorizedDirectories.count)")
-            return settings
-        } catch {
-            print("❌ AppSettings.default: Failed to decode settings: \(error), returning empty defaults")
             return AppSettings(
                 rustupPath: nil,
                 cargoPath: nil,

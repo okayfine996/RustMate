@@ -25,10 +25,10 @@ class ProjectsViewModel: ObservableObject {
     // Override mode setting (from UserDefaults)
     var overrideMode: String {
         get {
-            UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.overrideMode) ?? Constants.Defaults.overrideMode
+            AppUserDefaults.shared.overrideMode
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: Constants.UserDefaultsKeys.overrideMode)
+            AppUserDefaults.shared.overrideMode = newValue
         }
     }
 
@@ -48,11 +48,8 @@ class ProjectsViewModel: ObservableObject {
     // MARK: - Bookmark Management
 
     func loadBookmarks() {
-        if let data = UserDefaults.standard.data(forKey: Constants.UserDefaultsKeys.projectBookmarks),
-           let decoded = try? JSONDecoder().decode([ProjectBookmark].self, from: data) {
-            projects = decoded
-            // Don't auto-select here - let the view handle it after it's ready
-        }
+        projects = AppUserDefaults.shared.projectBookmarks
+        // Don't auto-select here - let the view handle it after it's ready
     }
 
     func autoSelectFirstIfNeeded() {
@@ -62,9 +59,7 @@ class ProjectsViewModel: ObservableObject {
     }
 
     func saveBookmarks() {
-        if let encoded = try? JSONEncoder().encode(projects) {
-            UserDefaults.standard.set(encoded, forKey: Constants.UserDefaultsKeys.projectBookmarks)
-        }
+        AppUserDefaults.shared.projectBookmarks = projects
     }
 
     func addBookmark(url: URL) {
