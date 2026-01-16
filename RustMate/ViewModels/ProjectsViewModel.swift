@@ -12,8 +12,8 @@ import Combine
 class ProjectsViewModel: ObservableObject {
     private var service: LocalProjectContextService
     private let taskManager = TaskManager.shared
-    private let diagnosticsService = ProjectDiagnosticsService()
-    private let toolchainConfigService: ToolchainConfigService = LocalToolchainConfigService()
+    private let bookmarkService = ProjectBookmarkService()
+    private let healthService = ProjectHealthService()
 
     // State
     @Published var projects: [ProjectBookmark] = []
@@ -48,7 +48,7 @@ class ProjectsViewModel: ObservableObject {
     // MARK: - Bookmark Management
 
     func loadBookmarks() {
-        projects = AppUserDefaults.shared.projectBookmarks
+        projects = bookmarkService.loadBookmarks()
         // Don't auto-select here - let the view handle it after it's ready
     }
 
@@ -58,55 +58,26 @@ class ProjectsViewModel: ObservableObject {
         }
     }
 
-    func saveBookmarks() {
-        AppUserDefaults.shared.projectBookmarks = projects
+    private func saveBookmarks() {
+        bookmarkService.saveBookmarks(projects)
     }
 
     func addBookmark(url: URL) {
-        // Check if directory exists
-        guard FileManager.default.fileExists(atPath: url.path) else {
-            error = NSError(domain: "RustMate", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Project directory not found. The directory may have been moved or deleted."
-            ])
+        // Check for duplicates
+        if bookmarkService.isDuplicatePath(url.path, in: projects) {
+            error = AppError.projectAlreadyAdded(path: url.path)
             return
         }
-        
-        // Check for duplicates by path
-        let newPath = url.path
-        for existingProject in projects {
-            if existingProject.path == newPath {
-                error = NSError(domain: "RustMate", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "This project is already in your list."
-                ])
-                return
-            }
-        }
-        
-        // Create bookmark data with automatic resource management
+
+        // Create bookmark using service
         do {
-            try ScopedResource.withAccess(to: url) { url in
-                let bookmarkData = try url.bookmarkData(
-                    options: .withSecurityScope,
-                    includingResourceValuesForKeys: nil,
-                    relativeTo: nil
-                )
+            let bookmark = try bookmarkService.createBookmark(for: url)
+            projects.append(bookmark)
+            saveBookmarks()
 
-                let bookmark = ProjectBookmark(
-                    id: UUID(),
-                    path: url.path,
-                    displayName: url.lastPathComponent,
-                    bookmarkData: bookmarkData,
-                    addedDate: Date(),
-                    isFavorite: false
-                )
-
-                projects.append(bookmark)
-                saveBookmarks()
-
-                // Auto-select if this is the only project
-                if projects.count == 1 {
-                    selectedProject = bookmark
-                }
+            // Auto-select if this is the only project
+            if projects.count == 1 {
+                selectedProject = bookmark
             }
         } catch {
             self.error = error
@@ -114,7 +85,7 @@ class ProjectsViewModel: ObservableObject {
     }
 
     func removeBookmark(_ bookmark: ProjectBookmark) {
-        projects.removeAll { $0.id == bookmark.id }
+        projects = bookmarkService.removeBookmark(bookmark, from: projects)
         saveBookmarks()
 
         if selectedProject?.id == bookmark.id {
@@ -125,10 +96,8 @@ class ProjectsViewModel: ObservableObject {
     }
 
     func toggleFavorite(_ bookmark: ProjectBookmark) {
-        if let index = projects.firstIndex(where: { $0.id == bookmark.id }) {
-            projects[index].isFavorite.toggle()
-            saveBookmarks()
-        }
+        projects = bookmarkService.toggleFavorite(for: bookmark, in: projects)
+        saveBookmarks()
     }
 
     // MARK: - Project Context Operations
@@ -165,57 +134,23 @@ class ProjectsViewModel: ObservableObject {
     }
     
     // MARK: - Health Status Management
-    
+
     func updateHealthStatus(for project: ProjectBookmark, projectPath: String) async {
-        do {
-            // Compute diagnostics
-            let diagnostics = try await diagnosticsService.computeDiagnostics(projectPath: projectPath)
-            
-            // Check if toolchain is installed
-            // If actualToolchainVersion exists, definitely installed
-            // If toolchainSource is not .default, rustup show worked, so toolchain exists (version parsing may have failed)
-            let toolchainInstalled = diagnostics.actualToolchainVersion != nil || 
-                                   diagnostics.toolchainSource != .default
-            
-            // Check if components are available (simplified - assume true if toolchain is installed)
-            // TODO: Implement proper component checking
-            let componentsAvailable = toolchainInstalled
-            
-            // Calculate health status
-            let healthStatus = ProjectHealthStatus.calculate(
-                from: diagnostics,
-                toolchainInstalled: toolchainInstalled,
-                componentsAvailable: componentsAvailable
-            )
-            
-            // Update project bookmark with health status
-            if let index = projects.firstIndex(where: { $0.id == project.id }) {
-                projects[index].healthStatus = healthStatus
-                saveBookmarks()
-            }
-        } catch {
-            // If health status calculation fails, set to unknown
-            if let index = projects.firstIndex(where: { $0.id == project.id }) {
-                projects[index].healthStatus = ProjectHealthStatus(
-                    status: .unknown,
-                    indicatorColor: .yellow,
-                    details: "Failed to compute health status: \(error.localizedDescription)"
-                )
-            }
-        }
+        let healthStatus = await healthService.computeHealthStatusSafely(for: projectPath)
+        projects = bookmarkService.updateHealthStatus(for: project, with: healthStatus, in: projects)
+        saveBookmarks()
     }
-    
+
     func refreshHealthStatuses() async {
-        for project in projects {
-            do {
-                try await ScopedResource.withBookmark(project.bookmarkData) { url in
-                    await updateHealthStatus(for: project, projectPath: url.path)
-                }
-            } catch {
-                // Skip projects that can't be accessed
-                continue
+        let healthStatuses = await healthService.refreshHealthStatuses(for: projects)
+
+        // Update all projects with their new health statuses
+        for (projectId, healthStatus) in healthStatuses {
+            if let project = projects.first(where: { $0.id == projectId }) {
+                projects = bookmarkService.updateHealthStatus(for: project, with: healthStatus, in: projects)
             }
         }
+        saveBookmarks()
     }
 
     func refreshProjectContext() async {
@@ -287,16 +222,8 @@ class ProjectsViewModel: ObservableObject {
 
     private func updateBookmark(_ bookmark: ProjectBookmark, with url: URL) {
         do {
-            let newBookmarkData = try url.bookmarkData(
-                options: .withSecurityScope,
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            )
-
-            if let index = projects.firstIndex(where: { $0.id == bookmark.id }) {
-                projects[index].bookmarkData = newBookmarkData
-                saveBookmarks()
-            }
+            projects = try bookmarkService.updateBookmark(bookmark, with: url, in: projects)
+            saveBookmarks()
         } catch {
             print("Failed to update bookmark: \(error)")
         }
