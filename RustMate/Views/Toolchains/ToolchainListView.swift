@@ -327,11 +327,6 @@ struct ToolchainListView: View {
                     Text(displayVersion)
                         .font(.system(size: GlassTokens.Typography.bodySize, design: .monospaced))
                         .foregroundColor(GlassTokens.Colors.textPrimary)
-
-                    // TODO: Add update detection
-                    Text("(Up to date)")
-                        .font(.system(size: GlassTokens.Typography.captionSize))
-                        .foregroundColor(GlassTokens.Colors.textSecondary)
                 } else {
                     Text("—")
                         .foregroundColor(GlassTokens.Colors.textSecondary)

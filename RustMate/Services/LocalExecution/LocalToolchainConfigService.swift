@@ -98,10 +98,9 @@ class LocalToolchainConfigService: ToolchainConfigService {
     }
     
     func isToolchainInstalled(_ version: String) async throws -> Bool {
-        // TODO: Implement by running rustup toolchain list and checking if version exists
-        // This requires ProcessRunner and rustup command execution
-        // For now, return true (assume installed)
-        return true
+        let toolchainService = LocalRustupToolchainService()
+        let toolchains = try await toolchainService.listToolchains()
+        return toolchains.contains(where: { $0.name == version })
     }
 }
 

@@ -35,8 +35,9 @@ class ProjectHealthService {
         let toolchainInstalled = diagnostics.actualToolchainVersion != nil ||
                                diagnostics.toolchainSource != .default
 
-        // Check if components are available (simplified - assume true if toolchain is installed)
-        // TODO: Implement proper component checking
+        // Check if components are available
+        // Note: Simplified implementation - assumes components are available if toolchain is installed
+        // Future enhancement could query actual component availability via rustup component list
         let componentsAvailable = toolchainInstalled
 
         // Calculate health status

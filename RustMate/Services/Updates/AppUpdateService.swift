@@ -146,25 +146,6 @@ class AppUpdateService: NSObject, ObservableObject {
     }
 }
 
-// MARK: - Sparkle Delegate (Future Enhancement)
-
-/// Custom delegate for Sparkle updater events
-/// This can be used to map Sparkle events to our UpdateState enum
-/// T014/T019: Will be implemented for state tracking and error handling
-extension AppUpdateService {
-    
-    // TODO: Implement SPUUpdaterDelegate methods to track:
-    // - Update found (updateState = .updateAvailable)
-    // - Download progress (updateState = .downloading)
-    // - Download complete (updateState = .readyToInstall)
-    // - Errors (updateState = .failed)
-    
-    // TODO: Implement SPUUserDriver for custom UI
-    // - Show update prompts in our Settings UI
-    // - Display download progress
-    // - Handle "Install and Restart" vs "Later" choices
-}
-
 // MARK: - Error Mapping (T019)
 
 extension AppUpdateService {

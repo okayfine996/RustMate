@@ -138,10 +138,8 @@ class CargoConfigParser {
     /// Serializes ProjectCargoConfig to TOML string
     /// - Parameter config: ProjectCargoConfig to serialize
     /// - Returns: TOML content string
+    /// - Note: Currently uses manual string building. Future enhancement could use a TOML encoder library.
     static func serialize(_ config: ProjectCargoConfig) throws -> String {
-        // TODO: Implement TOML serialization using TOMLDecoder
-        // This requires TOMLDecoder dependency to be added first (T001)
-        // For now, return basic TOML structure
         
         var toml = ""
         
