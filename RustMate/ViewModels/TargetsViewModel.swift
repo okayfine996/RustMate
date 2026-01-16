@@ -108,9 +108,10 @@ class TargetsViewModel: ObservableObject {
 
         // Handle result
         if result.status != .success {
-            error = NSError(domain: "TargetsViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: result.errorMessage ?? "Installation failed"
-            ])
+            error = AppError.operationFailed(
+                operation: "install target",
+                message: result.errorMessage ?? "Installation failed"
+            )
         } else {
             await loadTargets()
         }
@@ -131,9 +132,10 @@ class TargetsViewModel: ObservableObject {
 
         // Handle result
         if result.status != .success {
-            error = NSError(domain: "TargetsViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: result.errorMessage ?? "Uninstallation failed"
-            ])
+            error = AppError.operationFailed(
+                operation: "uninstall target",
+                message: result.errorMessage ?? "Uninstallation failed"
+            )
         } else {
             await loadTargets()
         }

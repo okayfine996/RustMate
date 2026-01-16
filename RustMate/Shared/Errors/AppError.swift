@@ -35,6 +35,11 @@ enum AppError: LocalizedError {
     case networkUnavailable
     case updateCheckFailed(reason: String)
 
+    // MARK: - Operation Errors
+
+    case operationFailed(operation: String, message: String)
+    case invalidInput(field: String, reason: String)
+
     // MARK: - System Errors
 
     case fileSystemError(underlying: Error)
@@ -73,6 +78,12 @@ enum AppError: LocalizedError {
 
         case .invalidProjectDirectory(let path, let reason):
             return "Invalid project directory at \(path): \(reason)"
+
+        case .operationFailed(let operation, let message):
+            return "Operation '\(operation)' failed: \(message)"
+
+        case .invalidInput(let field, let reason):
+            return "Invalid \(field): \(reason)"
 
         case .networkUnavailable:
             return "Network connection is not available"
@@ -141,6 +152,12 @@ enum AppError: LocalizedError {
         case .invalidProjectDirectory:
             return "Select a valid Rust project directory containing Cargo.toml."
 
+        case .operationFailed:
+            return "Please try again or check the task details for more information."
+
+        case .invalidInput:
+            return "Please provide valid input and try again."
+
         case .networkUnavailable:
             return "Check your internet connection and try again."
 
@@ -176,6 +193,12 @@ enum AppError: LocalizedError {
             return .technicalProblem
 
         case .projectNotFound, .projectAlreadyAdded, .invalidProjectDirectory:
+            return .executionProblem
+
+        case .operationFailed:
+            return .executionProblem
+
+        case .invalidInput:
             return .executionProblem
 
         case .fileSystemError, .unknownError:

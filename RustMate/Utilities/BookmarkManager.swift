@@ -36,6 +36,8 @@ class BookmarkManager: BookmarkServiceProtocol {
 
     /// Creates a security-scoped bookmark for the given URL
     func createBookmark(for url: URL) throws -> Data {
+        print("🔍 BookmarkManager: Creating bookmark - path: \(url.path)")
+
         let bookmarkData = try url.bookmarkData(
             options: .withSecurityScope,
             includingResourceValuesForKeys: nil,
@@ -45,6 +47,7 @@ class BookmarkManager: BookmarkServiceProtocol {
         // Save to Keychain
         try saveToKeychain(bookmarkData, for: url.path)
 
+        print("✅ BookmarkManager: Bookmark created successfully - path: \(url.path), size: \(bookmarkData.count) bytes")
         return bookmarkData
     }
 
@@ -52,6 +55,8 @@ class BookmarkManager: BookmarkServiceProtocol {
 
     /// Resolves a bookmark for the given path
     func resolveBookmark(for path: String) throws -> URL {
+        print("🔍 BookmarkManager: Resolving bookmark - path: \(path)")
+
         let bookmarkData = try loadFromKeychain(for: path)
 
         var isStale = false
@@ -63,9 +68,13 @@ class BookmarkManager: BookmarkServiceProtocol {
         )
 
         if isStale {
+            print("⚠️ BookmarkManager: Bookmark is stale, refreshing - path: \(path)")
             // Refresh the bookmark
             let newBookmarkData = try createBookmark(for: url)
             try saveToKeychain(newBookmarkData, for: path)
+            print("✅ BookmarkManager: Stale bookmark refreshed - path: \(path)")
+        } else {
+            print("✅ BookmarkManager: Bookmark resolved successfully - path: \(path)")
         }
 
         return url
@@ -83,6 +92,8 @@ class BookmarkManager: BookmarkServiceProtocol {
 
     /// Delete bookmark for the given path
     func deleteBookmark(for path: String) throws {
+        print("🔍 BookmarkManager: Deleting bookmark - path: \(path)")
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: path,
@@ -91,15 +102,32 @@ class BookmarkManager: BookmarkServiceProtocol {
 
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
+            print("❌ BookmarkManager: Failed to delete bookmark - path: \(path), status: \(status)")
             throw BookmarkError.keychainError(status: status)
+        }
+
+        if status == errSecItemNotFound {
+            print("🔍 BookmarkManager: Bookmark already deleted or doesn't exist - path: \(path)")
+        } else {
+            print("✅ BookmarkManager: Bookmark deleted successfully - path: \(path)")
         }
     }
 
     // MARK: - Keychain Operations
 
     private func saveToKeychain(_ data: Data, for path: String) throws {
-        // Delete existing item first
-        try? deleteBookmark(for: path)
+        // Delete existing item first (ignore error if item doesn't exist)
+        do {
+            try deleteBookmark(for: path)
+            print("🔍 BookmarkManager: Removed existing bookmark before save - path: \(path)")
+        } catch let BookmarkError.keychainError(status) where status == errSecItemNotFound {
+            // Item doesn't exist yet, this is expected
+            print("🔍 BookmarkManager: No existing bookmark to remove (expected) - path: \(path)")
+        } catch {
+            // Log other deletion errors but continue with save
+            let errorType = type(of: error)
+            print("⚠️ BookmarkManager: Failed to delete existing bookmark during save, continuing anyway - path: \(path), error: \(errorType) - \(error.localizedDescription)")
+        }
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -110,8 +138,11 @@ class BookmarkManager: BookmarkServiceProtocol {
 
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
+            print("❌ BookmarkManager: Failed to save bookmark to keychain - path: \(path), status: \(status)")
             throw BookmarkError.keychainError(status: status)
         }
+
+        print("✅ BookmarkManager: Successfully saved bookmark to keychain - path: \(path)")
     }
 
     private func loadFromKeychain(for path: String) throws -> Data {

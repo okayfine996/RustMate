@@ -39,7 +39,6 @@ class LocalProjectContextService: ProjectContextServiceProtocol {
 
         // Execute rustup show in the project directory
         // Use ProcessRunner to execute on background thread
-        let processRunner = ProcessRunner()
         let result = try await processRunner.runRustup(
             at: rustupPath,
             arguments: ["show"],

@@ -236,7 +236,12 @@ class SettingsViewModel: ObservableObject {
             guard let self = self else { return }
 
             if response == .OK, let url = panel.url {
+                print("🔍 SettingsViewModel: User selected directory for authorization - purpose: \(purpose.displayText), path: \(url.path)")
+
                 do {
+                    // Validate the selected path matches the expected purpose
+                    try self.validatePathForPurpose(url: url, purpose: purpose)
+
                     // Remove existing authorization for this purpose (for re-authorization scenarios)
                     self.removeExistingBookmark(for: purpose)
 
@@ -251,7 +256,7 @@ class SettingsViewModel: ObservableObject {
                     self.settings.authorizedDirectories.append(directory)
                     self.objectWillChange.send()
 
-                    print("✅ SettingsViewModel: Authorized \(purpose.displayText) at \(url.path)")
+                    print("✅ SettingsViewModel: Successfully authorized directory - purpose: \(purpose.displayText), path: \(url.path)")
 
                     // Notify that authorization completed
                     EventBus.shared.publishWithLegacy(
@@ -259,12 +264,21 @@ class SettingsViewModel: ObservableObject {
                         notification: Constants.Notifications.authorizationCompleted,
                         userInfo: ["purpose": purpose]
                     )
+                } catch let error as AuthorizationError {
+                    // Handle path validation errors
+                    print("❌ SettingsViewModel: Authorization failed - path validation error - purpose: \(purpose.displayText), error: \(error.localizedDescription)")
+                    self.errorMessage = error.localizedDescription + "\n\n" + (error.recoverySuggestion ?? "")
+                    self.showError = true
                 } catch let error as BookmarkManager.BookmarkError {
+                    print("❌ SettingsViewModel: Authorization failed - bookmark creation error - purpose: \(purpose.displayText), error: \(error)")
                     self.handleBookmarkError(error, path: url.path)
                 } catch {
+                    print("❌ SettingsViewModel: Authorization failed - unexpected error - purpose: \(purpose.displayText), error: \(error.localizedDescription)")
                     self.errorMessage = "Failed to create bookmark: \(error.localizedDescription)"
                     self.showError = true
                 }
+            } else {
+                print("🔍 SettingsViewModel: User cancelled directory selection for purpose: \(purpose.displayText)")
             }
         }
     }
@@ -301,21 +315,82 @@ class SettingsViewModel: ObservableObject {
         }
     }
 
+    /// Validates that the selected URL matches the expected path pattern for the given purpose
+    /// Throws AuthorizationError.invalidSelection if validation fails
+    private func validatePathForPurpose(url: URL, purpose: AuthorizedDirectory.DirectoryPurpose) throws {
+        let path = url.path
+        let fileName = url.lastPathComponent
+
+        print("🔍 SettingsViewModel: Validating path for purpose - purpose: \(purpose.displayText), path: \(path)")
+
+        switch purpose {
+        case .rustupExecutableDir, .rustupAccess:
+            // Should end with .cargo/bin or contain rustup/cargo executables
+            guard fileName == "bin" && path.contains("/.cargo/") else {
+                print("❌ SettingsViewModel: Path validation failed - expected .cargo/bin, got: \(path)")
+                throw AuthorizationError.invalidSelection(
+                    path: path,
+                    purpose: purpose,
+                    reason: "Please select the .cargo/bin directory, typically located at ~/.cargo/bin"
+                )
+            }
+            print("✅ SettingsViewModel: Path validation passed for rustup executable directory")
+
+        case .cargoHome:
+            // Should end with .cargo
+            guard fileName == ".cargo" else {
+                print("❌ SettingsViewModel: Path validation failed - expected .cargo directory, got: \(path)")
+                throw AuthorizationError.invalidSelection(
+                    path: path,
+                    purpose: purpose,
+                    reason: "Please select the .cargo directory, typically located at ~/.cargo"
+                )
+            }
+            print("✅ SettingsViewModel: Path validation passed for cargo home")
+
+        case .rustupHome:
+            // Should end with .rustup
+            guard fileName == ".rustup" else {
+                print("❌ SettingsViewModel: Path validation failed - expected .rustup directory, got: \(path)")
+                throw AuthorizationError.invalidSelection(
+                    path: path,
+                    purpose: purpose,
+                    reason: "Please select the .rustup directory, typically located at ~/.rustup"
+                )
+            }
+            print("✅ SettingsViewModel: Path validation passed for rustup home")
+
+        case .projectAccess, .customToolchainPath:
+            // Allow any directory for projects and custom paths
+            print("✅ SettingsViewModel: Path validation passed (no restrictions for \(purpose.displayText))")
+            break
+        }
+    }
+
     private func removeExistingBookmark(for purpose: AuthorizedDirectory.DirectoryPurpose) {
         // Get existing directories with this purpose
         let existing = settings.authorizedDirectories.filter { $0.purpose == purpose }
+
+        guard !existing.isEmpty else {
+            print("🔍 SettingsViewModel: No existing bookmarks to remove for purpose: \(purpose.displayText)")
+            return
+        }
+
+        print("🔍 SettingsViewModel: Removing \(existing.count) existing bookmark(s) for purpose: \(purpose.displayText)")
 
         // Delete from Keychain
         for directory in existing {
             do {
                 try bookmarkManager.deleteBookmark(for: directory.path)
+                print("✅ SettingsViewModel: Removed bookmark from keychain - path: \(directory.path)")
             } catch {
-                print("⚠️ Failed to delete bookmark for \(directory.path): \(error)")
+                print("⚠️ SettingsViewModel: Failed to delete bookmark from keychain - path: \(directory.path), error: \(error.localizedDescription)")
             }
         }
 
         // Remove from settings
         settings.authorizedDirectories.removeAll { $0.purpose == purpose }
+        print("✅ SettingsViewModel: Removed \(existing.count) bookmark(s) from settings for purpose: \(purpose.displayText)")
     }
 
     func removeBookmark(purpose: AuthorizedDirectory.DirectoryPurpose) {
@@ -436,9 +511,23 @@ class SettingsViewModel: ObservableObject {
     // MARK: - Reset
 
     func resetAllSettings() {
+        print("🔍 SettingsViewModel: Starting settings reset - clearing \(settings.authorizedDirectories.count) bookmarks")
+
         // Clear all bookmarks
+        var deletionFailures = 0
         for directory in settings.authorizedDirectories {
-            try? bookmarkManager.deleteBookmark(for: directory.path)
+            do {
+                try bookmarkManager.deleteBookmark(for: directory.path)
+                print("✅ SettingsViewModel: Deleted bookmark - purpose: \(directory.purpose.displayText), path: \(directory.path)")
+            } catch {
+                deletionFailures += 1
+                print("⚠️ SettingsViewModel: Failed to delete bookmark during reset - purpose: \(directory.purpose.displayText), path: \(directory.path), error: \(error.localizedDescription)")
+                // Continue with reset even if bookmark deletion fails
+            }
+        }
+
+        if deletionFailures > 0 {
+            print("⚠️ SettingsViewModel: Reset completed with \(deletionFailures) bookmark deletion failures (non-critical)")
         }
 
         // Reset to defaults
@@ -449,6 +538,8 @@ class SettingsViewModel: ObservableObject {
         enableTaskNotifications = true
         rustupVersion = nil
         authorizationStates = [:]
+
+        print("✅ SettingsViewModel: Settings reset complete, triggering setup flow")
 
         // Trigger setup flow by posting notification
         EventBus.shared.publishWithLegacy(.settingsReset, notification: Constants.Notifications.settingsReset)

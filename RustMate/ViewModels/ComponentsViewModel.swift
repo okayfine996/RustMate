@@ -106,9 +106,10 @@ class ComponentsViewModel: ObservableObject {
 
         // Handle result
         if result.status != .success {
-            error = NSError(domain: "ComponentsViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: result.errorMessage ?? "Installation failed"
-            ])
+            error = AppError.operationFailed(
+                operation: "install component",
+                message: result.errorMessage ?? "Installation failed"
+            )
         } else {
             await loadComponents()
         }
@@ -129,9 +130,10 @@ class ComponentsViewModel: ObservableObject {
 
         // Handle result
         if result.status != .success {
-            error = NSError(domain: "ComponentsViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: result.errorMessage ?? "Uninstallation failed"
-            ])
+            error = AppError.operationFailed(
+                operation: "uninstall component",
+                message: result.errorMessage ?? "Uninstallation failed"
+            )
         } else {
             await loadComponents()
         }

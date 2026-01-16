@@ -133,9 +133,7 @@ class ToolchainViewModel: ObservableObject {
 
     func installToolchain(name: String) async {
         guard ToolchainInfo.validateName(name) else {
-            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "Invalid toolchain name"
-            ])
+            error = AppError.invalidInput(field: "toolchain name", reason: "Name contains invalid characters or format")
             return
         }
 
@@ -148,9 +146,10 @@ class ToolchainViewModel: ObservableObject {
 
         // Handle result
         if result.status != .success {
-            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: result.errorMessage ?? "Installation failed"
-            ])
+            error = AppError.operationFailed(
+                operation: "install toolchain",
+                message: result.errorMessage ?? "Installation failed"
+            )
         } else {
             await loadToolchains()
         }
@@ -166,9 +165,10 @@ class ToolchainViewModel: ObservableObject {
 
         // Handle result
         if result.status != .success {
-            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: result.errorMessage ?? "Uninstallation failed"
-            ])
+            error = AppError.operationFailed(
+                operation: "uninstall toolchain",
+                message: result.errorMessage ?? "Uninstallation failed"
+            )
         } else {
             await loadToolchains()
         }
@@ -184,9 +184,10 @@ class ToolchainViewModel: ObservableObject {
 
         // Handle result
         if result.status != .success {
-            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: result.errorMessage ?? "Setting default failed"
-            ])
+            error = AppError.operationFailed(
+                operation: "set default toolchain",
+                message: result.errorMessage ?? "Setting default failed"
+            )
         } else {
             await loadToolchains()
         }
@@ -202,9 +203,10 @@ class ToolchainViewModel: ObservableObject {
 
         // Handle result
         if result.status != .success {
-            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: result.errorMessage ?? "Update failed"
-            ])
+            error = AppError.operationFailed(
+                operation: "update toolchain",
+                message: result.errorMessage ?? "Update failed"
+            )
         } else {
             await loadToolchains()
         }
@@ -220,9 +222,10 @@ class ToolchainViewModel: ObservableObject {
 
         // Handle result
         if result.status != .success {
-            error = NSError(domain: "ToolchainViewModel", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: result.errorMessage ?? "Update all failed"
-            ])
+            error = AppError.operationFailed(
+                operation: "update all toolchains",
+                message: result.errorMessage ?? "Update all failed"
+            )
         } else {
             await loadToolchains()
         }

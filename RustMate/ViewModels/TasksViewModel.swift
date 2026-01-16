@@ -20,7 +20,8 @@ class TasksViewModel: ObservableObject {
         // Subscribe to task updates from TaskManager
         TaskManager.shared.taskPublisher
             .sink { [weak self] task in
-                self?.addTask(task)
+                guard let self = self else { return }
+                self.addTask(task)
             }
             .store(in: &cancellables)
     }
