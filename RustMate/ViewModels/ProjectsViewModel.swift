@@ -82,43 +82,34 @@ class ProjectsViewModel: ObservableObject {
             }
         }
         
-        // Start accessing security-scoped resource
-        guard url.startAccessingSecurityScopedResource() else {
-            error = NSError(domain: "RustMate", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "Failed to access security-scoped resource"
-            ])
-            return
-        }
-
-        // Create bookmark data
+        // Create bookmark data with automatic resource management
         do {
-            let bookmarkData = try url.bookmarkData(
-                options: .withSecurityScope,
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            )
+            try ScopedResource.withAccess(to: url) { url in
+                let bookmarkData = try url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
 
-            let bookmark = ProjectBookmark(
-                id: UUID(),
-                path: url.path,
-                displayName: url.lastPathComponent,
-                bookmarkData: bookmarkData,
-                addedDate: Date(),
-                isFavorite: false
-            )
+                let bookmark = ProjectBookmark(
+                    id: UUID(),
+                    path: url.path,
+                    displayName: url.lastPathComponent,
+                    bookmarkData: bookmarkData,
+                    addedDate: Date(),
+                    isFavorite: false
+                )
 
-            projects.append(bookmark)
-            saveBookmarks()
+                projects.append(bookmark)
+                saveBookmarks()
 
-            // Auto-select if this is the only project
-            if projects.count == 1 {
-                selectedProject = bookmark
+                // Auto-select if this is the only project
+                if projects.count == 1 {
+                    selectedProject = bookmark
+                }
             }
-
-            url.stopAccessingSecurityScopedResource()
         } catch {
             self.error = error
-            url.stopAccessingSecurityScopedResource()
         }
     }
 
@@ -149,36 +140,22 @@ class ProjectsViewModel: ObservableObject {
         error = nil
 
         do {
-            // Resolve bookmark and access resource
-            var isStale = false
-            let url = try URL(
-                resolvingBookmarkData: project.bookmarkData,
-                options: .withSecurityScope,
-                relativeTo: nil,
-                bookmarkDataIsStale: &isStale
-            )
+            // Resolve bookmark and access resource with automatic management
+            let (url, isStale) = try await ScopedResource.withBookmark(project.bookmarkData) { url in
+                // Get project context
+                let context = try await service.getProjectContext(projectPath: url.path)
+                projectContext = context
 
-            guard url.startAccessingSecurityScopedResource() else {
-                throw NSError(domain: "RustMate", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "Failed to access project directory"
-                ])
+                // Update health status
+                await updateHealthStatus(for: project, projectPath: url.path)
+
+                return url
             }
-
-            defer {
-                url.stopAccessingSecurityScopedResource()
-            }
-
-            // Get project context
-            let context = try await service.getProjectContext(projectPath: url.path)
-            projectContext = context
 
             // Update bookmark if stale
             if isStale {
                 updateBookmark(project, with: url)
             }
-            
-            // Update health status
-            await updateHealthStatus(for: project, projectPath: url.path)
         } catch {
             self.error = error
             projectContext = nil
@@ -231,18 +208,9 @@ class ProjectsViewModel: ObservableObject {
     func refreshHealthStatuses() async {
         for project in projects {
             do {
-                var isStale = false
-                let url = try URL(
-                    resolvingBookmarkData: project.bookmarkData,
-                    options: .withSecurityScope,
-                    relativeTo: nil,
-                    bookmarkDataIsStale: &isStale
-                )
-                
-                guard url.startAccessingSecurityScopedResource() else { continue }
-                defer { url.stopAccessingSecurityScopedResource() }
-                
-                await updateHealthStatus(for: project, projectPath: url.path)
+                try await ScopedResource.withBookmark(project.bookmarkData) { url in
+                    await updateHealthStatus(for: project, projectPath: url.path)
+                }
             } catch {
                 // Skip projects that can't be accessed
                 continue
@@ -258,43 +226,27 @@ class ProjectsViewModel: ObservableObject {
         guard let project = selectedProject else { return }
 
         do {
-            var isStale = false
-            let url = try URL(
-                resolvingBookmarkData: project.bookmarkData,
-                options: .withSecurityScope,
-                relativeTo: nil,
-                bookmarkDataIsStale: &isStale
-            )
+            try await ScopedResource.withBookmark(project.bookmarkData) { url in
+                // Execute set override operation
+                let taskResult = try await service.setProjectOverride(
+                    projectPath: url.path,
+                    toolchainName: toolchainName,
+                    mode: overrideMode
+                )
 
-            guard url.startAccessingSecurityScopedResource() else {
-                throw NSError(domain: "RustMate", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "Failed to access project directory"
-                ])
-            }
+                // Convert TaskResult to TaskRecord and register
+                if let taskRecord = taskResult.taskRecord {
+                    taskManager.addTask(taskRecord)
+                }
 
-            defer {
-                url.stopAccessingSecurityScopedResource()
-            }
-
-            // Execute set override operation
-            let taskResult = try await service.setProjectOverride(
-                projectPath: url.path,
-                toolchainName: toolchainName,
-                mode: overrideMode
-            )
-
-            // Convert TaskResult to TaskRecord and register
-            if let taskRecord = taskResult.taskRecord {
-                taskManager.addTask(taskRecord)
-            }
-
-            // Reload context if successful
-            if taskResult.status == .success {
-                await loadProjectContext()
-            } else {
-                error = NSError(domain: "RustMate", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: taskResult.errorMessage ?? "Failed to set override"
-                ])
+                // Reload context if successful
+                if taskResult.status == .success {
+                    await loadProjectContext()
+                } else {
+                    error = NSError(domain: "RustMate", code: -1, userInfo: [
+                        NSLocalizedDescriptionKey: taskResult.errorMessage ?? "Failed to set override"
+                    ])
+                }
             }
         } catch {
             self.error = error
@@ -305,42 +257,26 @@ class ProjectsViewModel: ObservableObject {
         guard let project = selectedProject else { return }
 
         do {
-            var isStale = false
-            let url = try URL(
-                resolvingBookmarkData: project.bookmarkData,
-                options: .withSecurityScope,
-                relativeTo: nil,
-                bookmarkDataIsStale: &isStale
-            )
+            try await ScopedResource.withBookmark(project.bookmarkData) { url in
+                // Execute clear override operation
+                let taskResult = try await service.clearProjectOverride(
+                    projectPath: url.path,
+                    mode: overrideMode
+                )
 
-            guard url.startAccessingSecurityScopedResource() else {
-                throw NSError(domain: "RustMate", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "Failed to access project directory"
-                ])
-            }
+                // Convert TaskResult to TaskRecord and register
+                if let taskRecord = taskResult.taskRecord {
+                    taskManager.addTask(taskRecord)
+                }
 
-            defer {
-                url.stopAccessingSecurityScopedResource()
-            }
-
-            // Execute clear override operation
-            let taskResult = try await service.clearProjectOverride(
-                projectPath: url.path,
-                mode: overrideMode
-            )
-
-            // Convert TaskResult to TaskRecord and register
-            if let taskRecord = taskResult.taskRecord {
-                taskManager.addTask(taskRecord)
-            }
-
-            // Reload context if successful
-            if taskResult.status == .success {
-                await loadProjectContext()
-            } else {
-                error = NSError(domain: "RustMate", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: taskResult.errorMessage ?? "Failed to clear override"
-                ])
+                // Reload context if successful
+                if taskResult.status == .success {
+                    await loadProjectContext()
+                } else {
+                    error = NSError(domain: "RustMate", code: -1, userInfo: [
+                        NSLocalizedDescriptionKey: taskResult.errorMessage ?? "Failed to clear override"
+                    ])
+                }
             }
         } catch {
             self.error = error
