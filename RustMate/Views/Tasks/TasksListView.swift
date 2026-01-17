@@ -251,30 +251,15 @@ struct TaskRowView: View {
     }
 
     private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        DateFormatters.formatTime(date)
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {
-        if duration < 60 {
-            return String(format: "%.1fs", duration)
-        } else {
-            let minutes = Int(duration / 60)
-            let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
-            return "\(minutes)m \(seconds)s"
-        }
+        DateFormatters.formatDuration(duration)
     }
 
     private func formatElapsed(from startTime: Date) -> String {
-        let elapsed = Date().timeIntervalSince(startTime)
-        if elapsed < 60 {
-            return String(format: "%.0fs", elapsed)
-        } else {
-            let minutes = Int(elapsed / 60)
-            let seconds = Int(elapsed.truncatingRemainder(dividingBy: 60))
-            return "\(minutes)m \(seconds)s"
-        }
+        DateFormatters.formatElapsed(from: startTime)
     }
 }
 

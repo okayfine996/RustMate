@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a rustup component (clippy, rustfmt, rust-src, etc.) for a specific toolchain
-struct ComponentInfo: Codable, Identifiable, Sendable, Hashable {
+struct ComponentInfo: Codable, Identifiable, Sendable, Hashable, ToolchainContextItem {
     let id: UUID
     let name: String
     let displayName: String

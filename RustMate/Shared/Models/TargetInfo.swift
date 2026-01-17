@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a compilation target platform (wasm32, aarch64-linux-gnu, etc.)
-struct TargetInfo: Codable, Identifiable, Sendable, Hashable {
+struct TargetInfo: Codable, Identifiable, Sendable, Hashable, ToolchainContextItem {
     let id: UUID
     let triple: String
     let arch: String?

@@ -451,9 +451,7 @@ struct ToolchainListView: View {
     }
 
     private func formatRelativeDate(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
+        DateFormatters.formatRelativeDate(date)
     }
 
     private func extractVersionFromName(_ name: String) -> String {
@@ -565,25 +563,7 @@ struct ToolchainListView: View {
     }
 
     private func extractMissingPurposes(from error: Error?) -> [AuthorizedDirectory.DirectoryPurpose] {
-        guard let error = error else { return [] }
-
-        if let authError = error as? AuthorizationError {
-            switch authError {
-            case .missingScope(let purpose):
-                return [purpose]
-            case .staleBookmark(_, let purpose), .accessDenied(_, let purpose), .invalidSelection(_, let purpose, _):
-                return [purpose]
-            }
-        } else if let execError = error as? RustupExecutionError {
-            switch execError {
-            case .missingAuthorization(let purpose, _, _):
-                return [purpose]
-            default:
-                return []
-            }
-        }
-
-        return []
+        AuthorizationHelpers.extractMissingPurposes(from: error)
     }
 
     // MARK: - Empty State
@@ -599,156 +579,6 @@ struct ToolchainListView: View {
                 showInstallSheet = true
             }
         )
-    }
-}
-
-// MARK: - Install Sheet
-
-struct InstallToolchainSheet: View {
-    @ObservedObject var viewModel: ToolchainViewModel
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var toolchainName = ""
-    @State private var selectedSuggestion: String?
-    @State private var isInstalling = false
-    @State private var validationError: String?
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 12) {
-                Image(systemName: "arrow.down.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.blue)
-
-                Text("Install Toolchain")
-                    .font(.title.bold())
-
-                Text("Choose a toolchain to install")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.top, 24)
-            .padding(.bottom, 20)
-
-            Divider()
-
-            // Content
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Suggestions
-                    if !viewModel.suggestedToolchains.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Common Toolchains")
-                                .font(.headline)
-
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], spacing: 8) {
-                                ForEach(viewModel.suggestedToolchains, id: \.self) { suggestion in
-                                    Button {
-                                        selectedSuggestion = suggestion
-                                        toolchainName = suggestion
-                                    } label: {
-                                        HStack {
-                                            Text(suggestion)
-                                                .font(.subheadline)
-                                            Spacer()
-                                            if selectedSuggestion == suggestion {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .foregroundStyle(.blue)
-                                            }
-                                        }
-                                        .padding(10)
-                                        .frame(maxWidth: .infinity)
-                                        .background(selectedSuggestion == suggestion ? Color.blue.opacity(0.1) : Color.secondary.opacity(0.1))
-                                        .cornerRadius(6)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-                    }
-
-                    // Custom name
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Custom Toolchain Name")
-                            .font(.headline)
-
-                        TextField("e.g., stable, nightly, 1.75.0", text: $toolchainName)
-                            .textFieldStyle(.roundedBorder)
-                            .onChange(of: toolchainName) { _, _ in
-                                // Clear validation error when user types
-                                validationError = nil
-                            }
-
-                        if let error = validationError {
-                            HStack(spacing: 6) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(.red)
-                                Text(error)
-                                    .font(.caption)
-                                    .foregroundStyle(.red)
-                            }
-                        }
-
-                        Text("Examples: stable, beta, nightly, 1.75.0, nightly-2024-01-01")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    // Info
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundStyle(.blue)
-                        Text("This will download and install the specified toolchain using rustup.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(12)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
-                }
-                .padding(24)
-            }
-
-            Divider()
-
-            // Footer
-            HStack {
-                Button("Cancel") {
-                    dismiss()
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                Button("Install") {
-                    // Validate input first
-                    let trimmedName = toolchainName.trimmingCharacters(in: .whitespacesAndNewlines)
-
-                    if trimmedName.isEmpty {
-                        validationError = "Please enter a toolchain name"
-                        return
-                    }
-
-                    if !ToolchainInfo.validateName(trimmedName) {
-                        validationError = "Invalid toolchain name. Use only letters, numbers, dots, hyphens, and underscores (max 128 characters)"
-                        return
-                    }
-
-                    // Validation passed, start installation in background
-                    Task {
-                        await viewModel.installToolchain(name: trimmedName)
-                    }
-
-                    // Close dialog immediately after starting installation
-                    dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(toolchainName.isEmpty || isInstalling)
-            }
-            .padding(16)
-        }
-        .frame(width: 500, height: 450)
     }
 }
 

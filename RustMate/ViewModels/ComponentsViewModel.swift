@@ -169,3 +169,17 @@ class ComponentsViewModel: ObservableObject {
         components.filter { !$0.isInstalled }.count
     }
 }
+
+// MARK: - ToolchainContextViewModel Conformance
+
+extension ComponentsViewModel: ToolchainContextViewModel {
+    typealias Item = ComponentInfo
+
+    var items: [ComponentInfo] {
+        components
+    }
+
+    func loadItems() async {
+        await loadComponents()
+    }
+}

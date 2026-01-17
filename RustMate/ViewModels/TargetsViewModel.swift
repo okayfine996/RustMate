@@ -182,3 +182,17 @@ class TargetsViewModel: ObservableObject {
         return grouped.sorted { $0.key < $1.key }.map { (arch: $0.key, targets: $0.value) }
     }
 }
+
+// MARK: - ToolchainContextViewModel Conformance
+
+extension TargetsViewModel: ToolchainContextViewModel {
+    typealias Item = TargetInfo
+
+    var items: [TargetInfo] {
+        targets
+    }
+
+    func loadItems() async {
+        await loadTargets()
+    }
+}

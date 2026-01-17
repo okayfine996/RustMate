@@ -121,13 +121,21 @@ struct ProjectHealthStatus: Codable, Sendable {
                 details: "Version mismatch detected"
             )
         }
-        
-        // If toolchain is installed but version cannot be parsed, show warning
-        // This should only happen if there are no other issues
-        if diagnostics.actualToolchainVersion == nil && diagnostics.toolchainSource != .default {
-            // Toolchain exists (source is not default), but version parsing failed
+
+        // Handle cases where actualToolchainVersion is nil (version parsing failed)
+        if diagnostics.actualToolchainVersion == nil {
+            // If using default toolchain, this is completely normal and healthy
+            if diagnostics.toolchainSource == .default {
+                return ProjectHealthStatus(
+                    status: .healthy,
+                    indicatorColor: .green,
+                    lastChecked: Date(),
+                    details: "Using default toolchain"
+                )
+            }
+
+            // If using explicit configuration (override or toolchainFile), version parsing failed
             // This is a minor issue - toolchain works but we can't show version
-            // Since we've already checked for conflicts and mismatches above, this is safe
             return ProjectHealthStatus(
                 status: .healthy,
                 indicatorColor: .green,
@@ -135,7 +143,7 @@ struct ProjectHealthStatus: Codable, Sendable {
                 details: "Toolchain is active (version parsing unavailable)"
             )
         }
-        
+
         // All checks passed - healthy
         return ProjectHealthStatus(
             status: .healthy,

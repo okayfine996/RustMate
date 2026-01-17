@@ -248,20 +248,11 @@ struct TaskDetailView: View {
     // MARK: - Formatting
 
     private func formatDateTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        DateFormatters.formatFullDateTime(date)
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {
-        if duration < 60 {
-            return String(format: "%.1f seconds", duration)
-        } else {
-            let minutes = Int(duration / 60)
-            let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
-            return "\(minutes) minutes \(seconds) seconds"
-        }
+        DateFormatters.formatDuration(duration, style: .verbose)
     }
 }
 

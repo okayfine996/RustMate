@@ -179,13 +179,7 @@ class TaskNotificationManager: NSObject, ObservableObject {
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {
-        if duration < 60 {
-            return String(format: "%.1fs", duration)
-        } else {
-            let minutes = Int(duration / 60)
-            let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
-            return "\(minutes)m \(seconds)s"
-        }
+        DateFormatters.formatDuration(duration)
     }
 }
 

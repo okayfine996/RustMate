@@ -164,7 +164,6 @@ struct ProjectsListView: View {
                         ProjectTableRow(
                             project: project,
                             isSelected: viewModel.selectedProject?.id == project.id,
-                            healthStatusColor: healthStatusColor(for: project),
                             shortenedPath: shortenPath(project.path),
                             onSelect: {
                                 viewModel.selectedProject = project
@@ -236,21 +235,6 @@ struct ProjectsListView: View {
         }
         return path
     }
-    
-    private func healthStatusColor(for project: ProjectBookmark) -> Color {
-        guard let healthStatus = project.healthStatus else {
-            return GlassTokens.Colors.textTertiary  // Unknown status - use design token
-        }
-        
-        switch healthStatus.indicatorColor {
-        case .green:
-            return GlassTokens.Colors.success
-        case .red:
-            return GlassTokens.Colors.error
-        case .yellow:
-            return GlassTokens.Colors.warning
-        }
-    }
 
     // MARK: - Empty & Loading States
 
@@ -311,55 +295,17 @@ struct ProjectsListView: View {
     // MARK: - Authorization Error Handling
 
     private func isAuthorizationError(_ error: Error?) -> Bool {
-        guard let error = error else { return false }
-
-        if error is AuthorizationError {
-            return true
-        }
-
-        if let execError = error as? RustupExecutionError {
-            switch execError {
-            case .missingAuthorization:
-                return true
-            default:
-                return false
-            }
-        }
-
-        return false
+        AuthorizationHelpers.isAuthorizationError(error)
     }
 
     private func handleAuthorizationError() {
         guard let error = viewModel.error else { return }
-
-        let purposes = extractMissingPurposes(from: error)
-        if !purposes.isEmpty {
-            // Request authorization via coordinator
-            AuthorizationCoordinator.requestAuthorization(for: purposes)
-        }
-
-        // Clear error
+        AuthorizationHelpers.handleAuthorizationError(error)
         viewModel.error = nil
     }
 
     private func extractMissingPurposes(from error: Error) -> [AuthorizedDirectory.DirectoryPurpose] {
-        if let authError = error as? AuthorizationError {
-            switch authError {
-            case .missingScope(let purpose):
-                return [purpose]
-            case .staleBookmark(_, let purpose), .accessDenied(_, let purpose), .invalidSelection(_, let purpose, _):
-                return [purpose]
-            }
-        } else if let execError = error as? RustupExecutionError {
-            switch execError {
-            case .missingAuthorization(let purpose, _, _):
-                return [purpose]
-            default:
-                return []
-            }
-        }
-
-        return []
+        AuthorizationHelpers.extractMissingPurposes(from: error)
     }
 }
 
@@ -368,32 +314,31 @@ struct ProjectsListView: View {
 struct ProjectTableRow: View {
     let project: ProjectBookmark
     let isSelected: Bool
-    let healthStatusColor: Color
     let shortenedPath: String
     let onSelect: () -> Void
     let onRemove: () -> Void
-    
+
     var body: some View {
         HStack(spacing: GlassTokens.Spacing.md) {
-            // Health status indicator
-            Circle()
-                .fill(healthStatusColor)
-                .frame(width: 10, height: 10)
-            
+            // Health status indicator (traffic light style)
+            TrafficLightIndicator(
+                activeColor: project.healthStatus?.indicatorColor ?? .green
+            )
+
             // Project name and path
             VStack(alignment: .leading, spacing: 2) {
                 Text(project.displayName)
                     .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
                     .foregroundColor(GlassTokens.Colors.textPrimary)
-                
+
                 Text(shortenedPath)
                     .font(.system(size: GlassTokens.Typography.captionSize, design: .monospaced))
                     .foregroundColor(GlassTokens.Colors.textSecondary)
                     .lineLimit(1)
             }
-            
+
             Spacer()
-            
+
             // Right arrow icon
             Image(systemName: "chevron.right")
                 .font(.system(size: GlassTokens.Typography.captionSize))
@@ -411,6 +356,38 @@ struct ProjectTableRow: View {
                 onRemove()
             }
         }
+    }
+}
+
+// MARK: - Traffic Light Indicator
+
+struct TrafficLightIndicator: View {
+    let activeColor: ProjectHealthStatus.IndicatorColor
+
+    private let dotSize: CGFloat = 8
+    private let spacing: CGFloat = 2
+
+    var body: some View {
+        HStack(spacing: spacing) {
+            // Red dot
+            Circle()
+                .fill(isActive(.red) ? GlassTokens.Colors.error : GlassTokens.Colors.error.opacity(0.2))
+                .frame(width: dotSize, height: dotSize)
+
+            // Yellow dot
+            Circle()
+                .fill(isActive(.yellow) ? GlassTokens.Colors.warning : GlassTokens.Colors.warning.opacity(0.2))
+                .frame(width: dotSize, height: dotSize)
+
+            // Green dot
+            Circle()
+                .fill(isActive(.green) ? GlassTokens.Colors.success : GlassTokens.Colors.success.opacity(0.2))
+                .frame(width: dotSize, height: dotSize)
+        }
+    }
+
+    private func isActive(_ color: ProjectHealthStatus.IndicatorColor) -> Bool {
+        return activeColor == color
     }
 }
 
