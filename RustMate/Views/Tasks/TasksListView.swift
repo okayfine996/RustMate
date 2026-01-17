@@ -170,6 +170,8 @@ struct TasksListView: View {
 
 struct TaskRowView: View {
     let task: TaskRecord
+    @State private var elapsedTime: TimeInterval = 0
+    @State private var timer: Timer?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -223,8 +225,8 @@ struct TaskRowView: View {
                                 .font(.system(size: GlassTokens.Typography.captionSize))
                                 .foregroundColor(GlassTokens.Colors.textSecondary)
                         } else if task.status == .running {
-                            // Show elapsed time for running tasks
-                            Label(formatElapsed(from: task.startTime), systemImage: "timer")
+                            // Show elapsed time for running tasks (updated in real-time)
+                            Label(formatDuration(elapsedTime), systemImage: "timer")
                                 .font(.system(size: GlassTokens.Typography.captionSize))
                                 .foregroundColor(StatusSemantics.taskColor(status: .running))
                         }
@@ -240,12 +242,20 @@ struct TaskRowView: View {
                 Spacer()
             }
             .padding(.vertical, GlassTokens.Spacing.xs)
-
-            // Progress bar for running tasks
+        }
+        .onAppear {
             if task.status == .running {
-                ProgressView()
-                    .progressViewStyle(.linear)
-                    .padding(.top, GlassTokens.Spacing.xs)
+                startTimer()
+            }
+        }
+        .onDisappear {
+            stopTimer()
+        }
+        .onChange(of: task.status) { _, newStatus in
+            if newStatus == .running {
+                startTimer()
+            } else {
+                stopTimer()
             }
         }
     }
@@ -260,6 +270,21 @@ struct TaskRowView: View {
 
     private func formatElapsed(from startTime: Date) -> String {
         DateFormatters.formatElapsed(from: startTime)
+    }
+
+    private func startTimer() {
+        // Calculate initial elapsed time
+        elapsedTime = Date().timeIntervalSince(task.startTime)
+
+        // Update every second
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            elapsedTime = Date().timeIntervalSince(task.startTime)
+        }
+    }
+
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
     }
 }
 

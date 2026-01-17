@@ -13,7 +13,6 @@ class ProjectsViewModel: ObservableObject {
     private var service: LocalProjectContextService
     private let taskManager = TaskManager.shared
     private let bookmarkService = ProjectBookmarkService()
-    private let healthService = ProjectHealthService()
 
     // State
     @Published var projects: [ProjectBookmark] = []
@@ -115,9 +114,6 @@ class ProjectsViewModel: ObservableObject {
                 let context = try await service.getProjectContext(projectPath: url.path)
                 projectContext = context
 
-                // Update health status
-                await updateHealthStatus(for: project, projectPath: url.path)
-
                 return url
             }
 
@@ -131,26 +127,6 @@ class ProjectsViewModel: ObservableObject {
         }
 
         isLoading = false
-    }
-    
-    // MARK: - Health Status Management
-
-    func updateHealthStatus(for project: ProjectBookmark, projectPath: String) async {
-        let healthStatus = await healthService.computeHealthStatusSafely(for: projectPath)
-        projects = bookmarkService.updateHealthStatus(for: project, with: healthStatus, in: projects)
-        saveBookmarks()
-    }
-
-    func refreshHealthStatuses() async {
-        let healthStatuses = await healthService.refreshHealthStatuses(for: projects)
-
-        // Update all projects with their new health statuses
-        for (projectId, healthStatus) in healthStatuses {
-            if let project = projects.first(where: { $0.id == projectId }) {
-                projects = bookmarkService.updateHealthStatus(for: project, with: healthStatus, in: projects)
-            }
-        }
-        saveBookmarks()
     }
 
     func refreshProjectContext() async {

@@ -31,11 +31,11 @@ class SettingsViewModel: ObservableObject {
 
     // Bindings to settings properties
     @Published var rustupPath: String
-    @Published var overrideStrategy: AppSettings.OverrideStrategy
     @Published var autoRefresh: Bool
     @Published var refreshIntervalSeconds: Int
     @Published var enableTaskNotifications: Bool
     @Published var enableToolchainUpdateNotifications: Bool
+    @Published var appearanceMode: AppSettings.AppearanceMode
 
     // T048: Authorization state for new purposes
     @Published var authorizationStates: [AuthorizedDirectory.DirectoryPurpose: AuthorizationState] = [:]
@@ -103,11 +103,11 @@ class SettingsViewModel: ObservableObject {
         self.settingsBinding = settingsBinding
         let settings = settingsBinding.wrappedValue
         self.rustupPath = settings.rustupPath ?? ""
-        self.overrideStrategy = settings.overrideStrategy
         self.autoRefresh = settings.autoRefreshOnActivation
         self.refreshIntervalSeconds = settings.refreshIntervalSeconds
         self.enableTaskNotifications = settings.enableTaskNotifications
         self.enableToolchainUpdateNotifications = settings.enableToolchainUpdateNotifications
+        self.appearanceMode = settings.appearanceMode
 
         Task {
             await validateEnvironment()
@@ -447,11 +447,11 @@ class SettingsViewModel: ObservableObject {
 
     func saveSettings() {
         // T004/T005: Write back to binding (which triggers AppState persistence)
-        settings.overrideStrategy = overrideStrategy
         settings.autoRefreshOnActivation = autoRefresh
         settings.refreshIntervalSeconds = refreshIntervalSeconds
         settings.enableTaskNotifications = enableTaskNotifications
         settings.enableToolchainUpdateNotifications = enableToolchainUpdateNotifications
+        settings.appearanceMode = appearanceMode
         // Binding automatically propagates changes to AppState
     }
 
@@ -533,7 +533,6 @@ class SettingsViewModel: ObservableObject {
         // Reset to defaults
         settings = AppSettings()
         rustupPath = ""
-        overrideStrategy = .toolchainFile
         autoRefresh = true
         enableTaskNotifications = true
         rustupVersion = nil

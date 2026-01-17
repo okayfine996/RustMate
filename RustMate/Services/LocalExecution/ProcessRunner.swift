@@ -68,21 +68,28 @@ actor ProcessRunner: ProcessRunnerProtocol {
                 let stderrPipe = Pipe()
                 process.standardError = stderrPipe
 
-                // Collect output data
+                // Collect output data with streaming truncation to prevent excessive memory usage
                 var stdoutData = Data()
                 var stderrData = Data()
 
+                // Apply streaming truncation: stop accumulating once we hit the limit
                 stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
                     let data = handle.availableData
-                    if !data.isEmpty {
-                        stdoutData.append(data)
+                    if !data.isEmpty && stdoutData.count < ProcessOutputLimiter.maxStdoutBytes {
+                        // Only append up to the max limit to prevent unbounded memory growth
+                        let remaining = ProcessOutputLimiter.maxStdoutBytes - stdoutData.count
+                        let toAppend = data.prefix(remaining)
+                        stdoutData.append(toAppend)
                     }
                 }
 
                 stderrPipe.fileHandleForReading.readabilityHandler = { handle in
                     let data = handle.availableData
-                    if !data.isEmpty {
-                        stderrData.append(data)
+                    if !data.isEmpty && stderrData.count < ProcessOutputLimiter.maxStderrBytes {
+                        // Only append up to the max limit to prevent unbounded memory growth
+                        let remaining = ProcessOutputLimiter.maxStderrBytes - stderrData.count
+                        let toAppend = data.prefix(remaining)
+                        stderrData.append(toAppend)
                     }
                 }
 
@@ -92,15 +99,19 @@ actor ProcessRunner: ProcessRunnerProtocol {
                     stdoutPipe.fileHandleForReading.readabilityHandler = nil
                     stderrPipe.fileHandleForReading.readabilityHandler = nil
 
-                    // Read any remaining data
+                    // Read any remaining data with streaming truncation applied
                     let remainingStdout = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
                     let remainingStderr = stderrPipe.fileHandleForReading.readDataToEndOfFile()
 
-                    if !remainingStdout.isEmpty {
-                        stdoutData.append(remainingStdout)
+                    if !remainingStdout.isEmpty && stdoutData.count < ProcessOutputLimiter.maxStdoutBytes {
+                        let remaining = ProcessOutputLimiter.maxStdoutBytes - stdoutData.count
+                        let toAppend = remainingStdout.prefix(remaining)
+                        stdoutData.append(toAppend)
                     }
-                    if !remainingStderr.isEmpty {
-                        stderrData.append(remainingStderr)
+                    if !remainingStderr.isEmpty && stderrData.count < ProcessOutputLimiter.maxStderrBytes {
+                        let remaining = ProcessOutputLimiter.maxStderrBytes - stderrData.count
+                        let toAppend = remainingStderr.prefix(remaining)
+                        stderrData.append(toAppend)
                     }
 
                     // Truncate output

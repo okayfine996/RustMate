@@ -15,7 +15,7 @@ struct ProjectContextView: View {
     let onSetOverride: (ToolchainInfo) -> Void
     let onClearOverride: () -> Void
 
-    @State private var selectedTab: ProjectTab = .toolchain
+    @State private var selectedTab: ProjectTab = .overview
     @StateObject private var diagnosticsViewModel = ProjectDiagnosticsViewModel()
 
     var body: some View {
@@ -42,6 +42,7 @@ struct ProjectContextView: View {
             tabContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(GlassTokens.Colors.backgroundSecondary)
         .task {
             await diagnosticsViewModel.loadDiagnostics(projectPath: context.projectPath)
         }
@@ -51,7 +52,7 @@ struct ProjectContextView: View {
             }
         }
         .onChange(of: selectedTab) { _, _ in
-            if selectedTab == .info {
+            if selectedTab == .overview {
                 Task {
                     await diagnosticsViewModel.loadDiagnostics(projectPath: context.projectPath)
                 }
@@ -65,12 +66,12 @@ struct ProjectContextView: View {
     private var tabContent: some View {
         Group {
             switch selectedTab {
+            case .overview:
+                ProjectDiagnosticsView(projectPath: context.projectPath)
             case .toolchain:
                 ProjectToolchainSettingsView(projectPath: context.projectPath)
             case .cargo:
                 ProjectCargoSettingsView(projectPath: context.projectPath)
-            case .info:
-                ProjectDiagnosticsView(projectPath: context.projectPath)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -80,17 +81,17 @@ struct ProjectContextView: View {
 
     private var headerTitle: String {
         switch selectedTab {
+        case .overview: return "Project Overview"
         case .toolchain: return "Toolchain Settings"
         case .cargo: return "Cargo & Build Settings"
-        case .info: return "Project Diagnostics"
         }
     }
 
     private var headerDescription: String {
         switch selectedTab {
+        case .overview: return "View detailed information about your project's toolchain configuration"
         case .toolchain: return "Configure the Rust environment for `rust-toolchain.toml`"
         case .cargo: return "Configure build settings for `.cargo/config.toml`"
-        case .info: return "View detailed information about your project's toolchain configuration"
         }
     }
 }

@@ -28,8 +28,8 @@ struct ProjectTabSelector: View {
                             .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
                             .foregroundColor(selectedTab == tab ? GlassTokens.Colors.accent : GlassTokens.Colors.textPrimary)
 
-                        // Badge for Diagnostics tab
-                        if tab == .info && issueCount > 0 {
+                        // Badge for Overview tab
+                        if tab == .overview && issueCount > 0 {
                             Text("\(issueCount)")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.orange)
@@ -65,15 +65,15 @@ struct ProjectTabSelector: View {
 // MARK: - ProjectTab Enum
 
 enum ProjectTab: String, CaseIterable {
+    case overview = "Overview"
     case toolchain = "Toolchain Version"
     case cargo = "Cargo & Build"
-    case info = "Diagnostics"
 
     var icon: String {
         switch self {
+        case .overview: return "info.circle"
         case .toolchain: return "wrench.and.screwdriver"
         case .cargo: return "doc.text"
-        case .info: return "exclamationmark.triangle"
         }
     }
 }

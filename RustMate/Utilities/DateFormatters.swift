@@ -15,14 +15,14 @@ enum DateFormatters {
 
     /// Format a time interval as a compact duration string
     /// - Parameter duration: Time interval in seconds
-    /// - Returns: Formatted string (e.g., "1.5s", "2m 30s")
+    /// - Returns: Formatted string (e.g., "8s", "2m 30s")
     static func formatDuration(_ duration: TimeInterval, style: DurationStyle = .compact) -> String {
         if duration < 60 {
             switch style {
             case .compact:
-                return String(format: "%.1fs", duration)
+                return String(format: "%.0fs", duration)
             case .verbose:
-                return String(format: "%.1f seconds", duration)
+                return String(format: "%.0f seconds", duration)
             }
         } else {
             let minutes = Int(duration / 60)

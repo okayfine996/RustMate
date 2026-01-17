@@ -85,17 +85,31 @@ struct MainContentView: View {
                             selectedTab = tab
                         }
                     } label: {
-                        Text(tab.rawValue)
-                            .font(.system(size: GlassTokens.Typography.bodySize, weight: selectedTab == tab ? .semibold : .regular))
-                            .foregroundColor(selectedTab == tab ? GlassTokens.Colors.accent : GlassTokens.Colors.textSecondary)
-                            .padding(.horizontal, GlassTokens.Spacing.md)
-                            .padding(.vertical, GlassTokens.Spacing.sm)
-                            .background(
-                                selectedTab == tab ?
-                                    GlassTokens.Colors.selectionBackground :
-                                    Color.clear
-                            )
-                            .cornerRadius(GlassTokens.Radius.sm)
+                        ZStack(alignment: .topTrailing) {
+                            Text(tab.rawValue)
+                                .font(.system(size: GlassTokens.Typography.bodySize, weight: selectedTab == tab ? .semibold : .regular))
+                                .foregroundColor(selectedTab == tab ? GlassTokens.Colors.accent : GlassTokens.Colors.textSecondary)
+                                .padding(.horizontal, GlassTokens.Spacing.md)
+                                .padding(.vertical, GlassTokens.Spacing.sm)
+                                .background(
+                                    selectedTab == tab ?
+                                        GlassTokens.Colors.selectionBackground :
+                                        Color.clear
+                                )
+                                .cornerRadius(GlassTokens.Radius.sm)
+
+                            // Badge for Tasks tab showing running tasks count
+                            if tab == .tasks && tasksViewModel.runningCount > 0 {
+                                Text("\(tasksViewModel.runningCount)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(GlassTokens.Colors.accent)
+                                    .clipShape(Capsule())
+                                    .offset(x: 8, y: -4)
+                            }
+                        }
                     }
                     .buttonStyle(.plain)
                 }

@@ -1,40 +1,43 @@
 import Foundation
 import Combine
+import SwiftUI
 
 /// User-configurable application settings
 struct AppSettings: Codable, Sendable {
     var rustupPath: String?
     var cargoPath: String?
-    var overrideStrategy: OverrideStrategy
     var authorizedDirectories: [AuthorizedDirectory]
     var autoRefreshOnActivation: Bool
     var refreshIntervalSeconds: Int
     var enableTaskNotifications: Bool
     var enableToolchainUpdateNotifications: Bool
-    
+
     // T006: Update channel preference (stable/beta)
     var updateChannel: UpdateChannel
+
+    // Appearance mode preference (light/dark/auto)
+    var appearanceMode: AppearanceMode
 
     init(
         rustupPath: String? = nil,
         cargoPath: String? = nil,
-        overrideStrategy: OverrideStrategy = .toolchainFile,
         authorizedDirectories: [AuthorizedDirectory] = [],
         autoRefreshOnActivation: Bool = true,
         refreshIntervalSeconds: Int = 30,
         enableTaskNotifications: Bool = true,
         enableToolchainUpdateNotifications: Bool = false,
-        updateChannel: UpdateChannel = .stable
+        updateChannel: UpdateChannel = .stable,
+        appearanceMode: AppearanceMode = .auto
     ) {
         self.rustupPath = rustupPath
         self.cargoPath = cargoPath
-        self.overrideStrategy = overrideStrategy
         self.authorizedDirectories = authorizedDirectories
         self.autoRefreshOnActivation = autoRefreshOnActivation
         self.refreshIntervalSeconds = refreshIntervalSeconds
         self.enableTaskNotifications = enableTaskNotifications
         self.enableToolchainUpdateNotifications = enableToolchainUpdateNotifications
         self.updateChannel = updateChannel
+        self.appearanceMode = appearanceMode
     }
 
     enum OverrideStrategy: String, Codable, Sendable {
@@ -62,11 +65,42 @@ struct AppSettings: Codable, Sendable {
     enum UpdateChannel: String, Codable, Sendable {
         case stable
         case beta
-        
+
         var displayText: String {
             switch self {
             case .stable: return "Stable"
             case .beta: return "Beta"
+            }
+        }
+    }
+
+    // Appearance mode enum
+    enum AppearanceMode: String, Codable, Sendable {
+        case light
+        case dark
+        case auto
+
+        var displayText: String {
+            switch self {
+            case .light: return "Light"
+            case .dark: return "Dark"
+            case .auto: return "Auto"
+            }
+        }
+
+        var colorScheme: ColorScheme? {
+            switch self {
+            case .light: return .light
+            case .dark: return .dark
+            case .auto: return nil  // nil means follow system
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .light: return "sun.max"
+            case .dark: return "moon"
+            case .auto: return "circle.lefthalf.filled"
             }
         }
     }
@@ -81,7 +115,6 @@ struct AppSettings: Codable, Sendable {
             return AppSettings(
                 rustupPath: nil,
                 cargoPath: nil,
-                overrideStrategy: .toolchainFile,
                 authorizedDirectories: []
             )
         }

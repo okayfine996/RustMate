@@ -31,6 +31,41 @@ struct UIPreferencesSection: View {
 
             GlassCard {
                 VStack(alignment: .leading, spacing: GlassTokens.Spacing.lg) {
+                    // Appearance Mode
+                    VStack(alignment: .leading, spacing: GlassTokens.Spacing.sm) {
+                        Text("Appearance")
+                            .font(.system(size: GlassTokens.Typography.bodySize, weight: .medium))
+                            .foregroundColor(GlassTokens.Colors.textPrimary)
+
+                        HStack(spacing: GlassTokens.Spacing.sm) {
+                            ForEach([AppSettings.AppearanceMode.light, .dark, .auto], id: \.self) { mode in
+                                Button {
+                                    viewModel.appearanceMode = mode
+                                    viewModel.saveSettings()
+                                } label: {
+                                    HStack(spacing: GlassTokens.Spacing.xs) {
+                                        Image(systemName: mode.icon)
+                                            .font(.system(size: GlassTokens.Typography.bodySize))
+                                        Text(mode.displayText)
+                                            .font(.system(size: GlassTokens.Typography.bodySize))
+                                    }
+                                    .foregroundColor(viewModel.appearanceMode == mode ? .white : GlassTokens.Colors.textPrimary)
+                                    .padding(.horizontal, GlassTokens.Spacing.md)
+                                    .padding(.vertical, GlassTokens.Spacing.sm)
+                                    .background(viewModel.appearanceMode == mode ? GlassTokens.Colors.accent : GlassTokens.Colors.backgroundSecondary)
+                                    .cornerRadius(GlassTokens.Radius.md)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: GlassTokens.Radius.md)
+                                            .stroke(viewModel.appearanceMode == mode ? GlassTokens.Colors.accent : GlassTokens.Colors.cardStroke, lineWidth: GlassTokens.Stroke.thin)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    Divider()
+
                     // Auto-refresh Dashboard
                     HStack {
                         VStack(alignment: .leading, spacing: GlassTokens.Spacing.xs) {

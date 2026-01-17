@@ -67,31 +67,8 @@ struct ProjectDiagnosticsView: View {
                 }
                 .padding(GlassTokens.Spacing.xxl)
             }
-
-            // Fixed status bar at bottom
-            Divider()
-            SettingsStatusBar(
-                hasChanges: false,
-                statusMessage: "Diagnostics updated just now",
-                isLoading: viewModel.isLoading,
-                discardButtonTitle: "Rescan",
-                saveButtonTitle: "Apply Fixes",
-                saveButtonIcon: "wrench.and.screwdriver",
-                isSaveDisabled: viewModel.diagnostics?.hasMismatch != true,
-                onDiscard: {
-                    Task {
-                        await viewModel.loadDiagnostics(projectPath: projectPath)
-                    }
-                },
-                onSave: {
-                    if let diagnostics = viewModel.diagnostics, diagnostics.hasMismatch {
-                        Task {
-                            try? await viewModel.fixMismatch()
-                        }
-                    }
-                }
-            )
         }
+        .background(GlassTokens.Colors.backgroundSecondary)
         .task {
             await viewModel.loadDiagnostics(projectPath: projectPath)
         }

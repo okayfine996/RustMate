@@ -53,8 +53,9 @@ struct ProjectCargoSettingsView: View {
             // Fixed status bar at bottom
             Divider()
             statusBar
-                .background(GlassTokens.Colors.backgroundPrimary)
+                .background(GlassTokens.Colors.backgroundSecondary)
         }
+        .background(GlassTokens.Colors.backgroundSecondary)
         .task {
             await viewModel.loadConfig(projectPath: projectPath)
             originalConfig = viewModel.config
@@ -81,7 +82,7 @@ struct ProjectCargoSettingsView: View {
         SettingsStatusBar(
             hasChanges: hasUnsavedChanges(),
             changeCount: countChanges(),
-            statusMessage: hasUnsavedChanges() ? nil : "All systems operational!",
+            statusMessage: hasUnsavedChanges() ? nil : "Configuration saved",
             isLoading: viewModel.isLoading,
             onDiscard: {
                 discardChanges()

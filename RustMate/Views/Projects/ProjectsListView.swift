@@ -81,9 +81,6 @@ struct ProjectsListView: View {
             // Load available toolchains for override picker
             await loadAvailableToolchains()
 
-            // Refresh health statuses for all projects
-            await viewModel.refreshHealthStatuses()
-
             // Auto-select first project after view is ready
             viewModel.autoSelectFirstIfNeeded()
         }
@@ -149,7 +146,6 @@ struct ProjectsListView: View {
                     .font(.system(size: GlassTokens.Typography.captionSize))
                     .foregroundColor(GlassTokens.Colors.textSecondary)
             }
-            .background(GlassTokens.Colors.backgroundPrimary)
             .padding(.horizontal, GlassTokens.Spacing.lg)
             .padding(.top, GlassTokens.Spacing.xl)
             .padding(.bottom, GlassTokens.Spacing.md)
@@ -176,12 +172,11 @@ struct ProjectsListView: View {
                     }
                 }
             }
-            .background(GlassTokens.Colors.cardBackground)
             
             // Bottom add button
             VStack(spacing: 0) {
                 Divider()
-                
+
                 Button {
                     showingFilePicker = true
                 } label: {
@@ -199,7 +194,7 @@ struct ProjectsListView: View {
                 .padding(.horizontal, GlassTokens.Spacing.md)
             }
         }
-        .background(GlassTokens.Colors.backgroundPrimary)
+        .background(GlassTokens.Colors.backgroundSecondary)
     }
 
     private var filteredProjects: [ProjectBookmark] {
@@ -320,11 +315,6 @@ struct ProjectTableRow: View {
 
     var body: some View {
         HStack(spacing: GlassTokens.Spacing.md) {
-            // Health status indicator (traffic light style)
-            TrafficLightIndicator(
-                activeColor: project.healthStatus?.indicatorColor ?? .green
-            )
-
             // Project name and path
             VStack(alignment: .leading, spacing: 2) {
                 Text(project.displayName)
@@ -356,38 +346,6 @@ struct ProjectTableRow: View {
                 onRemove()
             }
         }
-    }
-}
-
-// MARK: - Traffic Light Indicator
-
-struct TrafficLightIndicator: View {
-    let activeColor: ProjectHealthStatus.IndicatorColor
-
-    private let dotSize: CGFloat = 8
-    private let spacing: CGFloat = 2
-
-    var body: some View {
-        HStack(spacing: spacing) {
-            // Red dot
-            Circle()
-                .fill(isActive(.red) ? GlassTokens.Colors.error : GlassTokens.Colors.error.opacity(0.2))
-                .frame(width: dotSize, height: dotSize)
-
-            // Yellow dot
-            Circle()
-                .fill(isActive(.yellow) ? GlassTokens.Colors.warning : GlassTokens.Colors.warning.opacity(0.2))
-                .frame(width: dotSize, height: dotSize)
-
-            // Green dot
-            Circle()
-                .fill(isActive(.green) ? GlassTokens.Colors.success : GlassTokens.Colors.success.opacity(0.2))
-                .frame(width: dotSize, height: dotSize)
-        }
-    }
-
-    private func isActive(_ color: ProjectHealthStatus.IndicatorColor) -> Bool {
-        return activeColor == color
     }
 }
 

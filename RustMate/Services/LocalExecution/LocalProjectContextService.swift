@@ -63,53 +63,25 @@ class LocalProjectContextService: ProjectContextServiceProtocol {
         let taskId = UUID()
         let startTime = Date()
 
-        // Mode determines the override strategy
-        let overrideStrategy = mode == "toolchainFile"
-            ? AppSettings.OverrideStrategy.toolchainFile
-            : AppSettings.OverrideStrategy.rustupOverride
-
-        switch overrideStrategy {
-        case .toolchainFile:
-            return try await setOverrideViaToolchainFile(
-                taskId: taskId,
-                startTime: startTime,
-                projectPath: projectPath,
-                toolchainName: toolchainName
-            )
-
-        case .rustupOverride:
-            return try await setOverrideViaRustupCommand(
-                taskId: taskId,
-                startTime: startTime,
-                projectPath: projectPath,
-                toolchainName: toolchainName
-            )
-        }
+        // Always use toolchainFile strategy (rust-toolchain.toml)
+        return try await setOverrideViaToolchainFile(
+            taskId: taskId,
+            startTime: startTime,
+            projectPath: projectPath,
+            toolchainName: toolchainName
+        )
     }
 
     func clearProjectOverride(projectPath: String, mode: String) async throws -> TaskResult {
         let taskId = UUID()
         let startTime = Date()
 
-        let overrideStrategy = mode == "toolchainFile"
-            ? AppSettings.OverrideStrategy.toolchainFile
-            : AppSettings.OverrideStrategy.rustupOverride
-
-        switch overrideStrategy {
-        case .toolchainFile:
-            return try await clearOverrideViaToolchainFile(
-                taskId: taskId,
-                startTime: startTime,
-                projectPath: projectPath
-            )
-
-        case .rustupOverride:
-            return try await clearOverrideViaRustupCommand(
-                taskId: taskId,
-                startTime: startTime,
-                projectPath: projectPath
-            )
-        }
+        // Always use toolchainFile strategy (rust-toolchain.toml)
+        return try await clearOverrideViaToolchainFile(
+            taskId: taskId,
+            startTime: startTime,
+            projectPath: projectPath
+        )
     }
 
     // MARK: - Private Helpers
@@ -127,9 +99,8 @@ class LocalProjectContextService: ProjectContextServiceProtocol {
         )
         defer { authService.stopAccessing(resources) }
 
-        let toolchainFilePath = URL(fileURLWithPath: projectPath)
+        let toolchainFileURL = URL(fileURLWithPath: projectPath)
             .appendingPathComponent("rust-toolchain.toml")
-            .path
 
         // Write rust-toolchain.toml
         let content = """
@@ -138,7 +109,7 @@ class LocalProjectContextService: ProjectContextServiceProtocol {
         """
 
         do {
-            try content.write(toFile: toolchainFilePath, atomically: true, encoding: .utf8)
+            try TOMLFileManager.writeAtomically(content: content, to: toolchainFileURL)
 
             return TaskResult(
                 taskId: taskId,
@@ -148,7 +119,7 @@ class LocalProjectContextService: ProjectContextServiceProtocol {
                 startTime: startTime,
                 endTime: Date(),
                 exitCode: 0,
-                stdoutSnippet: "Created \(toolchainFilePath)",
+                stdoutSnippet: "Created \(toolchainFileURL.path)",
                 stderrSnippet: nil,
                 errorMessage: nil
             )

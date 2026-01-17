@@ -92,24 +92,6 @@ class ProjectBookmarkService {
         return updatedBookmarks
     }
 
-    /// Update the health status of a bookmark
-    /// - Parameters:
-    ///   - bookmark: The bookmark to update
-    ///   - healthStatus: The new health status
-    ///   - bookmarks: The current list of bookmarks
-    /// - Returns: Updated list of bookmarks
-    func updateHealthStatus(
-        for bookmark: ProjectBookmark,
-        with healthStatus: ProjectHealthStatus,
-        in bookmarks: [ProjectBookmark]
-    ) -> [ProjectBookmark] {
-        var updatedBookmarks = bookmarks
-        if let index = updatedBookmarks.firstIndex(where: { $0.id == bookmark.id }) {
-            updatedBookmarks[index].healthStatus = healthStatus
-        }
-        return updatedBookmarks
-    }
-
     // MARK: - Deletion
 
     /// Remove a bookmark from the list

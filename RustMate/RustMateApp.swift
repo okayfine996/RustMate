@@ -268,6 +268,7 @@ struct RootView: View {
                 MainContentView()
             }
         }
+        .preferredColorScheme(appState.settings.appearanceMode.colorScheme)
         .task {
             // Request notification permission on app launch
             let granted = await TaskNotificationManager.shared.requestAuthorization()

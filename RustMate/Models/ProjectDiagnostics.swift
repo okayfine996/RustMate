@@ -64,8 +64,19 @@ struct ProjectDiagnostics: Codable, Sendable {
         let requiredVersion: String          // From Cargo.toml rust-version
         let configuredVersion: String       // From toolchain config
         let isViolation: Bool                // True if configured < required
-        
+        let cannotDetermine: Bool            // True if versions cannot be compared (non-semver)
+
+        init(requiredVersion: String, configuredVersion: String, isViolation: Bool, cannotDetermine: Bool = false) {
+            self.requiredVersion = requiredVersion
+            self.configuredVersion = configuredVersion
+            self.isViolation = isViolation
+            self.cannotDetermine = cannotDetermine
+        }
+
         var message: String {
+            if cannotDetermine {
+                return "MSRV check inconclusive: Cannot compare \(configuredVersion) with required \(requiredVersion). Non-semver toolchains (nightly/beta/stable) cannot be reliably compared."
+            }
             if isViolation {
                 return "MSRV violation: Project requires \(requiredVersion), but toolchain is \(configuredVersion)"
             }

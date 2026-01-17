@@ -33,16 +33,16 @@ class ProjectDiagnosticsService: DiagnosticsService {
             settings: settings
         )
         defer { authService.stopAccessing(resources) }
-        
+
         // Project path should be validated via ProjectBookmark in the ViewModel
         // For service layer, we assume the path is already authorized
         let projectURL = URL(fileURLWithPath: projectPath)
-        
+
         // Verify path is accessible (basic check)
         guard FileManager.default.fileExists(atPath: projectPath) else {
             throw DiagnosticsError.permissionDenied
         }
-        
+
         // Read configured version from rust-toolchain.toml
         let configuredVersion: String?
         do {
@@ -51,28 +51,31 @@ class ProjectDiagnosticsService: DiagnosticsService {
         } catch {
             configuredVersion = nil
         }
-        
-        // Get override version from rustup show
+
+        // Run rustup show once and cache the output for reuse
+        let rustupShowOutput = try await getRustupShowOutput(projectPath: projectPath)
+
+        // Get override version from cached rustup show output
         // Also check if override exists even if it's being overridden by toolchainFile
-        let overrideVersion = try await getOverrideVersion(projectPath: projectPath)
+        let overrideVersion = getOverrideVersion(from: rustupShowOutput, projectPath: projectPath)
         let hasOverride = try await checkOverrideExists(projectPath: projectPath)
-        
-        // Get actual version that would be used
-        let actualVersion = try await getActualToolchainVersion(projectPath: projectPath)
-        
+
+        // Get actual version from cached rustup show output
+        let actualVersion = extractActualToolchainVersion(from: rustupShowOutput)
+
         // Detect mismatches
         let hasMismatch = detectMismatch(
             configured: configuredVersion,
             override: overrideVersion,
             actual: actualVersion
         )
-        
+
         // Check MSRV
         let msrvViolation = try await checkMSRV(projectPath: projectPath, toolchainVersion: actualVersion)
-        
-        // Determine toolchain source priority
-        // We need to run rustup show again to get the full context info
-        let toolchainSource = try await determineToolchainSource(
+
+        // Determine toolchain source from cached rustup show output
+        let toolchainSource = determineToolchainSource(
+            from: rustupShowOutput,
             projectPath: projectPath,
             hasOverride: overrideVersion != nil,
             hasConfigFile: configuredVersion != nil
@@ -163,48 +166,12 @@ class ProjectDiagnosticsService: DiagnosticsService {
     }
     
     func getActualToolchainVersion(projectPath: String) async throws -> String? {
-        // Validate Security-Scoped Bookmark access for rustup operations
-        let resources = try authService.validateAndResolve(
-            scope: .projectContext,
-            settings: settings
-        )
-        defer { authService.stopAccessing(resources) }
-        
-        // Project path should be validated via ProjectBookmark in the ViewModel
-        // For service layer, we assume the path is already authorized
-        let projectURL = URL(fileURLWithPath: projectPath)
-        
-        // Verify path is accessible (basic check)
-        guard FileManager.default.fileExists(atPath: projectPath) else {
-            throw DiagnosticsError.permissionDenied
-        }
-        
-        // Resolve rustc path (typically via rustup)
-        let rustupPath = try RustupCommandResolver.resolveRustupPath(
-            settings: settings,
-            authService: authService
-        )
-        
-        let env = try RustupCommandResolver.buildEnvironment(
-            settings: settings,
-            authService: authService
-        )
-        
-        // Run rustup show to get active toolchain, then extract version
-        // Use ProcessRunner to execute on background thread
-        let result = try await processRunner.runRustup(
-            at: rustupPath,
-            arguments: ["show"],
-            environment: env,
-            currentDirectoryURL: projectURL
-        )
-        
-        if !result.wasSuccessful {
-            return nil
-        }
-        
-        let output = result.stdout
-        
+        // Run rustup show to get the active toolchain version
+        let output = try await getRustupShowOutput(projectPath: projectPath)
+        return extractActualToolchainVersion(from: output)
+    }
+
+    private func extractActualToolchainVersion(from output: String) -> String? {
         // Parse version from rustup show output
         // Look for "rustc 1.75.0" pattern in the output
         if let versionRange = output.range(of: #"rustc\s+(\d+\.\d+\.\d+)"#, options: .regularExpression) {
@@ -214,88 +181,76 @@ class ProjectDiagnosticsService: DiagnosticsService {
                 return String(match[versionMatch])
             }
         }
-        
+
         return nil
     }
     
     // MARK: - Helper Methods
-    
-    private func getOverrideVersion(projectPath: String) async throws -> String? {
-        // Validate Security-Scoped Bookmark access for rustup operations
-        let resources = try authService.validateAndResolve(
-            scope: .projectContext,
-            settings: settings
-        )
-        defer { authService.stopAccessing(resources) }
-        
-        // Project path should be validated via ProjectBookmark in the ViewModel
-        // For service layer, we assume the path is already authorized
+
+    /// Runs rustup show once and returns the output for caching and reuse
+    private func getRustupShowOutput(projectPath: String) async throws -> String {
         let projectURL = URL(fileURLWithPath: projectPath)
-        
-        // Verify path is accessible (basic check)
-        guard FileManager.default.fileExists(atPath: projectPath) else {
-            return nil
-        }
-        
+
         // Resolve rustup path
         let rustupPath = try RustupCommandResolver.resolveRustupPath(
             settings: settings,
             authService: authService
         )
-        
+
         let env = try RustupCommandResolver.buildEnvironment(
             settings: settings,
             authService: authService
         )
-        
-        // Run rustup show to get override information
-        // Use ProcessRunner to execute on background thread
+
+        // Run rustup show once
         let result = try await processRunner.runRustup(
             at: rustupPath,
             arguments: ["show"],
             environment: env,
             currentDirectoryURL: projectURL
         )
-        
-        guard result.wasSuccessful else {
-            return nil
+
+        if !result.wasSuccessful {
+            return ""
         }
-        
+
+        return result.stdout
+    }
+
+    private func getOverrideVersion(from output: String, projectPath: String) -> String? {
         // Parse output using ShowParser
-        let contextInfo = ShowParser.parse(result.stdout, projectPath: projectPath)
-        
+        let contextInfo = ShowParser.parse(output, projectPath: projectPath)
+
         // Check if there's a directory override (not toolchain file override)
         // Override means rustup override set, not rust-toolchain.toml
         guard contextInfo.reason == .override else {
             return nil
         }
-        
+
         let toolchainName = contextInfo.activeToolchain
-        
+
         // Extract version from toolchain name or rustc output
-        // Priority: 
+        // Priority:
         // 1. Try to extract version number from toolchain name (e.g., "1.75.0-aarch64-apple-darwin")
         // 2. Extract rustc version from output (for channel-based toolchains like stable/beta/nightly)
-        
+
         // Pattern 1: Toolchain name starts with version number
         // Example: "1.75.0-aarch64-apple-darwin" -> "1.75.0"
         if let versionRange = toolchainName.range(of: #"^\d+\.\d+\.\d+"#, options: .regularExpression) {
             return String(toolchainName[versionRange])
         }
-        
+
         // Pattern 2: Extract rustc version from output
         // This works for channel-based toolchains (stable, beta, nightly)
         // Example output: "rustc 1.75.0 (82e1608df 2023-12-21)"
-        if let rustcVersionRange = result.stdout.range(of: #"rustc\s+(\d+\.\d+\.\d+)"#, options: .regularExpression) {
-            let match = String(result.stdout[rustcVersionRange])
+        if let rustcVersionRange = output.range(of: #"rustc\s+(\d+\.\d+\.\d+)"#, options: .regularExpression) {
+            let match = String(output[rustcVersionRange])
             if let versionMatch = match.range(of: #"\d+\.\d+\.\d+"#, options: .regularExpression) {
                 let version = String(match[versionMatch])
-                // For nightly/beta, we might want to include the channel info
-                // But for now, return just the version number
                 return version
             }
         }
-        
+
         // Pattern 3: For nightly with date, extract the date
         // Example: "nightly-2024-01-01-aarch64-apple-darwin" -> "nightly-2024-01-01"
         if toolchainName.contains("nightly-") {
@@ -303,7 +258,7 @@ class ProjectDiagnosticsService: DiagnosticsService {
                 return String(toolchainName[nightlyRange])
             }
         }
-        
+
         // If we can't extract a specific version, return nil
         // This indicates override exists but version couldn't be determined
         return nil
@@ -352,28 +307,37 @@ class ProjectDiagnosticsService: DiagnosticsService {
         // Check if the project path appears in the override list
         // rustup override list output format:
         // /path/to/project    toolchain-name
+        // Note: paths may contain spaces, so we can't simply split by whitespace
         let output = result.stdout
         let normalizedProjectPath = (projectPath as NSString).standardizingPath
-        
+
         // Check if the project path (or any parent) appears in the output
         let lines = output.components(separatedBy: "\n")
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed.isEmpty { continue }
-            
-            // Extract the path from the line (first column)
-            let components = trimmed.components(separatedBy: .whitespaces)
-            if let overridePath = components.first {
-                let normalizedOverridePath = (overridePath as NSString).standardizingPath
-                
-                // Check if the project path matches or is a subdirectory of the override path
-                if normalizedProjectPath == normalizedOverridePath ||
-                   normalizedProjectPath.hasPrefix(normalizedOverridePath + "/") {
-                    return true
+
+            // Use regex to parse: capture path (everything before 2+ spaces/tabs) and toolchain name
+            // Pattern matches: path followed by 2+ whitespace chars, then toolchain name
+            // This handles paths with single spaces but separates on multiple spaces/tabs
+            let pattern = #"^(.+?)\s{2,}(\S+)$"#
+            if let regex = try? NSRegularExpression(pattern: pattern, options: []),
+               let match = regex.firstMatch(in: trimmed, options: [], range: NSRange(trimmed.startIndex..., in: trimmed)),
+               match.numberOfRanges >= 2 {
+                // Extract the path (first capture group)
+                if let pathRange = Range(match.range(at: 1), in: trimmed) {
+                    let overridePath = String(trimmed[pathRange]).trimmingCharacters(in: .whitespaces)
+                    let normalizedOverridePath = (overridePath as NSString).standardizingPath
+
+                    // Check if the project path matches or is a subdirectory of the override path
+                    if normalizedProjectPath == normalizedOverridePath ||
+                       normalizedProjectPath.hasPrefix(normalizedOverridePath + "/") {
+                        return true
+                    }
                 }
             }
         }
-        
+
         return false
     }
     
@@ -411,11 +375,25 @@ class ProjectDiagnosticsService: DiagnosticsService {
                     
                     // Compare with actual toolchain version
                     if let actual = toolchainVersion, let msrv = parseVersion(versionString) {
-                        if compareVersions(actual, msrv) < 0 {
+                        // Attempt to compare versions
+                        if let comparisonResult = compareVersions(actual, msrv) {
+                            // Versions are comparable (both are semver)
+                            if comparisonResult < 0 {
+                                return ProjectDiagnostics.MSRVViolation(
+                                    requiredVersion: versionString,
+                                    configuredVersion: actual,
+                                    isViolation: true
+                                )
+                            }
+                            // No violation - toolchain meets or exceeds MSRV
+                            // Return nil to indicate MSRV is satisfied
+                        } else {
+                            // Versions cannot be compared (e.g., nightly/beta/stable)
                             return ProjectDiagnostics.MSRVViolation(
                                 requiredVersion: versionString,
                                 configuredVersion: actual,
-                                isViolation: true
+                                isViolation: false,
+                                cannotDetermine: true
                             )
                         }
                     }
@@ -430,49 +408,15 @@ class ProjectDiagnosticsService: DiagnosticsService {
     }
     
     private func determineToolchainSource(
+        from output: String,
         projectPath: String,
         hasOverride: Bool,
         hasConfigFile: Bool
-    ) async throws -> ProjectDiagnostics.ToolchainSource {
+    ) -> ProjectDiagnostics.ToolchainSource {
         // Priority: env → toolchainFile → override → default
-        // We need to check the actual rustup show output to determine the source
-        
-        // Validate Security-Scoped Bookmark access
-        let resources = try authService.validateAndResolve(
-            scope: .projectContext,
-            settings: settings
-        )
-        defer { authService.stopAccessing(resources) }
-        
-        let projectURL = URL(fileURLWithPath: projectPath)
-        
-        // Resolve rustup path
-        let rustupPath = try RustupCommandResolver.resolveRustupPath(
-            settings: settings,
-            authService: authService
-        )
-        
-        let env = try RustupCommandResolver.buildEnvironment(
-            settings: settings,
-            authService: authService
-        )
-        
-        // Run rustup show to get context info
-        let result = try await processRunner.runRustup(
-            at: rustupPath,
-            arguments: ["show"],
-            environment: env,
-            currentDirectoryURL: projectURL
-        )
-        
-        guard result.wasSuccessful else {
-            // Fallback to default if we can't determine
-            return .default
-        }
-        
         // Parse output using ShowParser
-        let contextInfo = ShowParser.parse(result.stdout, projectPath: projectPath)
-        
+        let contextInfo = ShowParser.parse(output, projectPath: projectPath)
+
         // Map ShowParser's ToolchainReason to ProjectDiagnostics.ToolchainSource
         switch contextInfo.reason {
         case .environment:
@@ -502,8 +446,8 @@ class ProjectDiagnosticsService: DiagnosticsService {
         return components.count >= 2 ? components : nil
     }
     
-    private func compareVersions(_ v1: String, _ v2: [Int]) -> Int {
-        guard let v1Components = parseVersion(v1) else { return 0 }
+    private func compareVersions(_ v1: String, _ v2: [Int]) -> Int? {
+        guard let v1Components = parseVersion(v1) else { return nil }
         for (i, component) in v1Components.enumerated() {
             if i >= v2.count { return 1 }
             if component < v2[i] { return -1 }

@@ -122,9 +122,6 @@ struct SettingsView: View {
             // Rustup Configuration
             RustupConfigurationSection(viewModel: viewModel)
 
-            // Project Override Section
-            ProjectOverrideSection(viewModel: viewModel)
-
             // UI Preferences (including notifications)
             UIPreferencesSection(viewModel: viewModel)
         }
