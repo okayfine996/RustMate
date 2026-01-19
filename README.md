@@ -23,7 +23,7 @@ RustMate 是一款 macOS 应用，提供对 Rust 工具链（rustup）的可视�
 <img width="1980" height="1200" alt="image" src="https://github.com/user-attachments/assets/95b042c4-2b96-4d74-864b-b0cb2526a975" />
 ## 使用前准备
 
-- macOS 13.0+（Ventura 或更新）
+- macOS 14.0+（Sonoma 或更新）
 - 已安装 rustup（`rustup --version` 可正常输出）
 - 首次运行需授权：
   - `~/.cargo/bin`（访问 rustup 可执行文件）
