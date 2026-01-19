@@ -4,6 +4,15 @@
         <title>RustMate Updates (Stable)</title>
         <description>Stable channel updates for RustMate</description>
         <language>en</language>
+        <item>
+            <title>1.0.0</title>
+            <pubDate>Mon, 19 Jan 2026 13:14:35 +0000</pubDate>
+            <sparkle:fullReleaseNotesLink>https://github.com/okayfine996/RustMate/releases/tag/v1.0.0</sparkle:fullReleaseNotesLink>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/okayfine996/RustMate/releases/download/v1.0.0/RustMate-v1.0.0.dmg" length="5272968" type="application/octet-stream"/>
+        </item>
 </channel>
 </rss>
 
